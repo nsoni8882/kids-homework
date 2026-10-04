@@ -13,7 +13,7 @@
  */
 
 import { CHILDREN } from './config.js';
-import { loadLive, loadArchive } from './store.js';
+import { apiDashboard } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
 import { trendChart, subjectChart, lossChart, sparkline,
   SUBJECTS, SUBJECT_LABEL } from './charts.js';
@@ -39,9 +39,7 @@ const VERDICT = {
 
 const charts = {};
 const focus = {};   // child -> the focused subject, or null
-let live = null;
-let archive = null;
-let archivePromise = null;
+let live = null;      // the API payload, keyed by child
 let roadmap = null;
 let spine = null;
 
@@ -89,6 +87,8 @@ function initTheme() {
 /** Normalise a week from either bin into the one shape the UI uses. */
 function norm(kid, raw) {
   const max = MAX[kid];
+  // the API already gives outOf and sectionMarks, so only the subject rollup
+  // and the headline fields need deriving
   const sm = raw.sectionMarks || {};
   const has = Object.keys(sm).length > 0;
   const sum = (...ids) => ids.reduce((t, id) => t + (sm[id] || 0), 0);
@@ -118,20 +118,20 @@ function norm(kid, raw) {
     hintedSections: raw.hintedSections || [],
     notes: raw.notes || '',
     submittedAt: raw.submittedAt || null,
-    hasAnswers: !!(raw.archive && Object.keys(raw.archive).length),
+    hasAnswers: !!(raw.archive && Object.keys(raw.archive).length) || !!raw.submittedAt,
     lost,
   };
 }
 
-function getArchive() {
-  if (!archivePromise) archivePromise = loadArchive().then((d) => { archive = d; return d; });
-  return archivePromise;
-}
+/* The API returns every week in one payload, so there is no archive to fetch
+   lazily any more. The D1 database has no 100KB cap, which is what forced the
+   split in the first place. */
+const getArchive = async () => live;
 
 async function init() {
   try {
     const [liveData, roadmapData, spineData] = await Promise.all([
-      loadLive(),
+      apiDashboard(),
       fetch(new URL('./roadmap.json', import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch(new URL('../curriculum/spine.json', import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
@@ -183,13 +183,15 @@ function redrawAll() { if (live) drawCharts(visibleKid()); }
 
 /* -------------------------------------------------------------- rendering */
 
-function weeksFor(kid) {
-  return (live[kid].weeks || []).map((w) => norm(kid, w));
+/** The charts show the recent run; the full history panel shows everything. */
+function weeksFor(kid, all = false) {
+  const list = (live[kid].weeks || []).filter((w) => w.total != null).map((w) => norm(kid, w));
+  return all ? list : list.slice(-8);
 }
 
 function renderKid(kid) {
   const data = live[kid] || {};
-  if (!data.weeks || !data.weeks.length) {
+  if (!data.weeks || !data.weeks.filter((w) => w.total != null).length) {
     $(`panel-${kid}`).innerHTML = `<div class="card"><div class="empty">${icon('inbox', 'i i-lg')}
       <h2>No weeks recorded yet</h2><p>The first submitted worksheet shows up here.</p></div></div>`;
     return;
@@ -197,7 +199,7 @@ function renderKid(kid) {
   const weeks = weeksFor(kid);
   const w = weeks[weeks.length - 1];
   const prev = weeks.length > 1 ? weeks[weeks.length - 2] : null;
-  const gaps = data.gaps || [];
+  const gaps = (data.gaps || []).filter((g) => g.status !== 'resolved');
 
   $(`panel-${kid}`).innerHTML = `
     <h1 class="sr-only">${CHILDREN[kid].name}'s progress</h1>
@@ -600,7 +602,7 @@ async function loadResolvedGaps(kid) {
     <span class="card-note">Loading the archive</span></div>`;
   try {
     const d = await getArchive();
-    const resolved = ((d[kid] || {}).resolvedGaps) || [];
+    const resolved = ((d[kid] || {}).gaps || []).filter((g) => g.status === 'resolved');
     $(`${kid}-resolved`).querySelector('summary').innerHTML =
       `${icon('chevronRight', 'i i-sm chev')} Resolved gaps (${resolved.length})`;
     box.innerHTML = resolved.length ? heatHtml(resolved)
@@ -617,9 +619,7 @@ async function loadHistory(kid) {
     <span class="card-note">Loading the archive</span></div>`;
   try {
     const d = await getArchive();
-    const older = ((d[kid] || {}).weeks) || [];
-    const all = [...older, ...(live[kid].weeks || [])].map((w) => norm(kid, w))
-      .sort((a, b) => a.week - b.week);
+    const all = weeksFor(kid, true).sort((a, b) => a.week - b.week);
     $(`${kid}-history`).querySelector('summary').innerHTML =
       `${icon('chevronRight', 'i i-sm chev')} Full history, weeks ${all[0].week} to ${all[all.length - 1].week}`;
 

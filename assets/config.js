@@ -8,6 +8,20 @@
 
 export const ACCESS_KEY = '$2a$10$Y9F3Cfhg1.rVgc23d7egfuECDbmcBIXPjm6GKBcb/MyGb5kt6vIiG';
 
+/* The API. Marking, and every write, happens here rather than in the page, so
+   no secret and no blanket write access reaches the browser. The JSONbin
+   constants below are the fallback while the switch settles, and go once it has. */
+export const API = 'https://kids-homework-api.nikunj-sap.workers.dev';
+
+/** Set ?api=jsonbin on the URL to force the old path if the Worker is ever down. */
+export function useApi() {
+  try {
+    return new URLSearchParams(location.search).get('api') !== 'jsonbin';
+  } catch {
+    return true;
+  }
+}
+
 export const BINS = {
   live: '6a0a0384adc21f119ab47d7e',       // weeks, gaps, curriculum position
   archive: '6aa7b068ac6210605aca94c2',    // older weeks, resolved gaps, past question sets

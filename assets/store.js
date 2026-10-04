@@ -8,12 +8,12 @@
 
 import { ACCESS_KEY, BINS } from './config.js';
 
-const API = 'https://api.jsonbin.io/v3/b';
+const JSONBIN = 'https://api.jsonbin.io/v3/b';
 
 const readHeaders = { 'X-Access-Key': ACCESS_KEY, 'X-Bin-Meta': 'false' };
 
 async function getBin(binId, { fresh = false } = {}) {
-  const res = await fetch(`${API}/${binId}`, {
+  const res = await fetch(`${JSONBIN}/${binId}`, {
     headers: readHeaders,
     cache: fresh ? 'no-store' : 'default',
   });
@@ -28,7 +28,7 @@ export const loadArchive = (opts) => getBin(BINS.archive, opts);
 export const loadCurrent = (opts) => getBin(BINS.current, opts);
 
 async function putLive(payload) {
-  const res = await fetch(`${API}/${BINS.live}`, {
+  const res = await fetch(`${JSONBIN}/${BINS.live}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'X-Access-Key': ACCESS_KEY },
     body: JSON.stringify(payload),
@@ -107,3 +107,48 @@ export async function saveWeek({
   onProgress('failed', attempts, lastError && lastError.message);
   throw lastError;
 }
+
+/* -------------------------------------------------------------------- API --
+ *
+ * The Worker path. The JSONbin functions above stay for now as a fallback that
+ * can be forced with ?api=jsonbin, and come out once this has run a full week.
+ */
+
+import { API as WORKER } from './config.js';
+
+async function api(path, options = {}) {
+  const res = await fetch(`${WORKER}${path}`, {
+    ...options,
+    headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+  return body;
+}
+
+/** This week's questions, plus whether it was already submitted. */
+export const apiWeek = (child) => api(`/api/week/${child}`);
+
+/** Everything the dashboard needs for both children. */
+export const apiDashboard = () => api('/api/dashboard');
+
+/** The child's own progress page. */
+export const apiProgress = (child) => api(`/api/progress/${child}`);
+
+/**
+ * Submit a week. The server marks it: deterministic first, then Jev on anything
+ * that rejected and on every question that used to come straight to the parent.
+ * The browser no longer decides any mark.
+ */
+export const apiSubmit = (child, payload) => api(`/api/week/${child}/submit`, {
+  method: 'POST',
+  body: JSON.stringify(payload),
+});
+
+/** Record the marks a grown up awarded for the questions Jev referred.
+    The server recomputes the totals from its own rows, so the page cannot
+    inflate a score. */
+export const apiAward = (child, awards) => api(`/api/week/${child}/award`, {
+  method: 'POST',
+  body: JSON.stringify({ awards }),
+});

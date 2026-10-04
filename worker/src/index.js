@@ -328,6 +328,82 @@ async function handleSubmit(request, env, child, ctx) {
   }, request, env);
 }
 
+/** Record the marks a grown up awarded for the questions Jev referred.
+ *
+ *  Separate from submit on purpose: submitting is the child's action and
+ *  awarding is the parent's, and they can be minutes apart. Recomputing the
+ *  totals here rather than trusting a number from the page means the page
+ *  cannot inflate a score. */
+async function handleAward(request, env, child, ctx) {
+  const week = await getCurrentWeek(env, child);
+  let body;
+  try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
+  const awards = body && body.awards;
+  if (!awards || typeof awards !== 'object') return fail('awards object required', request, env);
+
+  const set = await getQuestionSet(env, child, week);
+  if (!set) return fail('no questions stored for this week', request, env, 404);
+  const byId = Object.fromEntries(set.sections.flatMap((s) => s.questions.map((q) => [q.id, q])));
+
+  const statements = [];
+  for (const [qid, raw] of Object.entries(awards)) {
+    const q = byId[qid];
+    if (!q) return fail(`unknown question ${qid}`, request, env);
+    const marks = Number(raw);
+    if (!Number.isInteger(marks) || marks < 0 || marks > q.marks) {
+      return fail(`${qid} must be a whole number between 0 and ${q.marks}`, request, env);
+    }
+    statements.push(env.DB.prepare(
+      `UPDATE answer SET marks = ?, correct = ?, marked_by = 'parent', jev_reason = 'awarded by a grown up'
+       WHERE child_id = ? AND week = ? AND question_id = ?`,
+    ).bind(marks, marks > 0 ? 1 : 0, child, week, qid));
+    statements.push(env.DB.prepare(
+      `UPDATE decision SET status = 'accepted', resolved_at = datetime('now')
+       WHERE child_id = ? AND week = ? AND question_id = ? AND kind = 'mark' AND status = 'open'`,
+    ).bind(child, week, qid));
+  }
+  if (statements.length) await env.DB.batch(statements);
+
+  // Recompute from the rows, never from anything the page sent.
+  const rows = await env.DB.prepare(
+    'SELECT question_id, section_id, marks, correct FROM answer WHERE child_id = ? AND week = ?',
+  ).bind(child, week).all();
+  const byQ = Object.fromEntries(rows.results.map((r) => [r.question_id, r]));
+
+  const sectionMarks = {};
+  for (const section of set.sections) {
+    if (section.scoreBand) {
+      const correct = section.questions.filter(
+        (q) => q.autoMark && byQ[q.id] && byQ[q.id].correct === 1,
+      ).length;
+      let band = 0;
+      for (const [lo, hi, m] of section.scoreBandRules || []) {
+        if (correct >= lo && correct <= hi) { band = m; break; }
+      }
+      sectionMarks[section.id] = band;
+      continue;
+    }
+    sectionMarks[section.id] = section.questions.reduce(
+      (t, q) => t + ((byQ[q.id] && byQ[q.id].marks) || 0), 0,
+    );
+  }
+  const total = Object.values(sectionMarks).reduce((a, b) => a + b, 0);
+  const outOf = set.sections.reduce((t, s) => t + s.totalMarks, 0);
+
+  const updates = [env.DB.prepare('UPDATE week SET total = ?, out_of = ? WHERE child_id = ? AND week = ?')
+    .bind(total, outOf, child, week)];
+  for (const [sid, m] of Object.entries(sectionMarks)) {
+    updates.push(env.DB.prepare(
+      'UPDATE section_mark SET marks = ? WHERE child_id = ? AND week = ? AND section_id = ?',
+    ).bind(m, child, week, sid));
+  }
+  await env.DB.batch(updates);
+
+  ctx.waitUntil(audit(env, 'browser', 'award', child, week,
+    `${Object.keys(awards).length} awarded, total now ${total}/${outOf}`));
+  return json({ child, week, total, outOf, sectionMarks }, request, env);
+}
+
 /* ---------------------------------------------------------------- dashboard */
 
 async function handleDashboard(request, env) {
@@ -338,7 +414,8 @@ async function handleDashboard(request, env) {
     ).bind(child).first();
 
     const weeks = await env.DB.prepare(
-      `SELECT week, total, out_of, submitted_at, adjusted_at, notes, elapsed_secs, unanswered
+      `SELECT week, total, out_of, submitted_at, adjusted_at, notes, elapsed_secs, unanswered,
+              summary, verdict, wins, errors, design_issues, hinted_sections
        FROM week WHERE child_id = ? ORDER BY week`,
     ).bind(child).all();
 
@@ -381,6 +458,12 @@ async function handleDashboard(request, env) {
         notes: w.notes,
         elapsedSecs: w.elapsed_secs,
         unanswered: w.unanswered,
+        summary: w.summary,
+        verdict: w.verdict,
+        wins: w.wins ? JSON.parse(w.wins) : [],
+        errors: w.errors ? JSON.parse(w.errors) : [],
+        designIssues: w.design_issues ? JSON.parse(w.design_issues) : [],
+        hintedSections: w.hinted_sections ? JSON.parse(w.hinted_sections) : [],
         sectionMarks: Object.fromEntries(
           Object.entries(bySection[w.week] || {}).map(([k, v]) => [k, v.marks]),
         ),
@@ -559,6 +642,12 @@ export default {
 
       if (path === '/api/dashboard' && request.method === 'GET') {
         return handleDashboard(request, env);
+      }
+
+      const award = path.match(/^\/api\/week\/([a-z]+)\/award$/);
+      if (award && request.method === 'POST') {
+        if (!isChild(award[1])) return fail('unknown child', request, env, 404);
+        return handleAward(request, env, award[1], ctx);
       }
 
       const prog = path.match(/^\/api\/progress\/([a-z]+)$/);

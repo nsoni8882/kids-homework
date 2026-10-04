@@ -31,7 +31,15 @@ CREATE TABLE IF NOT EXISTS week (
   out_of        INTEGER,
   submitted_at  TEXT,
   adjusted_at   TEXT,                          -- set when a mark was changed by hand
-  notes         TEXT,
+  notes         TEXT,                          -- the full prose record
+  -- The headline the dashboard leads with. Editorial judgements written during
+  -- the weekly cycle, distinct from the per question marks in `answer`.
+  summary       TEXT,                          -- ONE or TWO sentences
+  verdict       TEXT CHECK (verdict IS NULL OR verdict IN ('strong','steady','dip','concern')),
+  wins          TEXT,                          -- JSON array of strings
+  errors        TEXT,                          -- JSON array of {where, what}
+  design_issues TEXT,                          -- JSON array of {where, what, decision}
+  hinted_sections TEXT,                        -- JSON array of section ids
   -- Pace. The old app ran a timer per section and threw the number away, so
   -- "leaves the last question blank" could only ever be a guess.
   elapsed_secs  INTEGER,

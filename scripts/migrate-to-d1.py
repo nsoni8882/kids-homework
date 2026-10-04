@@ -103,13 +103,21 @@ def build(local):
         for w in d["weeks"]:
             wk = w["week"]
             s = w["score"]
+            jl = lambda v: json.dumps(v, ensure_ascii=False) if v else None
             sql.append(
-                "INSERT INTO week (child_id, week, total, out_of, submitted_at, adjusted_at, notes) "
+                "INSERT INTO week (child_id, week, total, out_of, submitted_at, adjusted_at, notes, "
+                "summary, verdict, wins, errors, design_issues, hinted_sections) "
                 f"VALUES ({q(child)}, {wk}, {q(s['total'])}, {q(s['outOf'])}, "
-                f"{q(w.get('submittedAt'))}, {q(w.get('adjustedAt'))}, {q(w.get('notes') or None)}) "
+                f"{q(w.get('submittedAt'))}, {q(w.get('adjustedAt'))}, {q(w.get('notes') or None)}, "
+                f"{q(w.get('summary') or None)}, {q(w.get('verdict'))}, {q(jl(w.get('wins')))}, "
+                f"{q(jl(w.get('errors')))}, {q(jl(w.get('designIssues')))}, "
+                f"{q(jl(w.get('hintedSections')))}) "
                 "ON CONFLICT(child_id, week) DO UPDATE SET total=excluded.total, "
                 "out_of=excluded.out_of, submitted_at=excluded.submitted_at, "
-                "adjusted_at=excluded.adjusted_at, notes=excluded.notes;")
+                "adjusted_at=excluded.adjusted_at, notes=excluded.notes, "
+                "summary=excluded.summary, verdict=excluded.verdict, wins=excluded.wins, "
+                "errors=excluded.errors, design_issues=excluded.design_issues, "
+                "hinted_sections=excluded.hinted_sections;")
             counts["week"] += 1
 
             qset = sets.get(wk)
@@ -140,7 +148,13 @@ def build(local):
                     "ON CONFLICT(child_id, week, question_id) DO UPDATE SET given=excluded.given;")
                 counts["answer"] += 1
 
-        # gaps, with their per week observation log
+        # gaps, with their per week observation log.
+        # Clear this child's gaps first: a gap has no natural id in the source
+        # data, only its topic, and a plain insert made re-running the migration
+        # double them. Rebuilding them is cheap and always correct.
+        sql.append(f"DELETE FROM gap_observation WHERE gap_id IN "
+                   f"(SELECT id FROM gap WHERE child_id = {q(child)});")
+        sql.append(f"DELETE FROM gap WHERE child_id = {q(child)};")
         for g in d["gaps"]:
             topic = g.get("topic")
             obs = g.get("weeks") or []

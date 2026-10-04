@@ -5,8 +5,8 @@
    read only from the welcome screen. */
 
 import { CHILDREN, currentChild } from './config.js';
-import { loadLive, loadCurrent, saveWeek } from './store.js';
-import { answersMatch, markSection, parentMarkedQuestions } from './marking.js';
+import { apiWeek, apiSubmit, apiAward } from './store.js';
+import { answersMatch } from './marking.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
 
 const child = currentChild();
@@ -28,6 +28,17 @@ let toMark = [];           // parent marked questions
 let markIdx = 0;
 let reviewMode = false;
 let timerId = null;
+let serverResult = null;
+const sectionSecs = {};        // how long each section actually took
+let sectionStarted = Date.now();
+const startedAt = Date.now();
+
+function recordSectionTime() {
+  const sec = week.sections[sectionIdx];
+  if (!sec) return;
+  sectionSecs[sec.id] = (sectionSecs[sec.id] || 0) + Math.round((Date.now() - sectionStarted) / 1000);
+  sectionStarted = Date.now();
+}
 
 /* ------------------------------------------------------------------ theme */
 
@@ -70,13 +81,12 @@ async function init() {
     <p>Loading this week's homework</p>
   </div>`);
   try {
-    // Two small reads rather than one large one: the questions and the record of
-    // whether this week was already submitted.
-    const [currentBin, liveBin] = await Promise.all([loadCurrent(), loadLive()]);
-    const entry = currentBin[child];
-    if (!entry || !entry.currentWeek) throw new Error('no week has been set up yet');
-    week = entry.currentWeek;
-    savedEntry = ((liveBin[child] || {}).weeks || []).find((w) => w.week === week.weekNum) || null;
+    const data = await apiWeek(child);
+    week = data.questions;
+    savedEntry = data.submitted
+      ? { week: data.week, total: data.submitted.total, outOf: data.submitted.outOf,
+          sectionMarks: data.submitted.sectionMarks, archive: data.submitted.answers }
+      : null;
     showWelcome();
   } catch (err) {
     render(`<div class="center-state">
@@ -221,7 +231,7 @@ function showSection() {
   const prev = app.querySelector('[data-nav="prev"]');
   if (prev) prev.addEventListener('click', prevSection);
 
-  if (!reviewMode) startTimer(sec);
+  if (!reviewMode) { sectionStarted = Date.now(); startTimer(sec); }
 }
 
 function startTimer(sec) {
@@ -332,29 +342,68 @@ function collect() {
 }
 
 function prevSection() {
-  if (!reviewMode) {
-    collect();
-    sectionMarks[week.sections[sectionIdx].id] = markSection(week.sections[sectionIdx], answers);
-  }
+  if (!reviewMode) { collect(); recordSectionTime(); }
   if (sectionIdx > 0) { sectionIdx--; showSection(); }
 }
 
 function nextSection() {
-  if (!reviewMode) {
-    collect();
-    sectionMarks[week.sections[sectionIdx].id] = markSection(week.sections[sectionIdx], answers);
-  }
+  if (!reviewMode) { collect(); recordSectionTime(); }
   sectionIdx++;
   if (sectionIdx < week.sections.length) { showSection(); return; }
 
   clearInterval(timerId);
   if (reviewMode) { showResults(true); return; }
-  toMark = parentMarkedQuestions(week.sections);
-  markIdx = 0;
-  if (toMark.length) showMarkScreen(); else showResults(false);
+  submitToServer();
+}
+
+/* The marking now happens on the server, where the key for Jev lives and where
+   the child's browser cannot influence the result. The page sends the answers
+   and is told what was decided. */
+async function submitToServer() {
+  render(`<div class="center-state">
+    <div class="spinner" role="status" aria-label="Marking"></div>
+    <h2>Marking</h2>
+    <p>Checking the answers</p>
+  </div>`);
+  try {
+    serverResult = await apiSubmit(child, {
+      week: week.weekNum,
+      answers,
+      elapsedSecs: Math.round((Date.now() - startedAt) / 1000),
+      sectionSecs,
+    });
+    sectionMarks = serverResult.sectionMarks;
+    // Only what Jev could not settle needs a grown up.
+    toMark = Object.entries(serverResult.perQuestion)
+      .filter(([, p]) => p.markedBy === 'parent')
+      .map(([qid]) => {
+        const section = week.sections.find((sec) => sec.questions.some((q) => q.id === qid));
+        return { section, q: section.questions.find((q) => q.id === qid), marksAwarded: null };
+      });
+    markIdx = 0;
+    if (toMark.length) showMarkScreen(); else showResults(false);
+  } catch (err) {
+    render(`<div class="center-state"><div class="error-card">
+      ${iconLabelled('alert', 'Error', 'i i-lg')}
+      <h2>Could not save the answers</h2><p>${esc(err.message)}</p>
+      <p style="font-size:.85rem">Nothing is lost. Tap to try again, and do not close this tab.</p>
+      <button class="btn btn-secondary" id="retry-submit">${icon('refresh')} Try again</button>
+    </div></div>`);
+    const b = document.getElementById('retry-submit');
+    if (b) b.addEventListener('click', submitToServer);
+  }
 }
 
 /* ---------------------------------------------------------- parent marking */
+
+/** Say why this one reached a human, so the choice is informed rather than blind. */
+function jevNote(qid) {
+  const p = serverResult && serverResult.perQuestion && serverResult.perQuestion[qid];
+  if (!p || !p.reason) return '';
+  return `<p class="helper" style="color:var(--text-3);margin-top:var(--s3)">
+    ${icon('sparkle', 'i i-sm')} Checked automatically first and it was not confident enough to
+    decide: ${esc(p.reason)}</p>`;
+}
 
 function showMarkScreen() {
   if (markIdx >= toMark.length) { showResults(false); return; }
@@ -374,7 +423,7 @@ function showMarkScreen() {
 
   render(`<div class="page page-narrow" style="padding-top:var(--s6)">
     <div class="review-head">
-      <p class="review-step">${icon('clipboard', 'i i-sm')} Parent marking, ${markIdx + 1} of ${toMark.length}</p>
+      <p class="review-step">${icon('clipboard', 'i i-sm')} A grown up decides, ${markIdx + 1} of ${toMark.length}</p>
       <h1>${esc(sec.title)}</h1>
     </div>
     <section class="card">
@@ -384,6 +433,7 @@ function showMarkScreen() {
         <div class="answer-text">${given ? esc(given) : '<em style="color:var(--text-3)">Left blank</em>'}</div>
       </div>
       ${scheme}
+      ${jevNote(q.id)}
       <fieldset style="border:0;padding:0;margin:var(--s5) 0 0">
         <legend class="answer-label" style="padding:0">Award marks out of ${q.marks}</legend>
         <div class="mark-buttons">${buttons}</div>
@@ -416,6 +466,8 @@ function showResults(readOnly) {
   if (readOnly && savedEntry && savedEntry.sectionMarks) {
     finalMarks = { ...savedEntry.sectionMarks };
   } else {
+    // The server owns the marks. Anything awarded here is added for display and
+    // then sent, after which the server recomputes and is the authority.
     finalMarks = { ...sectionMarks };
     toMark.forEach((item) => {
       if (item.marksAwarded !== null) {
@@ -477,7 +529,45 @@ function showResults(readOnly) {
   const home = app.querySelector('[data-act="home"]');
   if (home) home.addEventListener('click', showWelcome);
 
-  if (!readOnly) doSave(total, maxTotal, finalMarks);
+  if (!readOnly) sendAwards();
+}
+
+/** The answers are already saved. This only sends the marks a grown up awarded
+    for the few Jev referred. */
+async function sendAwards() {
+  const box = document.getElementById('save-status');
+  const text = document.getElementById('save-text');
+  const retry = document.getElementById('retry-btn');
+  if (retry) retry.style.display = 'none';
+
+  const awards = {};
+  toMark.forEach((item) => {
+    if (item.marksAwarded !== null) awards[item.q.id] = item.marksAwarded;
+  });
+
+  if (!Object.keys(awards).length) {
+    if (box) box.className = 'save-status is-ok';
+    if (text) {
+      text.textContent = serverResult
+        ? `Week ${week.weekNum} saved. ${serverResult.askedJev} answer${serverResult.askedJev === 1 ? '' : 's'} were checked for meaning.`
+        : `Week ${week.weekNum} saved.`;
+    }
+    return;
+  }
+
+  if (text) text.textContent = 'Saving the marks you awarded';
+  try {
+    const r = await apiAward(child, awards);
+    if (box) box.className = 'save-status is-ok';
+    if (text) text.textContent = `Week ${week.weekNum} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
+  } catch (err) {
+    if (box) box.className = 'save-status is-bad';
+    if (text) text.textContent = `The answers are saved, but the marks you awarded did not go through (${err.message}).`;
+    if (retry) {
+      retry.style.display = 'inline-flex';
+      retry.onclick = sendAwards;
+    }
+  }
 }
 
 function wrongAnswers(readOnly) {
@@ -488,6 +578,25 @@ function wrongAnswers(readOnly) {
     sec.questions.forEach((q) => {
       if (q.inputType === 'none') return;
       const given = (ans[q.id] || '').trim();
+      const verdict = !readOnly && serverResult ? serverResult.perQuestion[q.id] : null;
+
+      if (verdict) {
+        // The server marked it. Show anything that did not get full marks, and
+        // say who decided, because "a machine judged your wording" is a
+        // different thing from "this did not match the answer".
+        const awarded = verdict.marks;
+        const found = toMark.find((i) => i.q.id === q.id);
+        const finalMarks = found && found.marksAwarded !== null ? found.marksAwarded : awarded;
+        if (finalMarks === null || finalMarks >= q.marks) return;
+        items.push({
+          type: verdict.markedBy === 'auto' ? 'auto' : 'parent',
+          section: sec, q, given, awarded: finalMarks, readOnly,
+          markedBy: verdict.markedBy,
+          correct: (q.accepted && q.accepted.length) ? q.accepted[0] : (q.markScheme || '-'),
+        });
+        return;
+      }
+
       if (q.autoMark) {
         if (!answersMatch(given, q.accepted, q.inputType)) {
           items.push({
@@ -497,7 +606,6 @@ function wrongAnswers(readOnly) {
         }
         return;
       }
-      // parent marked: in a live run show only what lost marks, in review show all for reference
       let awarded = null;
       if (!readOnly) {
         const found = toMark.find((i) => i.q.id === q.id);
@@ -542,8 +650,10 @@ function wrongCard(it) {
   </div>`;
 
   if (it.type === 'parent') {
+    const who = it.markedBy === 'jev' ? 'checked for meaning'
+      : it.markedBy === 'parent' ? 'decided by a grown up' : 'parent marked';
     const tag = (!it.readOnly && it.awarded !== null)
-      ? `${it.awarded} of ${q.marks} ${plural(q.marks)}` : 'parent marked';
+      ? `${it.awarded} of ${q.marks} ${plural(q.marks)}, ${who}` : who;
     return `<article class="wrong-card parent-card">
       <span class="badge badge-warn">${icon('sparkle')} ${esc(q.id)} · ${esc(tag)}</span>
       <p class="wrong-q-text">${esc(text)}</p>
@@ -566,42 +676,6 @@ function wrongCard(it) {
       </div>
     </div>
   </article>`;
-}
-
-/* ------------------------------------------------------------------- save */
-
-async function doSave(total, outOf, finalMarks) {
-  const box = document.getElementById('save-status');
-  const text = document.getElementById('save-text');
-  const retry = document.getElementById('retry-btn');
-  if (retry) retry.style.display = 'none';
-  if (box) box.className = 'save-status';
-
-  const onProgress = (stage, attempt, detail) => {
-    if (!text) return;
-    if (stage === 'saving') text.textContent = 'Saving';
-    else if (stage === 'retrying') text.textContent = `Saving, attempt ${attempt} of 4`;
-    else if (stage === 'waiting') text.textContent = `That did not stick (${detail}), trying again`;
-  };
-
-  try {
-    const saved = await saveWeek({
-      child, week: week.weekNum, total, outOf,
-      sectionMarks: finalMarks, answers, onProgress,
-    });
-    savedEntry = saved;
-    if (box) box.className = 'save-status is-ok';
-    if (text) text.textContent = `Week ${week.weekNum} saved. Check the dashboard.`;
-  } catch (err) {
-    if (box) box.className = 'save-status is-bad';
-    if (text) {
-      text.textContent = `Not saved after 4 tries (${err.message}). Tap below. Do not close this tab.`;
-    }
-    if (retry) {
-      retry.style.display = 'inline-flex';
-      retry.onclick = () => doSave(total, outOf, finalMarks);
-    }
-  }
 }
 
 initTheme();
