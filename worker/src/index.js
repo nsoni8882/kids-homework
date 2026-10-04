@@ -18,9 +18,17 @@
  */
 
 import { answersMatch } from '../../assets/marking.js';
-import { Jev, markAnswer, diagnose, scoreWriting, POLICY } from './jev.js';
+import { Jev, markAnswer, scoreWriting } from './jev.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
+
+/* Every timestamp this Worker writes is an ISO 8601 string, because the rows it
+   writes are compared against ISO strings. SQLite's own datetime('now') yields
+   "2026-10-04 21:32:29" with a space, which sorts BELOW any "...T..." stamp for
+   the same instant, so mixing the two makes every comparison wrong in a way
+   that looks like it works. */
+const nowIso = () => new Date().toISOString();
+const isoMinusSecs = (s) => new Date(Date.now() - s * 1000).toISOString();
 
 /* --------------------------------------------------------------------- cors */
 
@@ -50,11 +58,28 @@ const CHILDREN = ['mason', 'elysia'];
 const isChild = (c) => CHILDREN.includes(c);
 const slotOf = (id) => String(id).slice(0, 2);
 
+/* An answer arrives as JSON from a browser, so it can be any type. Coerce it to
+   a string rather than trusting it: `(5).trim` is not a function, and before
+   this a numeric answer took the whole submission down with a 500. */
+const ANSWER_MAX = 4000;
+const asAnswer = (v) => {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object') return '';
+  return String(v).slice(0, ANSWER_MAX).trim();
+};
+
+/** Every question in the week, by id. Built once: finding each one with a
+    flatMap().find() per question made submit quadratic in the question count. */
+const indexQuestions = (set) => Object.fromEntries(
+  set.sections.flatMap((s) => s.questions.map((q) => [q.id, q])),
+);
+
 async function audit(env, actor, action, child, week, detail) {
   try {
     await env.DB.prepare(
-      'INSERT INTO audit (actor, action, child_id, week, detail) VALUES (?, ?, ?, ?, ?)',
-    ).bind(actor, action, child || null, week ?? null, detail ? String(detail).slice(0, 500) : null).run();
+      'INSERT INTO audit (actor, action, child_id, week, detail, at) VALUES (?, ?, ?, ?, ?, ?)',
+    ).bind(actor, action, child || null, week ?? null,
+      detail ? String(detail).slice(0, 500) : null, nowIso()).run();
   } catch {
     /* an audit failure must never fail the request it is recording */
   }
@@ -120,14 +145,14 @@ async function handleWeek(request, env, child) {
  * accepted answer. Jev only sees what it could not settle, which is a small
  * handful per week.
  */
-async function markWeek(env, child, set, answers, jev) {
+async function markWeek(child, set, answers, jev) {
   const perQuestion = {};
   const toAsk = [];
 
   for (const section of set.sections) {
     for (const q of section.questions) {
       if (q.inputType === 'none') continue;
-      const given = (answers[q.id] || '').trim();
+      const given = asAnswer(answers[q.id]);
 
       if (q.autoMark && answersMatch(given, q.accepted, q.inputType)) {
         perQuestion[q.id] = {
@@ -185,7 +210,6 @@ async function markWeek(env, child, set, answers, jev) {
   // Section totals. A drill is banded on the count correct, not the sum.
   const sectionMarks = {};
   const sectionOutOf = {};
-  let needsParent = 0;
 
   for (const section of set.sections) {
     sectionOutOf[section.id] = section.totalMarks;
@@ -203,12 +227,17 @@ async function markWeek(env, child, set, answers, jev) {
     let earned = 0;
     for (const q of section.questions) {
       const p = perQuestion[q.id];
-      if (!p) continue;
-      if (p.marks === null) { needsParent++; continue; }
+      if (!p || p.marks === null) continue;
       earned += p.marks;
     }
     sectionMarks[section.id] = earned;
   }
+
+  // Count every referral, wherever it sits. Counting only the non-drill
+  // sections meant a referred drill item created a decision row for the parent
+  // while telling the page nothing was waiting, so the page skipped the marking
+  // screen and the decision was never answered.
+  const needsParent = Object.values(perQuestion).filter((p) => p.marks === null).length;
 
   const total = Object.values(sectionMarks).reduce((a, b) => a + b, 0);
   const outOf = Object.values(sectionOutOf).reduce((a, b) => a + b, 0);
@@ -228,7 +257,9 @@ async function handleSubmit(request, env, child, ctx) {
     return fail('body must be JSON', request, env);
   }
   const answers = body && body.answers;
-  if (!answers || typeof answers !== 'object') return fail('answers object required', request, env);
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+    return fail('answers object required', request, env);
+  }
   if (Object.keys(answers).length > 400) return fail('too many answers', request, env, 413);
 
   // Only ever the current week, so a stale or crafted request cannot rewrite history.
@@ -237,22 +268,30 @@ async function handleSubmit(request, env, child, ctx) {
   }
 
   // A second submission within a minute is almost certainly a double tap.
+  //
+  // The cutoff is computed here rather than with datetime('now', '-60 seconds'),
+  // which produced a space separated stamp. Compared as text against the ISO
+  // stamps this Worker stores, the 'T' at index 10 always sorted above a space,
+  // so the guard matched every past submission and the real behaviour was the
+  // opposite of a 60 second window.
   const recent = await env.DB.prepare(
-    "SELECT submitted_at FROM week WHERE child_id = ? AND week = ? AND submitted_at > datetime('now', '-60 seconds')",
-  ).bind(child, week).first();
+    'SELECT submitted_at FROM week WHERE child_id = ? AND week = ? AND submitted_at > ?',
+  ).bind(child, week, isoMinusSecs(60)).first();
   if (recent) return fail('that week was just submitted, try again in a minute', request, env, 429);
 
   const set = await getQuestionSet(env, child, week);
   if (!set) return fail(`no questions stored for ${child} week ${week}`, request, env, 404);
 
   const jev = new Jev(env.JEV_API_KEY);
-  const marked = await markWeek(env, child, set, answers, jev);
+  const marked = await markWeek(child, set, answers, jev);
+  const byId = indexQuestions(set);
 
-  const stamp = new Date().toISOString();
+  const stamp = nowIso();
   const elapsed = Number.isFinite(body.elapsedSecs) ? Math.round(body.elapsedSecs) : null;
-  const sectionTimes = body.sectionSecs || {};
+  const sectionTimes = (body.sectionSecs && typeof body.sectionSecs === 'object')
+    ? body.sectionSecs : {};
   const unanswered = set.sections.reduce((t, s) => t + s.questions.filter(
-    (q) => q.inputType !== 'none' && !(answers[q.id] || '').trim(),
+    (q) => q.inputType !== 'none' && !asAnswer(answers[q.id]),
   ).length, 0);
 
   const statements = [
@@ -276,7 +315,7 @@ async function handleSubmit(request, env, child, ctx) {
   }
 
   for (const [qid, p] of Object.entries(marked.perQuestion)) {
-    const q = set.sections.flatMap((s) => s.questions).find((x) => x.id === qid);
+    const q = byId[qid];
     statements.push(env.DB.prepare(
       `INSERT INTO answer (child_id, week, question_id, section_id, given, marks, out_of,
          marked_by, correct, confidence, jev_reason)
@@ -285,7 +324,7 @@ async function handleSubmit(request, env, child, ctx) {
          given = excluded.given, marks = excluded.marks, marked_by = excluded.marked_by,
          correct = excluded.correct, confidence = excluded.confidence,
          jev_reason = excluded.jev_reason`,
-    ).bind(child, week, qid, slotOf(qid), (answers[qid] || '').trim(),
+    ).bind(child, week, qid, slotOf(qid), asAnswer(answers[qid]),
       p.marks, q ? q.marks : 1, p.markedBy, p.correct, p.confidence ?? null, p.reason || null));
   }
 
@@ -301,13 +340,14 @@ async function handleSubmit(request, env, child, ctx) {
 
   for (const [qid, p] of Object.entries(marked.perQuestion)) {
     if (p.marks !== null) continue;
-    const q = set.sections.flatMap((s) => s.questions).find((x) => x.id === qid);
+    const q = byId[qid];
     statements.push(env.DB.prepare(
-      `INSERT INTO decision (child_id, week, kind, question_id, summary, detail, recommend)
-       VALUES (?, ?, 'mark', ?, ?, ?, NULL)`,
+      `INSERT INTO decision (child_id, week, kind, question_id, summary, detail, recommend, created_at)
+       VALUES (?, ?, 'mark', ?, ?, ?, NULL, ?)`,
     ).bind(child, week, qid,
       `Mark ${qid}, out of ${q ? q.marks : 1}`,
-      `${(q && q.text) || ''}\n\nAnswer given: ${(answers[qid] || '').trim() || '(blank)'}\n\n${p.reason || ''}`));
+      `${(q && q.text) || ''}\n\nAnswer given: ${asAnswer(answers[qid]) || '(blank)'}\n\n${p.reason || ''}`,
+      stamp));
   }
 
   await env.DB.batch(statements);
@@ -336,14 +376,19 @@ async function handleSubmit(request, env, child, ctx) {
  *  cannot inflate a score. */
 async function handleAward(request, env, child, ctx) {
   const week = await getCurrentWeek(env, child);
+  if (!week) return fail(`no week set up for ${child}`, request, env, 404);
+
   let body;
   try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
   const awards = body && body.awards;
-  if (!awards || typeof awards !== 'object') return fail('awards object required', request, env);
+  if (!awards || typeof awards !== 'object' || Array.isArray(awards)) {
+    return fail('awards object required', request, env);
+  }
+  if (Object.keys(awards).length > 400) return fail('too many awards', request, env, 413);
 
   const set = await getQuestionSet(env, child, week);
   if (!set) return fail('no questions stored for this week', request, env, 404);
-  const byId = Object.fromEntries(set.sections.flatMap((s) => s.questions.map((q) => [q.id, q])));
+  const byId = indexQuestions(set);
 
   const statements = [];
   for (const [qid, raw] of Object.entries(awards)) {
@@ -358,9 +403,9 @@ async function handleAward(request, env, child, ctx) {
        WHERE child_id = ? AND week = ? AND question_id = ?`,
     ).bind(marks, marks > 0 ? 1 : 0, child, week, qid));
     statements.push(env.DB.prepare(
-      `UPDATE decision SET status = 'accepted', resolved_at = datetime('now')
+      `UPDATE decision SET status = 'accepted', resolved_at = ?
        WHERE child_id = ? AND week = ? AND question_id = ? AND kind = 'mark' AND status = 'open'`,
-    ).bind(child, week, qid));
+    ).bind(nowIso(), child, week, qid));
   }
   if (statements.length) await env.DB.batch(statements);
 
@@ -390,8 +435,11 @@ async function handleAward(request, env, child, ctx) {
   const total = Object.values(sectionMarks).reduce((a, b) => a + b, 0);
   const outOf = set.sections.reduce((t, s) => t + s.totalMarks, 0);
 
-  const updates = [env.DB.prepare('UPDATE week SET total = ?, out_of = ? WHERE child_id = ? AND week = ?')
-    .bind(total, outOf, child, week)];
+  // adjusted_at records that a human changed the marks, which is what lets the
+  // weekly re-mark explain a stored total sitting above the automatic one.
+  const updates = [env.DB.prepare(
+    'UPDATE week SET total = ?, out_of = ?, adjusted_at = ? WHERE child_id = ? AND week = ?',
+  ).bind(total, outOf, nowIso(), child, week)];
   for (const [sid, m] of Object.entries(sectionMarks)) {
     updates.push(env.DB.prepare(
       'UPDATE section_mark SET marks = ? WHERE child_id = ? AND week = ? AND section_id = ?',
@@ -491,9 +539,12 @@ async function handleDashboard(request, env) {
 
 /** The child's own page: what they have cleared, not what they got wrong. */
 async function handleProgress(request, env, child) {
+  // A week counts as done when it has a score, not when it has a submitted_at.
+  // The weeks migrated from the old archive format never carried a timestamp,
+  // so filtering on one hid nine real weeks per child from the progress page.
   const weeks = await env.DB.prepare(
     `SELECT week, total, out_of, submitted_at FROM week
-     WHERE child_id = ? AND submitted_at IS NOT NULL ORDER BY week`,
+     WHERE child_id = ? AND total IS NOT NULL AND out_of > 0 ORDER BY week`,
   ).bind(child).all();
 
   const rungs = await env.DB.prepare(
@@ -504,7 +555,8 @@ async function handleProgress(request, env, child) {
     .bind(child).all();
 
   const list = weeks.results;
-  const best = list.reduce((b, w) => (w.total / w.out_of > (b ? b.total / b.out_of : 0) ? w : b), null);
+  const rate = (w) => (w && w.out_of ? w.total / w.out_of : 0);
+  const best = list.reduce((b, w) => (rate(w) > rate(b) ? w : b), null);
 
   // A streak is consecutive submitted weeks, so missing one breaks it.
   let streak = 0;
@@ -532,9 +584,12 @@ async function handleProgress(request, env, child) {
 
 async function handleWriting(request, env, child, ctx) {
   const week = await getCurrentWeek(env, child);
+  if (!week) return fail(`no week set up for ${child}`, request, env, 404);
+
   let body;
   try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
-  const text = (body.text || '').trim();
+  if (!body || typeof body !== 'object') return fail('body must be a JSON object', request, env);
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!text) return fail('nothing written', request, env);
   if (text.length > 20000) return fail('that is too long', request, env, 413);
 
@@ -556,18 +611,26 @@ async function handleWriting(request, env, child, ctx) {
     `UPDATE writing SET text = ?, words = ?, elapsed_secs = ?, ideas = ?, structure = ?,
        vocabulary = ?, accuracy = ?, total = ?, scored_by = ?, confidence = ?, submitted_at = ?
      WHERE child_id = ? AND week = ?`,
-  ).bind(text, words, body.elapsedSecs ?? null,
+  ).bind(text, words, Number.isFinite(body.elapsedSecs) ? Math.round(body.elapsedSecs) : null,
     scored.dims.ideas ?? null, scored.dims.structure ?? null,
     scored.dims.vocabulary ?? null, scored.dims.accuracy ?? null,
     scored.total, scored.total == null ? null : 'jev', scored.confidence ?? null,
-    new Date().toISOString(), child, week).run();
+    nowIso(), child, week).run();
 
   if (scored.needsParent) {
+    // One open confirmation per week, so resubmitting a piece does not stack up
+    // a queue of identical decisions for the same writing task.
     await env.DB.prepare(
-      `INSERT INTO decision (child_id, week, kind, summary, detail, recommend)
-       VALUES (?, ?, 'mark', ?, ?, NULL)`,
+      `DELETE FROM decision WHERE child_id = ? AND week = ? AND kind = 'writing' AND status = 'open'`,
+    ).bind(child, week).run();
+    await env.DB.prepare(
+      `INSERT INTO decision (child_id, week, kind, summary, detail, recommend, created_at)
+       VALUES (?, ?, 'writing', ?, ?, NULL, ?)`,
     ).bind(child, week, `Confirm the writing score for week ${week}`,
-      `Jev proposed ${scored.total} out of 10 with confidence ${(scored.confidence || 0).toFixed(2)}.`).run();
+      scored.total == null
+        ? `Jev could not score this one: ${scored.error || 'unavailable'}. ${words} words.`
+        : `Jev proposed ${scored.total} out of 10 with confidence ${(scored.confidence || 0).toFixed(2)}.`,
+      nowIso()).run();
   }
 
   ctx.waitUntil(audit(env, 'browser', 'writing', child, week, `${words} words, ${scored.total} of 10`));
@@ -585,15 +648,23 @@ async function handleAdmin(request, env, path, ctx) {
   }
 
   if (request.method === 'GET' && path === '/admin/export') {
-    return handleDashboard(request, env);
+    return await handleDashboard(request, env);
+  }
+
+  let body = {};
+  if (request.method === 'POST') {
+    try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
+    if (!body || typeof body !== 'object') return fail('body must be a JSON object', request, env);
   }
 
   if (request.method === 'POST' && path === '/admin/sql') {
-    const { statements } = await request.json();
+    const { statements } = body;
     if (!Array.isArray(statements) || !statements.length) {
       return fail('statements[] required', request, env);
     }
     if (statements.length > 500) return fail('too many statements', request, env, 413);
+    const bad = statements.findIndex((s) => !s || typeof s.sql !== 'string' || !s.sql.trim());
+    if (bad >= 0) return fail(`statements[${bad}] needs a sql string`, request, env);
     const prepared = statements.map((s) => env.DB.prepare(s.sql).bind(...(s.params || [])));
     const results = await env.DB.batch(prepared);
     ctx.waitUntil(audit(env, 'cli', 'sql', null, null, `${statements.length} statements`));
@@ -601,8 +672,10 @@ async function handleAdmin(request, env, path, ctx) {
   }
 
   if (request.method === 'POST' && path === '/admin/query') {
-    const { sql, params } = await request.json();
-    if (!/^\s*select\b/i.test(sql || '')) return fail('only SELECT is allowed here', request, env);
+    const { sql, params } = body;
+    if (typeof sql !== 'string' || !/^\s*select\b/i.test(sql)) {
+      return fail('only SELECT is allowed here', request, env);
+    }
     const r = await env.DB.prepare(sql).bind(...(params || [])).all();
     return json({ results: r.results }, request, env);
   }
@@ -621,45 +694,49 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
+    /* Every handler below is awaited rather than returned. Returning the promise
+       handed it straight back to the runtime, so a rejection inside a handler
+       escaped this try/catch entirely and the caller got Cloudflare's bare
+       "error code: 1101" instead of the JSON 500 below. */
     try {
       if (path === '/' || path === '/health') {
         return json({ ok: true, service: 'kids-homework-api' }, request, env);
       }
 
-      if (path.startsWith('/admin/')) return handleAdmin(request, env, path, ctx);
+      if (path.startsWith('/admin/')) return await handleAdmin(request, env, path, ctx);
 
       const week = path.match(/^\/api\/week\/([a-z]+)$/);
       if (week && request.method === 'GET') {
         if (!isChild(week[1])) return fail('unknown child', request, env, 404);
-        return handleWeek(request, env, week[1]);
+        return await handleWeek(request, env, week[1]);
       }
 
       const submit = path.match(/^\/api\/week\/([a-z]+)\/submit$/);
       if (submit && request.method === 'POST') {
         if (!isChild(submit[1])) return fail('unknown child', request, env, 404);
-        return handleSubmit(request, env, submit[1], ctx);
+        return await handleSubmit(request, env, submit[1], ctx);
       }
 
       if (path === '/api/dashboard' && request.method === 'GET') {
-        return handleDashboard(request, env);
+        return await handleDashboard(request, env);
       }
 
       const award = path.match(/^\/api\/week\/([a-z]+)\/award$/);
       if (award && request.method === 'POST') {
         if (!isChild(award[1])) return fail('unknown child', request, env, 404);
-        return handleAward(request, env, award[1], ctx);
+        return await handleAward(request, env, award[1], ctx);
       }
 
       const prog = path.match(/^\/api\/progress\/([a-z]+)$/);
       if (prog && request.method === 'GET') {
         if (!isChild(prog[1])) return fail('unknown child', request, env, 404);
-        return handleProgress(request, env, prog[1]);
+        return await handleProgress(request, env, prog[1]);
       }
 
       const writing = path.match(/^\/api\/writing\/([a-z]+)$/);
       if (writing && request.method === 'POST') {
         if (!isChild(writing[1])) return fail('unknown child', request, env, 404);
-        return handleWriting(request, env, writing[1], ctx);
+        return await handleWriting(request, env, writing[1], ctx);
       }
 
       return fail('not found', request, env, 404);
@@ -671,4 +748,7 @@ export default {
   },
 };
 
-export { markWeek, POLICY, diagnose };
+/* markWeek is exported for scripts/test.mjs, which exercises the marking order
+   against a stub Jev. Nothing else imports from this module: it is an entry
+   point, not a library. */
+export { markWeek };

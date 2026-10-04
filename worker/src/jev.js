@@ -11,7 +11,7 @@
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 const MODEL = 'jev-latest';
 
-/* Policy, tuned against the cases in scripts/test-jev.mjs.
+/* Policy, tuned against the labelled cases in scripts/jev-calibrate.mjs.
    The middle band is deliberately wide: an uncertain answer is worth a parent's
    ten seconds, and getting a mark wrong in either direction is worse than asking. */
 export const POLICY = {
@@ -71,15 +71,22 @@ export class Jev {
           throw new Error(`Jev transient ${res.status}`);
         }
         if (!res.ok) {
-          throw new Error(`Jev ${res.status}: ${(await res.text()).slice(0, 200)}`);
+          // A rejected key or a malformed request will be rejected identically
+          // three times over, so retrying only delays the referral to the
+          // parent by the length of the backoff. Fail now.
+          const err = new Error(`Jev ${res.status}: ${(await res.text()).slice(0, 200)}`);
+          err.permanent = true;
+          throw err;
         }
         const body = await res.json();
+        if (!body || !body.answers) throw new Error('Jev returned no answers');
         this.usage.requests++;
         this.usage.inputTokens += (body.usage && body.usage.input_tokens) || 0;
         return body.answers;
       } catch (err) {
         clearTimeout(timer);
         lastError = err;
+        if (err.permanent) break;
         if (attempt < attempts) {
           await new Promise((r) => setTimeout(r, 400 * 2 ** (attempt - 1)));
         }
@@ -87,6 +94,17 @@ export class Jev {
     }
     throw lastError;
   }
+}
+
+/** Read one judgment out of a Jev reply, rather than trusting the key is there.
+    A missing key used to surface as "cannot read noul of undefined", which is a
+    500 on the submit rather than the referral to the parent it should be. */
+function need(answers, key, field) {
+  const a = answers && answers[key];
+  if (!a || typeof a[field] !== 'number') {
+    throw new Error(`Jev did not answer ${key}.${field}`);
+  }
+  return a[field];
 }
 
 /* ------------------------------------------------------------------ marking */
@@ -102,7 +120,6 @@ const AGE = { mason: 9, elysia: 7 };
  */
 export async function markAnswer(jev, { child, question, given }) {
   const marks = question.marks || 1;
-  const levels = creditLevels(marks, question);
 
   const state = {
     question: question.text,
@@ -112,35 +129,25 @@ export async function markAnswer(jev, { child, question, given }) {
     childAge: AGE[child] || 8,
   };
 
-  const answers = await jev.ask(state, {
-    essentially_correct: {
-      type: 'noul',
-      instructions:
-        'Does `childAnswer` give the essential idea that `markScheme` and `acceptedAnswers` '
-        + 'require? Judge the meaning, not the wording. Ignore spelling, punctuation, '
-        + 'capitalisation and grammar: the child is `childAge` years old and is typing. '
-        + 'An answer that states the opposite, or that denies the required idea, is not correct.',
-      criteria: {
-        true: 'Conveys what the mark scheme requires, however it is phrased or spelled',
-        false: 'Misses the required idea, states something different or opposite, or is blank',
-      },
+  const essentiallyCorrect = {
+    type: 'noul',
+    instructions:
+      'Does `childAnswer` give the essential idea that `markScheme` and `acceptedAnswers` '
+      + 'require? Judge the meaning, not the wording. Ignore spelling, punctuation, '
+      + 'capitalisation and grammar: the child is `childAge` years old and is typing. '
+      + 'An answer that states the opposite, or that denies the required idea, is not correct.',
+    criteria: {
+      true: 'Conveys what the mark scheme requires, however it is phrased or spelled',
+      false: 'Misses the required idea, states something different or opposite, or is blank',
     },
-    credit: {
-      type: 'score',
-      instructions:
-        `How much credit does \`childAnswer\` deserve against \`markScheme\`, out of ${marks} `
-        + 'mark(s)? Award for content, never for presentation.',
-      criteria: levels,
-    },
-  });
+  };
 
-  const noul = answers.essentially_correct.noul;
-  const credit = answers.credit.score;
-  const confidence = answers.credit.confidence;
-  const rounded = Math.max(0, Math.min(marks, Math.round(credit)));
-
-  // Full marks questions are a yes or no, so the probability decides.
+  // A one mark question is a yes or no, so the probability alone decides it and
+  // the credit score is never read. Asking for it anyway doubled the judgments
+  // on the commonest case for nothing.
   if (marks === 1) {
+    const answers = await jev.ask(state, { essentially_correct: essentiallyCorrect });
+    const noul = need(answers, 'essentially_correct', 'noul');
     if (noul >= POLICY.autoCorrect) {
       return { outcome: 'correct', marks: 1, confidence: noul, reason: `jev ${noul.toFixed(2)}` };
     }
@@ -149,6 +156,21 @@ export async function markAnswer(jev, { child, question, given }) {
     }
     return { outcome: 'refer', marks: null, confidence: noul, reason: `uncertain, jev ${noul.toFixed(2)}` };
   }
+
+  const answers = await jev.ask(state, {
+    essentially_correct: essentiallyCorrect,
+    credit: {
+      type: 'score',
+      instructions:
+        `How much credit does \`childAnswer\` deserve against \`markScheme\`, out of ${marks} `
+        + 'mark(s)? Award for content, never for presentation.',
+      criteria: creditLevels(marks, question),
+    },
+  });
+
+  const credit = need(answers, 'credit', 'score');
+  const confidence = need(answers, 'credit', 'confidence');
+  const rounded = Math.max(0, Math.min(marks, Math.round(credit)));
 
   // Multi mark questions need the credit score, and it has to be a confident one.
   if (confidence >= POLICY.minConfidence) {
@@ -232,13 +254,14 @@ export async function diagnose(jev, { child, question, given, expected }) {
       },
     },
   );
-  const kind = answers.error_kind.choice;
+  const kind = answers.error_kind && answers.error_kind.choice;
+  if (!kind) throw new Error('Jev did not answer error_kind.choice');
   return {
     kind,
     kindLabel: ERROR_KINDS[kind] || 'unknown',
     kindConfidence: answers.error_kind.confidence,
     kindProbabilities: answers.error_kind.probabilities,
-    questionFlawed: answers.question_is_flawed.noul,
+    questionFlawed: need(answers, 'question_is_flawed', 'noul'),
   };
 }
 
@@ -389,7 +412,7 @@ export async function checkQuestion(jev, { child, section, question, spineSlot, 
 
   const flags = [];
   for (const key of Object.keys(questions)) {
-    const p = answers[key].noul;
+    const p = need(answers, key, 'noul');
     const threshold = THRESHOLDS[key] ?? POLICY.qualityConcern;
     if (p >= threshold) flags.push({ key, label: LABELS[key], probability: p, threshold });
   }
@@ -453,7 +476,7 @@ export async function checkSection(jev, { child, section, spineSlot, rung }) {
   };
   const flags = [];
   for (const key of ['off_slot', 'no_evidence']) {
-    const p = answers[key].noul;
+    const p = need(answers, key, 'noul');
     const t = THRESHOLDS[key === 'off_slot' ? 'off_slot_section' : 'no_evidence'] ?? 0.70;
     if (p >= t) flags.push({ key, label: LABELS[key], probability: p, threshold: t });
   }
@@ -522,8 +545,8 @@ export async function scoreWriting(jev, { child, prompt, genre, text }) {
   let confidence = 1;
   for (const dim of Object.keys(RUBRIC)) {
     // 0..3 on the rubric, reported out of 2.5 so the four dimensions total 10
-    dims[dim] = Math.round((answers[dim].score / 3) * 2.5 * 2) / 2;
-    confidence = Math.min(confidence, answers[dim].confidence);
+    dims[dim] = Math.round((need(answers, dim, 'score') / 3) * 2.5 * 2) / 2;
+    confidence = Math.min(confidence, need(answers, dim, 'confidence'));
   }
   const total = Math.round(Object.values(dims).reduce((a, b) => a + b, 0) * 2) / 2;
 
@@ -531,7 +554,8 @@ export async function scoreWriting(jev, { child, prompt, genre, text }) {
     dims,
     total,
     confidence,
-    offPrompt: answers.off_prompt.noul,
-    needsParent: confidence < POLICY.minConfidence || answers.off_prompt.noul > POLICY.qualityConcern,
+    offPrompt: need(answers, 'off_prompt', 'noul'),
+    needsParent: confidence < POLICY.minConfidence
+      || need(answers, 'off_prompt', 'noul') > POLICY.qualityConcern,
   };
 }

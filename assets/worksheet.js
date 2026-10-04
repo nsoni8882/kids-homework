@@ -6,7 +6,6 @@
 
 import { CHILDREN, currentChild } from './config.js';
 import { apiWeek, apiSubmit, apiAward } from './store.js';
-import { answersMatch } from './marking.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
 
 const child = currentChild();
@@ -83,9 +82,13 @@ async function init() {
   try {
     const data = await apiWeek(child);
     week = data.questions;
+    // perQuestion is kept, not discarded: it is how the server marked each
+    // answer. Review mode shows exactly that rather than re-deciding in the
+    // browser, which could disagree with the database.
     savedEntry = data.submitted
       ? { week: data.week, total: data.submitted.total, outOf: data.submitted.outOf,
-          sectionMarks: data.submitted.sectionMarks, archive: data.submitted.answers }
+          sectionMarks: data.submitted.sectionMarks, archive: data.submitted.answers,
+          perQuestion: data.submitted.perQuestion || {} }
       : null;
     showWelcome();
   } catch (err) {
@@ -572,47 +575,39 @@ async function sendAwards() {
 
 function wrongAnswers(readOnly) {
   const ans = readOnly && savedEntry ? { ...(savedEntry.archive || {}) } : answers;
+  // Whichever way this screen was reached, the verdicts come from the server:
+  // the submit response when the week was just sat, the stored rows when it is
+  // being reviewed later.
+  const verdicts = (readOnly && savedEntry)
+    ? (savedEntry.perQuestion || {})
+    : ((serverResult && serverResult.perQuestion) || {});
   const items = [];
 
   week.sections.forEach((sec) => {
     sec.questions.forEach((q) => {
       if (q.inputType === 'none') return;
       const given = (ans[q.id] || '').trim();
-      const verdict = !readOnly && serverResult ? serverResult.perQuestion[q.id] : null;
+      const verdict = verdicts[q.id];
 
-      if (verdict) {
-        // The server marked it. Show anything that did not get full marks, and
-        // say who decided, because "a machine judged your wording" is a
-        // different thing from "this did not match the answer".
-        const awarded = verdict.marks;
-        const found = toMark.find((i) => i.q.id === q.id);
-        const finalMarks = found && found.marksAwarded !== null ? found.marksAwarded : awarded;
-        if (finalMarks === null || finalMarks >= q.marks) return;
-        items.push({
-          type: verdict.markedBy === 'auto' ? 'auto' : 'parent',
-          section: sec, q, given, awarded: finalMarks, readOnly,
-          markedBy: verdict.markedBy,
-          correct: (q.accepted && q.accepted.length) ? q.accepted[0] : (q.markScheme || '-'),
-        });
-        return;
-      }
+      // No verdict means the server has no row for this question, so there is
+      // nothing to report either way. Guessing one in the browser is how the
+      // page and the database came to disagree.
+      if (!verdict) return;
 
-      if (q.autoMark) {
-        if (!answersMatch(given, q.accepted, q.inputType)) {
-          items.push({
-            type: 'auto', section: sec, q, given,
-            correct: (q.accepted && q.accepted.length) ? q.accepted[0] : (q.markScheme || '-'),
-          });
-        }
-        return;
-      }
-      let awarded = null;
-      if (!readOnly) {
-        const found = toMark.find((i) => i.q.id === q.id);
-        if (found) awarded = found.marksAwarded;
-      }
-      const show = readOnly ? true : (awarded !== null && awarded < q.marks);
-      if (show) items.push({ type: 'parent', section: sec, q, given, awarded, readOnly });
+      // Show anything that did not get full marks, and say who decided, because
+      // "a machine judged your wording" is a different thing from "this did not
+      // match the answer".
+      const found = readOnly ? null : toMark.find((i) => i.q.id === q.id);
+      const finalMarks = (found && found.marksAwarded !== null)
+        ? found.marksAwarded : verdict.marks;
+      if (finalMarks === null || finalMarks >= q.marks) return;
+
+      items.push({
+        type: verdict.markedBy === 'auto' ? 'auto' : 'parent',
+        section: sec, q, given, awarded: finalMarks, readOnly,
+        markedBy: verdict.markedBy,
+        correct: (q.accepted && q.accepted.length) ? q.accepted[0] : (q.markScheme || '-'),
+      });
     });
   });
 

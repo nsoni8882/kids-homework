@@ -8,8 +8,9 @@
  * they are the last thing on the page rather than the first, because a
  * paragraph of prose is not a dashboard.
  *
- * The live bin carries 8 weeks. Older weeks and resolved gaps come from the
- * archive bin, fetched only when a panel that needs them is opened.
+ * One request fetches every week for both children. The old two bin split, and
+ * the lazy "load the archive" panels it forced, existed only because a bin was
+ * capped at 100KB. The database has no such cap.
  */
 
 import { CHILDREN } from './config.js';
@@ -84,49 +85,43 @@ function initTheme() {
 
 /* ------------------------------------------------------------------- data */
 
-/** Normalise a week from either bin into the one shape the UI uses. */
+/** Normalise one week from the API into the shape the UI uses. */
 function norm(kid, raw) {
   const max = MAX[kid];
-  // the API already gives outOf and sectionMarks, so only the subject rollup
-  // and the headline fields need deriving
   const sm = raw.sectionMarks || {};
   const has = Object.keys(sm).length > 0;
   const sum = (...ids) => ids.reduce((t, id) => t + (sm[id] || 0), 0);
-  const outOf = raw.outOf || raw.max || max.total;
+  const outOf = raw.outOf || max.total;
   const total = raw.total;
-  const errors = raw.errors || [];
-  const design = raw.designIssues || [];
-  const lost = Math.max(0, outOf - total);
   return {
     week: raw.week,
     total,
     outOf,
-    // null, not 0, where a week predates section marks: the chart then leaves a
+    // null, not 0, where a week has no section marks: the chart then leaves a
     // gap rather than drawing a misleading zero
-    english: has ? sum('1A', '1B', '1C') : (raw.english ?? null),
-    maths: has ? sum('2A', '2B', '2C') : (raw.maths ?? null),
-    thinking: has ? sum('3A', '3B', '3C') : (raw.thinking ?? null),
-    englishMax: raw.englishMax || max.english,
-    mathsMax: raw.mathsMax || max.maths,
-    thinkingMax: raw.thinkingMax || max.thinking,
+    english: has ? sum('1A', '1B', '1C') : null,
+    maths: has ? sum('2A', '2B', '2C') : null,
+    thinking: has ? sum('3A', '3B', '3C') : null,
+    englishMax: max.english,
+    mathsMax: max.maths,
+    thinkingMax: max.thinking,
     sectionMarks: sm,
     summary: raw.summary || '',
     verdict: raw.verdict || null,
     wins: raw.wins || [],
-    errors,
-    design,
+    errors: raw.errors || [],
+    design: raw.designIssues || [],
     hintedSections: raw.hintedSections || [],
     notes: raw.notes || '',
     submittedAt: raw.submittedAt || null,
-    hasAnswers: !!(raw.archive && Object.keys(raw.archive).length) || !!raw.submittedAt,
-    lost,
+    // A week is re-markable when its per question answers were kept, which is
+    // what section marks being present indicates. submittedAt is NOT the test:
+    // the weeks carried over from the old archive format have none, and using
+    // it hid nine real weeks per child from this count.
+    hasAnswers: has,
+    lost: Math.max(0, outOf - total),
   };
 }
-
-/* The API returns every week in one payload, so there is no archive to fetch
-   lazily any more. The D1 database has no 100KB cap, which is what forced the
-   split in the first place. */
-const getArchive = async () => live;
 
 async function init() {
   try {
@@ -205,7 +200,7 @@ function renderKid(kid) {
     <h1 class="sr-only">${CHILDREN[kid].name}'s progress</h1>
     ${heroHtml(kid, w, prev)}
     ${kpiHtml(kid, weeks, gaps)}
-    ${decisionsHtml(kid, w, gaps)}
+    ${decisionsHtml(kid, w, gaps, data)}
 
     <h2 class="section-label">Performance</h2>
     <div class="grid grid-2">
@@ -245,11 +240,7 @@ function renderKid(kid) {
       <div class="chart-head">${icon('history')}<h2>Gap history</h2>
         <span class="pill">${gaps.length} open</span></div>
       ${heatHtml(gaps)}
-      <details class="disclose" id="${kid}-resolved">
-        <summary>${icon('chevronRight', 'i i-sm chev')} Resolved gaps, from the archive</summary>
-        <div id="${kid}-resolved-body" style="margin-top:var(--s3)">
-          <p class="card-note">Opening this loads the archive.</p></div>
-      </details>
+      ${resolvedHtml(kid, data)}
     </section>
 
     <h2 class="section-label">This week in detail</h2>
@@ -258,12 +249,8 @@ function renderKid(kid) {
     <h2 class="section-label">History</h2>
     <section class="card">
       <div class="chart-head">${icon('history')}<h2>Every week on record</h2></div>
-      <p class="card-note">The charts above show what the live tracker holds. The rest is archived.</p>
-      <details class="disclose" id="${kid}-history">
-        <summary>${icon('chevronRight', 'i i-sm chev')} Load the full history</summary>
-        <div id="${kid}-history-body" style="margin-top:var(--s4)">
-          <p class="card-note">Opening this loads the archive.</p></div>
-      </details>
+      <p class="card-note">The charts above show the last ${weeks.length} weeks. This is all of them.</p>
+      ${historyHtml(kid)}
     </section>
 
     <h2 class="section-label">Kumon curriculum</h2>
@@ -277,11 +264,11 @@ function renderKid(kid) {
   wireCard(`${kid}-trend`);
   wireCard(`${kid}-subject`);
   wireLegends(kid);
-  $(`${kid}-resolved`).addEventListener('toggle', function once() {
-    this.removeEventListener('toggle', once); loadResolvedGaps(kid);
-  });
+  // The history chart is only built when its panel is first opened, because a
+  // Chart.js canvas inside a closed <details> has no size to lay out against.
   $(`${kid}-history`).addEventListener('toggle', function once() {
-    this.removeEventListener('toggle', once); loadHistory(kid);
+    this.removeEventListener('toggle', once);
+    drawHistoryChart(kid);
   });
 }
 
@@ -361,18 +348,38 @@ function kpiHtml(kid, weeks, gaps) {
 
 /* ---------------------------------------------------- what needs deciding */
 
-function decisionsHtml(kid, w, gaps) {
+function decisionsHtml(kid, w, gaps, data) {
   const items = [];
+
+  // The marking queue the server is actually holding. These are questions Jev
+  // referred that nobody has answered yet, so they are the most urgent thing
+  // here. They were fetched and thrown away before, which meant a referred
+  // question could sit unmarked indefinitely with nothing on screen saying so.
+  const open = (data.decisions || []).filter((d) => d.kind === 'mark');
+  if (open.length) {
+    const weeks = [...new Set(open.map((d) => d.week))].sort((a, b) => a - b);
+    items.push(`${open.length} answer${open.length === 1 ? '' : 's'} still need`
+      + `${open.length === 1 ? 's' : ''} a mark from you`
+      + ` (week${weeks.length === 1 ? '' : 's'} ${weeks.join(', ')}).`
+      + ' Reopen the worksheet to award them.');
+  }
+  for (const d of (data.decisions || []).filter((x) => x.kind !== 'mark')) {
+    items.push(d.summary);
+  }
+
   if (w.design && w.design.length) {
     const undecided = w.design.filter((d) => !d.decision || /decide/i.test(d.decision));
     for (const d of undecided) {
       items.push(`${d.where}: ${d.what}`);
     }
   }
+  // An observation is 1, 0 or null, so "not tested" is the null, not a falsy 0.
+  const untested = (v) => v === null || v === undefined;
   const stale = gaps.filter((g) => {
-    const seen = (g.weeks || []).filter((v) => v !== null).length;
+    const seen = (g.weeks || []).filter((v) => !untested(v)).length;
     const tail = (g.weeks || []).slice(-6);
-    return g.status !== 'resolved' && seen > 0 && tail.every((v) => v === null);
+    return g.status !== 'resolved' && g.status !== 'parked'
+      && seen > 0 && tail.length >= 6 && tail.every(untested);
   });
   for (const g of stale) items.push(`"${g.topic}" has not been tested for six weeks. Retest or close it.`);
   if (w.hintedSections && w.hintedSections.length) {
@@ -514,17 +521,22 @@ function heatHtml(gaps) {
     return `<div class="empty">${icon('checkCircle', 'i i-lg')}<h3>No open gaps</h3>
       <p>Nothing is currently flagged.</p></div>`;
   }
-  const order = { new: 0, persists: 1, improving: 2, resolved: 3 };
-  const sorted = [...gaps].sort((a, b) => (order[a.status] ?? 4) - (order[b.status] ?? 4));
+  const order = { new: 0, persists: 1, improving: 2, parked: 3, resolved: 4 };
+  const sorted = [...gaps].sort((a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5));
   const rows = sorted.map((g) => {
     const st = GAP_STATUS[g.status] || GAP_STATUS.new;
     const recent = (g.weeks || []).slice(-8);
     const cells = recent.map((v, i) => {
       const last = i === recent.length - 1;
-      const bg = v === true ? 'var(--ok-wash)' : v === false ? 'var(--bad-wash)' : 'var(--surface-3)';
-      const fg = v === true ? 'var(--ok)' : v === false ? 'var(--bad)' : 'var(--text-3)';
-      const mark = v === true ? '✓' : v === false ? '✗' : '–';
-      const label = v === true ? 'correct' : v === false ? 'wrong' : 'not tested';
+      // The observation log is 1, 0 or null. It used to be true/false/null in
+      // the old store, and this compared with === true, so after the move every
+      // cell fell through to "not tested" and the whole card read as empty.
+      const tested = v !== null && v !== undefined;
+      const right = tested && Number(v) === 1;
+      const bg = !tested ? 'var(--surface-3)' : right ? 'var(--ok-wash)' : 'var(--bad-wash)';
+      const fg = !tested ? 'var(--text-3)' : right ? 'var(--ok)' : 'var(--bad)';
+      const mark = !tested ? '–' : right ? '✓' : '✗';
+      const label = !tested ? 'not tested' : right ? 'correct' : 'wrong';
       return `<span class="heat-cell" role="img" aria-label="${label}${last ? ', latest' : ''}"
         style="background:${bg};color:${fg};${last ? 'outline:2px solid var(--accent);outline-offset:1px' : ''}">${mark}</span>`;
     }).join('');
@@ -583,6 +595,10 @@ function drawCharts(kid) {
   for (const key of ['trend', 'subject', 'loss', 'spark']) {
     if (charts[`${kid}-${key}`]) { charts[`${kid}-${key}`].destroy(); delete charts[`${kid}-${key}`]; }
   }
+  // The history chart bakes the theme in too, so it has to be rebuilt with the
+  // rest or it keeps the colours of the theme it was first drawn under. Only
+  // when its panel is open: a closed <details> has no box to size against.
+  if ($(`${kid}-history-chart`) && charts[`${kid}-history`]) drawHistoryChart(kid);
   const trendEl = $(`${kid}-trend-chart`);
   if (trendEl) charts[`${kid}-trend`] = trendChart(trendEl, weeks, accent);
   const subjEl = $(`${kid}-subject-chart`);
@@ -594,39 +610,32 @@ function drawCharts(kid) {
 
 }
 
-/* ------------------------------------------------------- lazy archive bits */
+/* ------------------------------------------------- resolved gaps and history
 
-async function loadResolvedGaps(kid) {
-  const box = $(`${kid}-resolved-body`);
-  box.innerHTML = `<div class="row"><div class="spinner" style="width:20px;height:20px"></div>
-    <span class="card-note">Loading the archive</span></div>`;
-  try {
-    const d = await getArchive();
-    const resolved = ((d[kid] || {}).gaps || []).filter((g) => g.status === 'resolved');
-    $(`${kid}-resolved`).querySelector('summary').innerHTML =
-      `${icon('chevronRight', 'i i-sm chev')} Resolved gaps (${resolved.length})`;
-    box.innerHTML = resolved.length ? heatHtml(resolved)
-      : `<div class="empty">${icon('inbox', 'i i-lg')}<p>Nothing archived yet.</p></div>`;
-  } catch (err) {
-    box.innerHTML = `<p class="helper" style="color:var(--bad)">${icon('alert', 'i i-sm')}
-      Could not load the archive: ${esc(err.message)}</p>`;
-  }
+   Both of these used to fetch the archive bin on demand. Everything they need
+   now arrives in the first request, so they are plain renderers. */
+
+function resolvedHtml(kid, data) {
+  const resolved = (data.gaps || []).filter((g) => g.status === 'resolved');
+  return `<details class="disclose" id="${kid}-resolved">
+    <summary>${icon('chevronRight', 'i i-sm chev')} Resolved gaps (${resolved.length})</summary>
+    <div style="margin-top:var(--s3)">${
+      resolved.length ? heatHtml(resolved)
+        : `<div class="empty">${icon('inbox', 'i i-lg')}<p>Nothing resolved yet.</p></div>`
+    }</div>
+  </details>`;
 }
 
-async function loadHistory(kid) {
-  const box = $(`${kid}-history-body`);
-  box.innerHTML = `<div class="row"><div class="spinner" style="width:20px;height:20px"></div>
-    <span class="card-note">Loading the archive</span></div>`;
-  try {
-    const d = await getArchive();
-    const all = weeksFor(kid, true).sort((a, b) => a.week - b.week);
-    $(`${kid}-history`).querySelector('summary').innerHTML =
-      `${icon('chevronRight', 'i i-sm chev')} Full history, weeks ${all[0].week} to ${all[all.length - 1].week}`;
+function historyHtml(kid) {
+  const all = weeksFor(kid, true).sort((a, b) => a.week - b.week);
+  if (!all.length) return '<p class="card-note">No weeks recorded yet.</p>';
 
-    const avg = Math.round(all.reduce((t, w) => t + pct(w.total, w.outOf), 0) / all.length);
-    const best = all.reduce((b, w) => (pct(w.total, w.outOf) > pct(b.total, b.outOf) ? w : b), all[0]);
+  const avg = Math.round(all.reduce((t, w) => t + pct(w.total, w.outOf), 0) / all.length);
+  const best = all.reduce((b, w) => (pct(w.total, w.outOf) > pct(b.total, b.outOf) ? w : b), all[0]);
 
-    box.innerHTML = `
+  return `<details class="disclose" id="${kid}-history">
+    <summary>${icon('chevronRight', 'i i-sm chev')} Full history, weeks ${all[0].week} to ${all[all.length - 1].week}</summary>
+    <div style="margin-top:var(--s4)">
       <div class="kpi-row" style="margin-bottom:var(--s4)">
         <div class="kpi"><div class="kpi-label">${icon('history', 'i i-sm')} Weeks</div>
           <div class="kpi-value">${all.length}</div>
@@ -653,14 +662,17 @@ async function loadHistory(kid) {
             <td><span class="badge ${tone}">${p}%</span></td>
             ${SUBJECTS.map((s) => `<td class="n">${w[s] == null ? '-' : `${w[s]}/${w[`${s}Max`]}`}</td>`).join('')}
             <td style="max-width:34ch"><span class="td-detail" style="margin:0">${esc(w.summary || '')}</span></td></tr>`;
-        }).join('')}</tbody></table></div>`;
+        }).join('')}</tbody></table></div>
+    </div>
+  </details>`;
+}
 
-    if (charts[`${kid}-history`]) charts[`${kid}-history`].destroy();
-    charts[`${kid}-history`] = trendChart($(`${kid}-history-chart`), all, css(`--child-${kid}`));
-  } catch (err) {
-    box.innerHTML = `<p class="helper" style="color:var(--bad)">${icon('alert', 'i i-sm')}
-      Could not load the archive: ${esc(err.message)}</p>`;
-  }
+function drawHistoryChart(kid) {
+  const el = $(`${kid}-history-chart`);
+  if (!el) return;
+  if (charts[`${kid}-history`]) charts[`${kid}-history`].destroy();
+  const all = weeksFor(kid, true).sort((a, b) => a.week - b.week);
+  charts[`${kid}-history`] = trendChart(el, all, css(`--child-${kid}`));
 }
 
 /* ---------------------------------------------------------------- roadmap */

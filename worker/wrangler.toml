@@ -4,9 +4,14 @@ compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
 # The site is served from GitHub Pages, so this Worker is cross origin and
-# answers preflight requests. Only the two Pages origins are allowed.
+# answers preflight requests. Only the Pages origin and localhost are allowed.
+#
+# Port 8000 is there because that is what `python3 -m http.server 8000` uses,
+# which is the local workflow in README.md. Leaving it out meant the documented
+# way to run the pages locally could not reach the API at all, and the dashboard
+# showed nothing but a CORS failure.
 [vars]
-ALLOWED_ORIGINS = "https://nsoni8882.github.io,http://127.0.0.1:8788,http://localhost:8788"
+ALLOWED_ORIGINS = "https://nsoni8882.github.io,http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1:8788,http://localhost:8788"
 
 [[d1_databases]]
 binding = "DB"

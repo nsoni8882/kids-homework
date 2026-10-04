@@ -1,12 +1,23 @@
 -- Kids homework database.
 --
--- Replaces the two JSONbin documents. The point is not just capacity: because
--- rows are written independently, two children submitting at the same moment
--- can no longer overwrite each other, which the single shared document made
--- possible and which the old app papered over with retry and verify.
+-- This is the store. The point is not just capacity: because rows are written
+-- independently, two children submitting at the same moment cannot overwrite
+-- each other, which a single shared document made possible and which the old
+-- app papered over with retry and verify.
 --
 -- Everything the browser touches goes through the Worker, so no secret and no
 -- blanket write access ever reaches the page.
+--
+-- CHANGING THIS FILE
+-- Every statement is CREATE TABLE IF NOT EXISTS, which means re-running it
+-- against a database that already has the table does NOTHING: a new column is
+-- silently not added, and the first query naming it fails with "no such
+-- column". To add or change a column, write the ALTER TABLE by hand, apply it
+-- to local and remote, and edit the CREATE above to match so a fresh database
+-- comes out the same shape:
+--
+--   npx wrangler d1 execute kids-homework --local  --command="ALTER TABLE ..."
+--   npx wrangler d1 execute kids-homework --remote --command="ALTER TABLE ..."
 
 PRAGMA foreign_keys = ON;
 
@@ -108,7 +119,11 @@ CREATE TABLE IF NOT EXISTS gap (
 
 CREATE INDEX IF NOT EXISTS gap_by_child ON gap (child_id, status);
 
--- The per week log that used to be the weeks[] array of true/false/null.
+-- The per week log of whether the gap was cleared.
+--
+-- result is 1, 0 or NULL. It was true/false/null in the old JSON store, and
+-- code that kept comparing with === true read every row as "not tested" after
+-- the move, which emptied the whole gap history card without erroring.
 CREATE TABLE IF NOT EXISTS gap_observation (
   gap_id        INTEGER NOT NULL REFERENCES gap(id) ON DELETE CASCADE,
   week          INTEGER NOT NULL,
@@ -171,7 +186,9 @@ CREATE TABLE IF NOT EXISTS decision (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   child_id      TEXT NOT NULL REFERENCES child(id) ON DELETE CASCADE,
   week          INTEGER,
-  kind          TEXT NOT NULL,                 -- mark | gap | advance | design
+  kind          TEXT NOT NULL,                 -- mark | writing | gap | advance | design
+                                               -- 'mark' is one referred question,
+                                               -- 'writing' is one week's writing score
   question_id   TEXT,
   summary       TEXT NOT NULL,
   detail        TEXT NOT NULL DEFAULT '',
@@ -186,6 +203,15 @@ CREATE INDEX IF NOT EXISTS decision_open ON decision (child_id, status);
 -- --------------------------------------------------------------- integrity
 
 -- Every write the Worker makes, so a bad change can be traced and undone.
+--
+-- This table is deliberately never cleared. It is the only reason the loss of a
+-- submitted week was detectable at all: audit still held the submit and award
+-- entries after a rebuild script had deleted the rows they referred to.
+--
+-- The Worker passes an ISO timestamp for `at`. The DEFAULT below is only for a
+-- row inserted by hand, and uses SQLite's space separated format, which sorts
+-- BELOW any ISO stamp for the same instant. Compare the two and the comparison
+-- is wrong in a way that looks like it works.
 CREATE TABLE IF NOT EXISTS audit (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   at            TEXT NOT NULL DEFAULT (datetime('now')),

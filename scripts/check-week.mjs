@@ -21,13 +21,13 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { Jev, checkQuestion, checkSection } from '../worker/src/jev.js';
+import {
+  ROOT, apiKey, loadSpine, loadWeek, pool, rungFor, questionsToCheck,
+  slotsMissingRung, costLine,
+} from './lib/gate.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DATA = join(ROOT, 'data');
 const BLOCK_AT = 0.90;   // a Jev flag this strong stops the week on its own
 
 const args = process.argv.slice(2);
@@ -35,30 +35,7 @@ const noAi = args.includes('--no-ai');
 const child = args.find((a) => !a.startsWith('--'));
 const children = child ? [child] : ['mason', 'elysia'];
 
-const spine = JSON.parse(readFileSync(join(ROOT, 'curriculum', 'spine.json'), 'utf8'));
-
-function rungFor(c, slot) {
-  const ladder = spine.ladders[c] && spine.ladders[c][slot];
-  if (!ladder) return null;
-  const p = join(DATA, 'curriculum', 'position.json');
-  if (existsSync(p)) {
-    const here = (((JSON.parse(readFileSync(p, 'utf8')).children || {})[c] || {}).slots || {})[slot];
-    if (here) {
-      const found = ladder.rungs.find((r) => r.id === here.rung);
-      if (found) return found;
-    }
-  }
-  return ladder.rungs[Math.floor(ladder.rungs.length / 2)];
-}
-
-async function pool(items, limit, fn) {
-  const out = new Array(items.length);
-  let next = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) { const i = next++; out[i] = await fn(items[i]); }
-  }));
-  return out;
-}
+const spine = loadSpine();
 
 const blocks = [];
 const reviews = [];
@@ -72,10 +49,20 @@ try {
   });
   console.log('   all deterministic checks pass\n');
 } catch (err) {
+  // A non zero exit means validate found problems and listed them on stdout.
+  // Anything else means validate never ran, which must block too: a gate that
+  // cannot run its own checks has not passed them. An earlier version swallowed
+  // that case and printed PASSED while checking nothing.
   const out = `${err.stdout || ''}${err.stderr || ''}`.trim();
-  for (const line of out.split('\n')) {
-    const t = line.trim();
-    if (t && !t.startsWith('error:')) { blocks.push(t); console.log(`   BLOCK  ${t}`); }
+  const found = out.split('\n')
+    .map((l) => l.trim())
+    .filter((t) => t && !t.startsWith('error:'));
+  if (err.status != null && found.length) {
+    for (const t of found) { blocks.push(t); console.log(`   BLOCK  ${t}`); }
+  } else {
+    const why = `could not run kh.py validate: ${err.message.split('\n')[0]}`;
+    blocks.push(why);
+    console.log(`   BLOCK  ${why}`);
   }
   console.log('');
 }
@@ -90,11 +77,15 @@ try {
   console.log(`   ${out.trim().split('\n').pop()}\n`);
 } catch (err) {
   const out = `${err.stdout || ''}`.trim();
-  for (const line of out.split('\n')) {
-    if (line.trim().startsWith('mason') || line.trim().startsWith('elysia')) {
-      blocks.push(line.trim());
-      console.log(`   BLOCK  ${line.trim()}`);
-    }
+  const found = out.split('\n')
+    .map((l) => l.trim())
+    .filter((t) => t.startsWith('mason') || t.startsWith('elysia'));
+  if (err.status != null && found.length) {
+    for (const t of found) { blocks.push(t); console.log(`   BLOCK  ${t}`); }
+  } else {
+    const why = `could not run the accepted answer check: ${err.message.split('\n')[0]}`;
+    blocks.push(why);
+    console.log(`   BLOCK  ${why}`);
   }
   console.log('');
 }
@@ -102,42 +93,41 @@ try {
 /* ------------------------------------------------- 3. Jev, for review */
 
 if (!noAi) {
-  const md = join(ROOT, 'CLAUDE.md');
-  const key = existsSync(md) && readFileSync(md, 'utf8').match(/^- API key: `([^`]+)`/m);
+  const key = apiKey({ quiet: true });
   if (!key) {
     console.log('\x1b[1m3. Question quality\x1b[0m\n   skipped, no Jev key in CLAUDE.md\n');
   } else {
-    const jev = new Jev(key[1]);
+    const jev = new Jev(key);
     console.log('\x1b[1m3. Question quality, judged by Jev\x1b[0m');
 
     for (const c of children) {
-      const p = join(DATA, 'current', `${c}.json`);
-      if (!existsSync(p)) { console.log(`   ${c}: no current week on disk`); continue; }
-      const set = JSON.parse(readFileSync(p, 'utf8'));
+      const set = loadWeek(c, null);
+      if (!set) { console.log(`   ${c}: no current week on disk`); continue; }
+
+      // A slot with no recorded rung cannot be judged for level or evidence.
+      // Say so: silence here used to mean "judged against a guessed rung".
+      const noRung = slotsMissingRung(spine, c, set);
+      if (noRung.length) {
+        console.log(`   ${c}: no rung recorded for ${noRung.join(', ')}, `
+          + 'so the level checks are skipped there');
+      }
 
       const secResults = await pool(set.sections, 4, async (section) => {
         try {
           return await checkSection(jev, {
-            child: c, section, spineSlot: spine.slots[section.id], rung: rungFor(c, section.id),
+            child: c, section, spineSlot: spine.slots[section.id], rung: rungFor(spine, c, section.id),
           });
         } catch (e) { return { sectionId: section.id, flags: [], clean: true, error: e.message }; }
       });
 
-      const jobs = [];
-      for (const section of set.sections) {
-        for (const q of section.questions) {
-          if (q.inputType === 'none') continue;
-          if (section.scoreBand && section.questions.indexOf(q) % 10 !== 0) continue;
-          jobs.push({ section, question: q });
-        }
-      }
+      const jobs = questionsToCheck(set);
       const qResults = await pool(jobs, 4, async ({ section, question }) => {
         try {
           return {
             section, question,
             ...(await checkQuestion(jev, {
               child: c, section, question,
-              spineSlot: spine.slots[section.id], rung: rungFor(c, section.id),
+              spineSlot: spine.slots[section.id], rung: rungFor(spine, c, section.id),
             })),
           };
         } catch (e) { return { section, question, flags: [], clean: true, error: e.message }; }
@@ -167,8 +157,7 @@ if (!noAi) {
         }
       }
     }
-    console.log(`\n   cost: ${jev.usage.requests} requests, about `
-      + `$${(jev.usage.inputTokens / 1e6 * 0.042).toFixed(4)}\n`);
+    console.log(`\n   cost: ${costLine(jev)}\n`);
   }
 }
 

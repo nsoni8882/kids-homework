@@ -138,13 +138,7 @@ export function countCorrect(section, answers) {
   ).length;
 }
 
-/** Every question in the week the parent has to mark by hand. */
-export function parentMarkedQuestions(sections) {
-  const out = [];
-  for (const section of sections) {
-    for (const q of section.questions) {
-      if (!q.autoMark && q.inputType !== 'none') out.push({ section, q, marksAwarded: null });
-    }
-  }
-  return out;
-}
+/* parentMarkedQuestions() lived here and listed every autoMark:false question
+   for the parent to mark. It is gone because that is no longer how the decision
+   is made: the server offers those questions to Jev first and the parent only
+   sees what Jev could not settle, which is a list only the server can produce. */

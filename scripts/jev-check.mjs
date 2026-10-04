@@ -4,6 +4,7 @@
  *   node scripts/jev-check.mjs                 both children's current week
  *   node scripts/jev-check.mjs mason           one child
  *   node scripts/jev-check.mjs mason 21        a past week from the archive
+ *   node scripts/jev-check.mjs mason 21 --diagnose   why each wrong answer went wrong
  *   node scripts/jev-check.mjs --concurrency 6
  *
  * This checks the hard limits in curriculum/spine.json that are marked
@@ -14,76 +15,15 @@
  * It reports. It never changes a question. Decide each flag yourself.
  */
 
+import { Jev, checkQuestion, checkSection, diagnose } from '../worker/src/jev.js';
 import { readFileSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { Jev, checkQuestion, checkSection } from '../worker/src/jev.js';
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DATA = join(ROOT, 'data');
-
-function apiKey() {
-  const md = join(ROOT, 'CLAUDE.md');
-  if (!existsSync(md)) {
-    console.error('CLAUDE.md not found. It holds the key and is never committed.');
-    process.exit(1);
-  }
-  const m = readFileSync(md, 'utf8').match(/^- API key: `([^`]+)`/m);
-  if (!m) {
-    console.error('no TypeSafe API key in CLAUDE.md');
-    process.exit(1);
-  }
-  return m[1];
-}
-
-function loadWeek(child, week) {
-  if (week == null) {
-    const p = join(DATA, 'current', `${child}.json`);
-    if (!existsSync(p)) return null;
-    return JSON.parse(readFileSync(p, 'utf8'));
-  }
-  const p = join(DATA, 'children', child, 'question-sets', `w${String(week).padStart(2, '0')}.json`);
-  if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf8'));
-  const cur = join(DATA, 'current', `${child}.json`);
-  if (existsSync(cur)) {
-    const c = JSON.parse(readFileSync(cur, 'utf8'));
-    if (c.weekNum === week) return c;
-  }
-  return null;
-}
-
-/** Keep a few requests in flight without hammering the API. */
-async function pool(items, limit, fn) {
-  const out = new Array(items.length);
-  let next = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const i = next++;
-      out[i] = await fn(items[i], i);
-    }
-  }));
-  return out;
-}
+import { join } from 'node:path';
+import {
+  DATA, apiKey, loadSpine, loadWeek, pool, rungFor, questionsToCheck,
+  slotsMissingRung, costLine,
+} from './lib/gate.mjs';
 
 const BAR = '='.repeat(78);
-
-/** The rung the child is on in this slot, so the level check has something to
-    judge against. Falls back to the middle of the ladder when no position is
-    recorded yet. */
-function rungFor(spine, child, slot) {
-  const ladder = spine.ladders[child] && spine.ladders[child][slot];
-  if (!ladder) return null;
-  const posPath = join(DATA, 'curriculum', 'position.json');
-  if (existsSync(posPath)) {
-    const pos = JSON.parse(readFileSync(posPath, 'utf8'));
-    const here = (((pos.children || {})[child] || {}).slots || {})[slot];
-    if (here) {
-      const found = ladder.rungs.find((r) => r.id === here.rung);
-      if (found) return found;
-    }
-  }
-  return ladder.rungs[Math.floor(ladder.rungs.length / 2)];
-}
 
 async function run(child, week, jev, spine, concurrency) {
   const set = loadWeek(child, week);
@@ -92,20 +32,20 @@ async function run(child, week, jev, spine, concurrency) {
     return 0;
   }
 
-  const jobs = [];
-  for (const section of set.sections) {
-    for (const q of section.questions) {
-      if (q.inputType === 'none') continue;
-      // Drill items are 30 near identical sums. Sample them rather than paying
-      // for 30 requests that will say the same thing.
-      if (section.scoreBand && section.questions.indexOf(q) % 10 !== 0) continue;
-      jobs.push({ section, question: q });
-    }
-  }
+  const jobs = questionsToCheck(set);
 
   console.log(BAR);
   console.log(`${child.toUpperCase()}  week ${set.weekNum}  checking ${jobs.length} questions`);
   console.log(BAR);
+
+  // Without a recorded rung the level checks have nothing to judge against, so
+  // say so rather than quietly judging against a guess.
+  const noRung = slotsMissingRung(spine, child, set);
+  if (noRung.length) {
+    console.log(`\n  NOTE: no rung recorded for ${noRung.join(', ')}. The level and`);
+    console.log('  evidence checks are skipped for those slots. Set them in');
+    console.log('  data/curriculum/position.json to have them judged.');
+  }
 
   // Section level first: a section testing the wrong skill matters more than any
   // single question inside it.
@@ -170,23 +110,107 @@ async function run(child, week, jev, spine, concurrency) {
   return flagged + sectionFlags;
 }
 
+/**
+ * Why did each wrong answer go wrong?
+ *
+ * This is step 4 of the weekly cycle: classifying a loss as a child error or a
+ * question fault. Doing it by eye is where the diagnosis quietly becomes a
+ * guess, so each one is put to Jev with the question, the key and what the
+ * child actually typed.
+ *
+ * It reports. It changes no mark and no gap.
+ */
+async function runDiagnose(child, week, jev, concurrency) {
+  const set = loadWeek(child, week);
+  const recPath = join(DATA, 'children', child, 'weeks', `w${String(week).padStart(2, '0')}.json`);
+  if (!set || !existsSync(recPath)) {
+    console.log(`${child} week ${week}: need both the question set and the week record on disk. `
+      + 'Run scripts/kh.py pull');
+    return 0;
+  }
+  const rec = JSON.parse(readFileSync(recPath, 'utf8'));
+  const given = rec.answers || {};
+  if (!Object.keys(given).length) {
+    console.log(`${child} week ${week}: no per question answers were kept for this week.`);
+    return 0;
+  }
+
+  // Only the ones that actually lost a mark, judged the same way the app does.
+  const { answersMatch } = await import('../assets/marking.js');
+  const wrong = [];
+  for (const section of set.sections) {
+    for (const q of section.questions) {
+      if (q.inputType === 'none' || !q.autoMark) continue;
+      const a = given[q.id];
+      if (a === undefined) continue;
+      if (!answersMatch(a, q.accepted, q.inputType)) {
+        wrong.push({ section, q, given: a });
+      }
+    }
+  }
+
+  console.log(BAR);
+  console.log(`${child.toUpperCase()}  week ${week}  diagnosing ${wrong.length} wrong answers`);
+  console.log(BAR);
+  if (!wrong.length) {
+    console.log('  nothing auto marked went wrong this week');
+    return 0;
+  }
+
+  const out = await pool(wrong, concurrency, async ({ section, q, given: a }) => {
+    try {
+      return { section, q, given: a, ...(await diagnose(jev, {
+        child, question: { ...q, subject: section.subject }, given: a,
+        expected: (q.accepted || [])[0],
+      })) };
+    } catch (err) { return { section, q, given: a, error: err.message }; }
+  });
+
+  let flawed = 0;
+  for (const r of out) {
+    console.log(`\n  ${r.q.id}  (${r.section.id} ${r.section.title})`);
+    console.log(`    ${r.q.text.replace(/\s+/g, ' ').slice(0, 104)}`);
+    console.log(`    gave: ${JSON.stringify(r.given)}   key: ${JSON.stringify((r.q.accepted || [])[0])}`);
+    if (r.error) { console.log(`    could not diagnose: ${r.error}`); continue; }
+    console.log(`    cause: ${r.kind} (${(r.kindConfidence * 100).toFixed(0)}%) ${r.kindLabel}`);
+    if (r.questionFlawed >= 0.5) {
+      flawed++;
+      console.log(`    QUESTION FAULT likely (${(r.questionFlawed * 100).toFixed(0)}%), `
+        + 'so this may be mine to fix rather than theirs');
+    }
+  }
+  console.log(`\n  ${out.length} diagnosed, ${flawed} look like question faults`);
+  return flawed;
+}
+
 const args = process.argv.slice(2);
+const diagnoseMode = args.includes('--diagnose');
+if (diagnoseMode) args.splice(args.indexOf('--diagnose'), 1);
 let concurrency = 4;
 const ci = args.indexOf('--concurrency');
 if (ci !== -1) { concurrency = Number(args[ci + 1]); args.splice(ci, 2); }
 const child = args[0];
 const week = args[1] != null ? Number(args[1]) : null;
 
-const spine = JSON.parse(readFileSync(join(ROOT, 'curriculum', 'spine.json'), 'utf8'));
+const spine = loadSpine();
 const jev = new Jev(apiKey());
 const children = child ? [child] : ['mason', 'elysia'];
 
 let totalFlagged = 0;
-for (const c of children) totalFlagged += await run(c, week, jev, spine, concurrency);
+if (diagnoseMode) {
+  if (week == null) {
+    console.error('--diagnose needs a week: node scripts/jev-check.mjs mason 21 --diagnose');
+    process.exit(1);
+  }
+  for (const c of children) totalFlagged += await runDiagnose(c, week, jev, concurrency);
+} else {
+  for (const c of children) totalFlagged += await run(c, week, jev, spine, concurrency);
+}
 
 console.log(`\n${BAR}`);
-console.log(`${totalFlagged} question(s) flagged across ${children.length} child(ren)`);
-console.log(`cost: ${jev.usage.requests} requests, ${jev.usage.inputTokens.toLocaleString()} input tokens, `
-  + `about $${(jev.usage.inputTokens / 1e6 * 0.042).toFixed(4)}`);
+console.log(diagnoseMode
+  ? `${totalFlagged} likely question fault(s) across ${children.length} child(ren)`
+  : `${totalFlagged} question(s) flagged across ${children.length} child(ren)`);
+console.log(`cost: ${costLine(jev)}`);
 if (totalFlagged) console.log('A flag is a prompt to look, not a verdict. Decide each one yourself.');
 process.exit(0);

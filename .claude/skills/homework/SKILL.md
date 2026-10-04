@@ -39,12 +39,17 @@ scripts/kh.py pull
 scripts/kh.py status
 ```
 
-For each child, find the latest week with a `submittedAt`. If `currentWeek.weekNum` is GREATER
-than that week, there is nothing new for that child: say so and skip them. If both skip, stop
-and say so. **Never process a week twice and never regenerate an unsubmitted week.**
+For each child, find the latest week that has a score AND per question answers. If
+`current_week` is GREATER than that, there is nothing new for that child: say so and skip them.
+If both skip, stop and say so. **Never process a week twice and never regenerate an unsubmitted
+week.**
 
-Check the last three weeks of each child have `notes` and `summary`. Missing ones get written
-in step 5.
+Do NOT use `submittedAt` as the test of whether a week happened. Weeks 1 to 9 have none, for
+both children, and no timestamp is to be invented for them.
+
+`status` prints **OPEN DECISIONS**: questions Jev referred that nobody has marked yet. The
+week's total is incomplete until they are answered, so resolve them before scoring. It also
+names any of the last three weeks missing `notes` or `summary`; those get written in step 5.
 
 ## Step 1. Load the map
 
@@ -65,9 +70,10 @@ Every question, the accepted answers, the mark scheme and what the child typed, 
 
 ## Step 3. Confirm the questions are saved
 
-`pull` already decoded every stored question set. Confirm week N's set is on disk before
-anything overwrites `currentWeek`, and that every answer id in the week's `answers` exists in
-it. `push` keeps the last 4 weeks per child automatically.
+`pull` writes every question set the database holds to
+`data/children/<child>/question-sets/`. Confirm week N's set is there, and that every answer id
+in the week's `answers` exists in it. Nothing is trimmed or overwritten now: the database keeps
+every week's questions, and `current_week` just points at the one being sat.
 
 ## Step 4. Mark it for real
 
@@ -79,12 +85,24 @@ That re-marks from the saved answers using the same engine the app used, and exp
 difference from the stored marks. A difference is only acceptable when parent marking or a
 recorded `adjustedAt` accounts for it.
 
+Note that the per question record already says who decided each mark and why: `marked_by` is
+`auto`, `jev` or `parent`, and `jev_reason` carries the band it landed in. Read that before
+re-deriving anything.
+
 Then, for each wrong answer, decide: **real child error, or question fault?** Verify every key
-by arithmetic or fact. Use Jev to check the ones you are unsure about rather than guessing:
+by arithmetic or fact. Check `answersMatch` before assuming an answer was judged semantically:
+the engine is tolerant enough that "about 0" matches a key of "0". Use Jev on the ones you are
+unsure about rather than guessing:
 
 ```bash
-node scripts/jev-check.mjs <child> <N>
+node scripts/jev-check.mjs <child> <N> --diagnose   # every wrong answer, classified
+node scripts/jev-check.mjs <child> <N>              # the question quality pass
 ```
+
+`--diagnose` puts each wrong answer to Jev with the question, the key and what the child typed,
+and returns a cause (misread, slip, wrong method, incomplete, spelling, blank, bad question)
+plus a separate probability that the QUESTION is at fault. Use it as evidence, not as the
+verdict: it reports and changes nothing.
 
 Rules that do not bend:
 - `autoMark:false` questions are not re-marked. Infer partial credit from the section total.
@@ -129,8 +147,13 @@ Then push:
 scripts/kh.py push
 ```
 
-It does the 8 week trim, moves resolved gaps to the archive, checks both bins against the
-100,000 byte limit, snapshots first and reads back after.
+It validates first and refuses to write anything if validation fails, snapshots the API export,
+then writes the week write up, the gaps, the position and next week's questions, and reads back
+the current week and gap counts.
+
+**It deliberately cannot write a mark.** The Worker owns marks, answers and the decision queue:
+it marked the week, and the local copy is always the older story. If a mark genuinely needs
+changing by hand, that is `push --include-scores`, and it needs Nik's explicit yes.
 
 ## Step 6. Advancement
 
@@ -191,17 +214,29 @@ scripts/kh.py push
 
 `push` validates again on its own and refuses a bad week even if the gate was skipped.
 
-## Step 9. Deploy, only if app code changed
+## Step 9. Deploy, only if code changed
 
-Question changes never need a deploy: they live in the bins.
+Question changes never need a deploy: they live in the database, so `kh.py push` is enough.
+
+Pages changed (`index.html`, `mason/`, `elysia/`, `assets/`):
 
 ```bash
 git add -A && git commit -m "..." && git push
 gh api repos/nsoni8882/kids-homework/pages/builds/latest --jq .status   # wait for "built"
 ```
 
-Then check the three live URLs. If a Kumon level changed and Nik confirmed it, edit
-`assets/roadmap.json` and include it in the same commit.
+API changed (anything under `worker/`):
+
+```bash
+cd worker && npx wrangler deploy
+```
+
+`assets/marking.js` changed: **both**, or the pages and the Worker will disagree about what
+counts as correct.
+
+Then check the three live URLs and that `#error` is hidden on the dashboard, per CLAUDE.md
+section 13. If a Kumon level changed and Nik confirmed it, edit `assets/roadmap.json` and
+include it in the same commit.
 
 ## Finish
 
@@ -214,16 +249,19 @@ Say what is done, what is left, and ONE next action for Nik.
 Create a todo per line and tick them off.
 
 - [ ] `kh.py pull` and `status`, guard against reprocessing
+- [ ] open decisions from `status` resolved, or carried into the step 7 report
 - [ ] `kh.py curriculum` read for each active child
 - [ ] `kh.py answers` read for each active child
 - [ ] `test.mjs --mark` run, every difference explained
 - [ ] each wrong answer classified: child error or question fault
 - [ ] gaps updated, `null` recorded where an item could not test the skill
 - [ ] `summary` and `verdict` written for every processed week
-- [ ] `kh.py push` succeeded and read back identical
+- [ ] `node scripts/test.mjs` passes
+- [ ] `kh.py push` succeeded and read back the expected current week and gap counts
 - [ ] advancement decided per slot, `position.json` updated
 - [ ] report delivered with numbered yes or no decisions
 - [ ] **STOPPED and waited**
 - [ ] (after reply) `kh.py plan`, questions built to spec
 - [ ] (after reply) `check-week.mjs` passed, then `kh.py push`
-- [ ] (if code changed) pushed and the Pages build confirmed built
+- [ ] (if pages changed) pushed and the Pages build confirmed built
+- [ ] (if worker/ changed) `wrangler deploy` run

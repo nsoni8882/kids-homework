@@ -17,6 +17,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { answersMatch, markSection, countCorrect } from '../assets/marking.js';
+import { markWeek } from '../worker/src/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -145,6 +146,206 @@ function unitTests() {
   ok('drill with no bands scores nothing', markSection(noBands, allRight) === 0);
 }
 
+/* ------------------------------------------------- the server side marking */
+
+/* markWeek decides every mark now, so it is tested here against a stub Jev
+   rather than the real one: the point is the ORDER and the bookkeeping, which
+   must not depend on a network call or on what a model happens to say today.
+
+   The stub records what it was asked, so a test can assert that something was
+   NOT sent to Jev, which is half the design. */
+function stubJev(reply) {
+  const asked = [];
+  return {
+    asked,
+    ask: async (state, questions) => {
+      asked.push({ state, keys: Object.keys(questions) });
+      if (typeof reply === 'function') return reply(state, questions);
+      return reply;
+    },
+    usage: { requests: 0, inputTokens: 0 },
+  };
+}
+
+const CORRECT = { essentially_correct: { noul: 0.99, confidence: 0.99 } };
+const WRONG = { essentially_correct: { noul: 0.01, confidence: 0.99 } };
+const UNSURE = { essentially_correct: { noul: 0.5, confidence: 0.5 } };
+
+const oneSection = (questions, extra = {}) => ({
+  weekNum: 1,
+  sections: [{ id: '1A', subject: 'english', title: 'T', timerMins: 5,
+    totalMarks: questions.reduce((t, q) => t + q.marks, 0), questions, ...extra }],
+});
+
+const q = (over = {}) => ({
+  id: '1A-Q1', text: 'q', marks: 1, inputType: 'text', autoMark: true, accepted: ['west'], ...over,
+});
+
+async function serverMarkingTests() {
+  /* the deterministic pass comes first and must not reach Jev at all */
+  {
+    const set = oneSection([q()]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': 'West.' }, jev);
+    ok('accepted answer is marked by the engine, not Jev', r.perQuestion['1A-Q1'].markedBy === 'auto');
+    ok('accepted answer scores its marks', r.sectionMarks['1A'] === 1);
+    ok('accepted answer never reaches Jev', jev.asked.length === 0);
+    ok('nothing is referred', r.needsParent === 0);
+  }
+
+  /* a rejected answer goes to Jev, and Jev can overturn it */
+  {
+    const set = oneSection([q()]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': 'the western side' }, jev);
+    ok('rejected answer is sent to Jev', jev.asked.length === 1);
+    ok('Jev can mark it correct', r.perQuestion['1A-Q1'].markedBy === 'jev');
+    ok('Jev correct earns the marks', r.sectionMarks['1A'] === 1);
+  }
+  {
+    const set = oneSection([q()]);
+    const r = await markWeek('mason', set, { '1A-Q1': 'east' }, stubJev(WRONG));
+    ok('Jev wrong scores nothing', r.sectionMarks['1A'] === 0);
+    ok('Jev wrong is still decided, not referred', r.perQuestion['1A-Q1'].marks === 0);
+  }
+
+  /* an uncertain answer is referred, never guessed */
+  {
+    const set = oneSection([q()]);
+    // Deliberately an answer the engine rejects outright. "maybe west" would
+    // NOT do: the containment rule accepts a correct phrase inside a longer
+    // answer, so it never reaches Jev at all.
+    const r = await markWeek('mason', set, { '1A-Q1': 'I am not sure' }, stubJev(UNSURE));
+    ok('uncertain is referred to the parent', r.perQuestion['1A-Q1'].markedBy === 'parent');
+    ok('a referred mark is null, not zero', r.perQuestion['1A-Q1'].marks === null);
+    ok('a referral is counted', r.needsParent === 1);
+    ok('a referred question scores nothing yet', r.sectionMarks['1A'] === 0);
+  }
+
+  /* a parent marked question goes to Jev rather than straight to the parent */
+  {
+    const set = oneSection([q({ autoMark: false, accepted: undefined, markScheme: 'any reason' })]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': 'because it was raining' }, jev);
+    ok('a parent marked question is offered to Jev first', jev.asked.length === 1);
+    ok('Jev can settle it', r.perQuestion['1A-Q1'].markedBy === 'jev');
+  }
+
+  /* Jev being unavailable must refer, never guess */
+  {
+    const set = oneSection([q()]);
+    const jev = { ask: async () => { throw new Error('down'); }, usage: {} };
+    const r = await markWeek('mason', set, { '1A-Q1': 'something else' }, jev);
+    ok('Jev failing refers to the parent', r.perQuestion['1A-Q1'].markedBy === 'parent');
+    ok('Jev failing does not score the question', r.perQuestion['1A-Q1'].marks === null);
+    ok('the reason says Jev was unavailable', /unavailable/i.test(r.perQuestion['1A-Q1'].reason));
+  }
+
+  /* blanks and letters are settled without asking */
+  {
+    const set = oneSection([q({ inputType: 'letter', accepted: ['S'] })]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': 'P' }, jev);
+    ok('a wrong letter is decided locally', jev.asked.length === 0);
+    ok('a wrong letter scores nothing', r.perQuestion['1A-Q1'].marks === 0);
+  }
+  {
+    const set = oneSection([q()]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': '   ' }, jev);
+    ok('a blank is never sent to Jev', jev.asked.length === 0);
+    ok('a blank scores nothing', r.perQuestion['1A-Q1'].marks === 0);
+    ok('a blank reason says so', r.perQuestion['1A-Q1'].reason === 'left blank');
+  }
+  {
+    const set = oneSection([q(), q({ id: '1A-Q2' })]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, {}, jev);
+    ok('a missing answer is treated as blank', r.perQuestion['1A-Q2'].marks === 0);
+    ok('no answers means no Jev calls', jev.asked.length === 0);
+  }
+
+  /* a non string answer must not take the submission down */
+  {
+    const set = oneSection([q({ inputType: 'number', accepted: ['20'] })]);
+    const r = await markWeek('mason', set, { '1A-Q1': 20 }, stubJev(CORRECT));
+    ok('a numeric answer is coerced, not crashed on', r.sectionMarks['1A'] === 1);
+  }
+  {
+    const set = oneSection([q()]);
+    const r = await markWeek('mason', set, { '1A-Q1': { nope: 1 } }, stubJev(CORRECT));
+    ok('an object answer is treated as blank', r.perQuestion['1A-Q1'].marks === 0);
+  }
+
+  /* display only items are not questions */
+  {
+    const set = oneSection([q({ id: '1A-Q1', inputType: 'none' }), q({ id: '1A-Q2' })]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': 'x', '1A-Q2': 'west' }, jev);
+    ok('a display only item gets no verdict', r.perQuestion['1A-Q1'] === undefined);
+  }
+
+  /* a drill is banded on the count correct */
+  {
+    const items = Array.from({ length: 30 }, (_, i) => q({
+      id: `2A-Q${i}`, marks: 1, inputType: 'number', accepted: [String(i)],
+    }));
+    const set = {
+      weekNum: 1,
+      sections: [{ id: '2A', subject: 'maths', title: 'Drill', timerMins: 8, totalMarks: 8,
+        scoreBand: true, scoreBandRules: [[29, 30, 8], [25, 28, 6], [20, 24, 4], [0, 19, 2]],
+        questions: items }],
+    };
+    const all = Object.fromEntries(items.map((x, i) => [x.id, String(i)]));
+    const r1 = await markWeek('mason', set, all, stubJev(CORRECT));
+    ok('a full drill takes the top band', r1.sectionMarks['2A'] === 8);
+    ok('the drill total is the band, not the item count', r1.total === 8);
+
+    const three = { ...all, '2A-Q0': '', '2A-Q1': '', '2A-Q2': '' };
+    const r2 = await markWeek('mason', set, three, stubJev(CORRECT));
+    ok('27 of 30 is the second band', r2.sectionMarks['2A'] === 6);
+
+    // A drill item Jev cannot settle must still be counted as waiting.
+    // "about 0" would be accepted: "about " is a leading filler. Use a word
+    // form, which the engine has no rule for.
+    const one = { ...all, '2A-Q0': 'zero' };
+    const r3 = await markWeek('mason', set, one, stubJev(UNSURE));
+    ok('a referred drill item is counted as needing a parent', r3.needsParent === 1);
+  }
+
+  /* the totals are the sum of the sections, and outOf comes from the paper */
+  {
+    const set = {
+      weekNum: 1,
+      sections: [
+        { id: '1A', subject: 'english', title: 'A', timerMins: 5, totalMarks: 2,
+          questions: [q({ id: '1A-Q1', marks: 2, accepted: ['west'] })] },
+        { id: '2B', subject: 'maths', title: 'B', timerMins: 5, totalMarks: 1,
+          questions: [q({ id: '2B-Q1', accepted: ['7'] })] },
+      ],
+    };
+    const r = await markWeek('mason', set, { '1A-Q1': 'west', '2B-Q1': '7' }, stubJev(CORRECT));
+    ok('totals add the sections up', r.total === 3);
+    ok('outOf comes from the question set', r.outOf === 3);
+    ok('each section is reported', r.sectionMarks['1A'] === 2 && r.sectionMarks['2B'] === 1);
+    ok('sectionOutOf is reported', r.sectionOutOf['1A'] === 2);
+  }
+
+  /* a multi mark question uses the credit score and must be confident */
+  {
+    const set = oneSection([q({ marks: 2, autoMark: false, accepted: undefined, markScheme: 'two reasons' })]);
+    const confident = { essentially_correct: { noul: 0.9, confidence: 0.9 },
+      credit: { score: 1, confidence: 0.95 } };
+    const r = await markWeek('mason', set, { '1A-Q1': 'one reason' }, stubJev(confident));
+    ok('partial credit is awarded', r.perQuestion['1A-Q1'].marks === 1);
+
+    const shaky = { essentially_correct: { noul: 0.9, confidence: 0.9 },
+      credit: { score: 1, confidence: 0.4 } };
+    const r2 = await markWeek('mason', set, { '1A-Q1': 'one reason' }, stubJev(shaky));
+    ok('low confidence credit is referred', r2.perQuestion['1A-Q1'].marks === null);
+  }
+}
+
 /* ------------------------------------------------- checks against the data */
 
 function latestQuestionSets() {
@@ -263,10 +464,11 @@ if (flag === '--check-accepted') {
   process.exit(remark(a, Number(b)));
 } else {
   unitTests();
+  await serverMarkingTests();
   if (failures.length) {
     console.log(`${passed} passed, ${failures.length} FAILED:`);
     failures.forEach((f) => console.log(`  - ${f}`));
     process.exit(1);
   }
-  console.log(`${passed} marking tests passed`);
+  console.log(`${passed} marking tests passed (engine and server)`);
 }

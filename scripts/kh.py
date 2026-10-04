@@ -1,25 +1,43 @@
 #!/usr/bin/env python3
 """kh - homework data CLI.
 
-The two JSONbin bins are the live store the browser talks to. Their shape is
-fixed because the old Netlify site still reads them, so this tool keeps that
-wire format untouched and gives you a normalised, reviewable copy on disk
-under data/ instead.
+The Cloudflare Worker and its D1 database are the store. This tool talks to the
+Worker's /admin routes and keeps a normalised, reviewable copy on disk under
+data/ so a week can be read, diffed and planned without a browser.
 
-  kh.py pull      bins  -> data/   (also writes a raw snapshot first)
-  kh.py status    one screen summary of what is on disk and in the bins
-  kh.py validate  check data/ against schema/
-  kh.py push      data/ -> bins    (rebuilds both payloads, asks first)
-  kh.py backup    raw snapshot of both bins, nothing else
+  kh.py pull      API   -> data/   (writes a raw snapshot of the export first)
+  kh.py status    one screen summary of what is on disk and what the API holds
+  kh.py validate  check data/ against schema/ and the curriculum rules
+  kh.py push      data/ -> API     (the fields a human owns, asks first)
+  kh.py backup    raw snapshot of the export, nothing else
   kh.py answers   print one week's questions next to the answers given
+  kh.py plan      the spec for NEXT week
+  kh.py curriculum  the weekly brief
+
+WHAT PUSH WRITES, AND WHY IT IS NARROW
+--------------------------------------
+The Worker owns marks. It marks each submission, records who decided every
+question and recomputes the totals from its own rows, so a tool that pushed
+`data/` wholesale would undo real marking with a stale local copy. That is not
+hypothetical: the migration script this replaced did exactly that, and wiped a
+submitted week along with the parent's marking queue.
+
+So push writes only what a human authors during the weekly cycle:
+
+  * the week write up: notes, summary, verdict, wins, errors, designIssues,
+    hintedSections
+  * gaps and their per week observation log
+  * the curriculum position
+  * next week's question set, and the current_week pointer that selects it
+
+Scores, per question answers and the decision queue belong to the Worker and are
+never written from here, unless --include-scores is passed to repair a week by
+hand.
 
 Credentials are read from CLAUDE.md in this folder and never printed.
-Reads use the restricted access key, writes use the master key.
 """
 
 import argparse
-import base64
-import gzip
 import json
 import os
 import re
@@ -36,13 +54,9 @@ POSITION = os.path.join(DATA, "curriculum", "position.json")
 CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 
 CHILDREN = ("mason", "elysia")
-LIVE_WEEKS = 8          # how many weeks the live bin keeps per child
-BIN_SIZE_LIMIT = 100_000
-BIN_SIZE_TARGET = 92_000
-QSET_KEEP = 4           # question sets kept per child in the archive
 SUBJECT_BY_PREFIX = {"1": "english", "2": "maths", "3": "thinking"}
-API = "https://api.jsonbin.io/v3/b"
-# JSONbin sits behind Cloudflare, which rejects urllib's default User-Agent with a 403.
+# /admin/sql runs one batch per request and the Worker caps a batch at 500.
+SQL_CHUNK = 400
 UA = "kids-homework-cli/1.0"
 
 
@@ -56,17 +70,14 @@ def creds():
     txt = open(CLAUDE_MD, encoding="utf-8").read()
 
     def grab(pattern, label):
-        m = re.search(pattern, txt)
+        m = re.search(pattern, txt, re.M)
         if not m:
             die(f"could not find {label} in CLAUDE.md")
         return m.group(1).strip()
 
     return {
-        "master": grab(r"JSONbin\.io Master Key:\s*`([^`]+)`", "the master key"),
-        "access": grab(r"JSONbin Access Key `kids-homework-site`:\s*`([^`]+)`", "the browser access key"),
-        "live": grab(r"Live bin ID:\s*`([^`]+)`", "the live bin ID"),
-        "archive": grab(r"Archive bin ID:\s*`([^`]+)`", "the archive bin ID"),
-        "current": grab(r"Current week bin ID:\s*`([^`]+)`", "the current week bin ID"),
+        "api": grab(r"^\| API \| (https://\S+?)\s*\|", "the API base URL"),
+        "token": grab(r"Worker admin token:\s*`([^`]+)`", "the Worker admin token"),
     }
 
 
@@ -105,49 +116,69 @@ def write_json(path, obj):
         fh.write("\n")
 
 
-def api_get(bin_id, key, header):
+# --------------------------------------------------------------------------
+# the API
+# --------------------------------------------------------------------------
+
+def _request(c, path, payload=None, timeout=60):
+    url = f"{c['api']}{path}"
+    data = json.dumps(payload, ensure_ascii=False).encode() if payload is not None else None
     req = urllib.request.Request(
-        f"{API}/{bin_id}/latest",
-        headers={header: key, "X-Bin-Meta": "false", "User-Agent": UA},
+        url, data=data, method="POST" if data else "GET",
+        headers={
+            "Authorization": f"Bearer {c['token']}",
+            "Content-Type": "application/json",
+            "User-Agent": UA,
+        },
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
-        die(f"GET bin {bin_id} failed: HTTP {e.code} {e.read().decode()[:200]}")
+        body = e.read().decode()[:300]
+        die(f"{path} failed: HTTP {e.code} {body}")
+    except urllib.error.URLError as e:
+        die(f"{path} failed: {e.reason}. Is the Worker deployed and reachable?")
 
 
-def api_put(bin_id, key, payload):
-    body = json.dumps(payload, ensure_ascii=False).encode()
-    req = urllib.request.Request(
-        f"{API}/{bin_id}",
-        data=body,
-        method="PUT",
-        headers={"Content-Type": "application/json", "X-Master-Key": key, "User-Agent": UA},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return json.loads(r.read().decode()), len(body)
-    except urllib.error.HTTPError as e:
-        die(f"PUT bin {bin_id} failed: HTTP {e.code} {e.read().decode()[:200]}")
+def api_export(c):
+    """Everything the dashboard sees, for both children."""
+    return _request(c, "/admin/export")
 
 
-def gunzip_b64(blob):
-    if isinstance(blob, dict) and blob.get("enc") == "gzip+base64":
-        blob = blob["data"]
-    return json.loads(gzip.decompress(base64.b64decode(blob)))
+def api_query(c, sql, params=None):
+    out = _request(c, "/admin/query", {"sql": sql, "params": params or []})
+    return out.get("results") or []
 
 
-def gzip_b64(obj):
-    raw = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode()
-    return {"enc": "gzip+base64", "data": base64.b64encode(gzip.compress(raw, 9)).decode()}
+def api_sql(c, statements, label=""):
+    """Run write statements, chunked to the Worker's batch cap. Each chunk is one
+    transaction; the chunks are not one transaction between them, so a statement
+    list must be ordered so that a partial run leaves nothing contradictory."""
+    done = 0
+    for i in range(0, len(statements), SQL_CHUNK):
+        chunk = statements[i:i + SQL_CHUNK]
+        _request(c, "/admin/sql", {"statements": chunk})
+        done += len(chunk)
+        if len(statements) > SQL_CHUNK:
+            print(f"    {label} {done}/{len(statements)}")
+    return done
+
+
+def st(sql, *params):
+    """One statement for /admin/sql. Parameterised, never interpolated."""
+    return {"sql": sql, "params": list(params)}
+
+
+def jdump(v):
+    """A JSON column, or NULL when there is nothing in it."""
+    return json.dumps(v, ensure_ascii=False) if v else None
 
 
 def subjects_from_section_marks(section_marks, sections=None):
     """Roll section marks up per subject. Section ids look like 1A, 2B, 3C and
-    the leading digit is the subject, which is how the dashboard has always
-    read them. When the week's question set is on hand we use its declared
-    subject and totalMarks instead, which is exact."""
+    the leading digit is the subject. When the week's question set is on hand we
+    use its declared subject and totalMarks instead, which is exact."""
     out = {}
     if sections:
         for sec in sections:
@@ -168,19 +199,19 @@ def subjects_from_section_marks(section_marks, sections=None):
 
 
 # --------------------------------------------------------------------------
-# normalise: bin shape -> local shape
+# pull
 # --------------------------------------------------------------------------
 
-def normalise_week(child, raw, source, sections=None):
-    """One week record, same fields whether it came from the live bin (rich,
-    with answers) or the archive bin (older, subject totals only)."""
+def normalise_week(child, raw, answers, sections=None):
+    """One API week record in the on disk shape. Same fields for every week,
+    whatever era it came from."""
     total = raw.get("total")
-    out_of = raw.get("outOf") or raw.get("max")
+    out_of = raw.get("outOf")
     rec = {
         "schemaVersion": 2,
         "child": child,
         "week": raw["week"],
-        "source": source,
+        "source": "api",
         "score": {
             "total": total,
             "outOf": out_of,
@@ -188,123 +219,75 @@ def normalise_week(child, raw, source, sections=None):
         },
         "subjects": {},
         "sectionMarks": raw.get("sectionMarks") or {},
-        "answers": raw.get("archive") or {},
+        "answers": answers or {},
         "submittedAt": raw.get("submittedAt"),
         "adjustedAt": raw.get("adjustedAt"),
         "notes": raw.get("notes") or "",
-        # The headline fields the dashboard leads with. The notes paragraph stays
-        # as the full record behind a disclosure.
         "summary": raw.get("summary") or "",
         "verdict": raw.get("verdict"),
         "wins": raw.get("wins") or [],
         "errors": raw.get("errors") or [],
         "designIssues": raw.get("designIssues") or [],
         "hintedSections": raw.get("hintedSections") or [],
+        "elapsedSecs": raw.get("elapsedSecs"),
+        "unanswered": raw.get("unanswered"),
     }
-
-    # Anything the bin carries that this schema does not name is kept verbatim so a
-    # pull/push round trip never silently drops a field.
-    known = {"week", "total", "outOf", "max", "sectionMarks", "archive", "submittedAt",
-             "adjustedAt", "notes", "english", "englishMax", "maths", "mathsMax",
-             "thinking", "thinkingMax", "summary", "verdict", "wins", "errors",
-             "designIssues", "hintedSections"}
-    extra = {k: v for k, v in raw.items() if k not in known}
-    if extra:
-        rec["extra"] = extra
-
-    if raw.get("sectionMarks"):
-        rec["subjects"] = subjects_from_section_marks(raw["sectionMarks"], sections)
-        for subj, declared in (("english", "englishMax"), ("maths", "mathsMax"), ("thinking", "thinkingMax")):
-            if subj in rec["subjects"] and not rec["subjects"][subj]["outOf"] and raw.get(declared):
-                rec["subjects"][subj]["outOf"] = raw[declared]
-    else:
-        for subj, mk, mx in (
-            ("english", "english", "englishMax"),
-            ("maths", "maths", "mathsMax"),
-            ("thinking", "thinking", "thinkingMax"),
-        ):
-            if raw.get(mk) is not None:
-                rec["subjects"][subj] = {"marks": raw[mk], "outOf": raw.get(mx)}
+    if rec["sectionMarks"]:
+        rec["subjects"] = subjects_from_section_marks(rec["sectionMarks"], sections)
     return rec
 
 
-def denormalise_week(rec):
-    """Local shape -> the exact field set the browser and old site expect."""
-    if rec["source"] == "archive" and not rec["sectionMarks"]:
-        out = {"week": rec["week"], "total": rec["score"]["total"], "max": rec["score"]["outOf"]}
-        for subj in ("english", "maths", "thinking"):
-            if subj in rec["subjects"]:
-                out[subj] = rec["subjects"][subj]["marks"]
-                out[subj + "Max"] = rec["subjects"][subj]["outOf"]
-        for field in ("notes", "summary", "verdict", "wins", "errors",
-                      "designIssues", "hintedSections"):
-            if rec.get(field):
-                out[field] = rec[field]
-        out.update(rec.get("extra") or {})
-        return out
-
-    out = {
-        "week": rec["week"],
-        "total": rec["score"]["total"],
-        "outOf": rec["score"]["outOf"],
-        "sectionMarks": rec["sectionMarks"],
-        "archive": rec["answers"],
-    }
-    for field in ("submittedAt", "notes", "adjustedAt", "summary", "verdict",
-                  "wins", "errors", "designIssues", "hintedSections"):
-        if rec.get(field):
-            out[field] = rec[field]
-    out.update(rec.get("extra") or {})
-    return out
-
-
-# --------------------------------------------------------------------------
-# pull
-# --------------------------------------------------------------------------
-
 def cmd_pull(args):
     c = creds()
-    print(f"reading bins with access key {mask(c['access'])}")
-    live = api_get(c["live"], c["access"], "X-Access-Key")
-    archive = api_get(c["archive"], c["access"], "X-Access-Key")
-    current = api_get(c["current"], c["access"], "X-Access-Key")
+    print(f"reading {c['api']} with admin token {mask(c['token'])}")
+    export = api_export(c)
 
     snap = os.path.join(DATA, "snapshots", now_stamp())
-    write_json(os.path.join(snap, "live.json"), live)
-    write_json(os.path.join(snap, "archive.json"), archive)
-    write_json(os.path.join(snap, "current.json"), current)
+    write_json(os.path.join(snap, "export.json"), export)
     print(f"raw snapshot -> {os.path.relpath(snap, ROOT)}")
 
-    manifest = {"pulledAt": datetime.now(timezone.utc).isoformat(), "children": {}}
+    qrows = api_query(c, "SELECT child_id, week, payload FROM question_set ORDER BY child_id, week")
+    arows = api_query(c, "SELECT child_id, week, question_id, given FROM answer")
+
+    qsets = {}
+    for r in qrows:
+        try:
+            qsets[(r["child_id"], r["week"])] = json.loads(r["payload"])
+        except (ValueError, TypeError) as e:
+            print(f"  warning: {r['child_id']} week {r['week']} question set did not parse ({e})")
+
+    answers_by = {}
+    for r in arows:
+        answers_by.setdefault((r["child_id"], r["week"]), {})[r["question_id"]] = r["given"]
+
+    manifest = {"pulledAt": datetime.now(timezone.utc).isoformat(), "api": c["api"], "children": {}}
 
     for child in CHILDREN:
-        lk = live.get(child) or {}
-        ak = archive.get(child) or {}
+        d = export.get(child) or {}
         base = os.path.join(DATA, "children", child)
+        profile_in = d.get("profile") or {}
+        cur_week = profile_in.get("current_week")
 
-        # question sets first, so week records can use their exact section totals
+        # question sets, including the week being sat now
+        qdir = os.path.join(base, "question-sets")
+        for stale in sorted(os.listdir(qdir)) if os.path.isdir(qdir) else []:
+            os.remove(os.path.join(qdir, stale))
         sections_by_week = {}
-        qsets = ((archive.get("questionSets") or {}).get(child)) or {}
-        for week_str, blob in qsets.items():
-            try:
-                decoded = gunzip_b64(blob)
-            except Exception as e:                      # noqa: BLE001
-                print(f"  warning: {child} week {week_str} question set did not decode ({e})")
+        for (ch, wk), payload in sorted(qsets.items()):
+            if ch != child:
                 continue
-            sections_by_week[int(week_str)] = decoded.get("sections") or []
-            write_json(os.path.join(base, "question-sets", f"w{int(week_str):02d}.json"), decoded)
+            sections_by_week[wk] = payload.get("sections") or []
+            write_json(os.path.join(qdir, f"w{wk:02d}.json"), payload)
 
-        current = (current.get(child) or {}).get("currentWeek") or lk.get("currentWeek")
+        current = qsets.get((child, cur_week)) if cur_week else None
         if current:
-            sections_by_week.setdefault(current["weekNum"], current.get("sections") or [])
             write_json(os.path.join(DATA, "current", f"{child}.json"), current)
 
-        # weeks: archive first, then live, so live wins on any overlap
+        # weeks
         weeks = {}
-        for raw in ak.get("weeks") or []:
-            weeks[raw["week"]] = normalise_week(child, raw, "archive", sections_by_week.get(raw["week"]))
-        for raw in lk.get("weeks") or []:
-            weeks[raw["week"]] = normalise_week(child, raw, "live", sections_by_week.get(raw["week"]))
+        for raw in d.get("weeks") or []:
+            weeks[raw["week"]] = normalise_week(
+                child, raw, answers_by.get((child, raw["week"])), sections_by_week.get(raw["week"]))
 
         wdir = os.path.join(base, "weeks")
         for stale in sorted(os.listdir(wdir)) if os.path.isdir(wdir) else []:
@@ -312,22 +295,35 @@ def cmd_pull(args):
         for num in sorted(weeks):
             write_json(os.path.join(wdir, f"w{num:02d}.json"), weeks[num])
 
-        gaps = [dict(g, source="live") for g in (lk.get("gaps") or [])]
-        gaps += [dict(g, source="archive") for g in (ak.get("resolvedGaps") or [])]
+        # gaps. The API reports an observation as 1, 0 or null; keep it that way
+        # on disk so one representation travels end to end.
+        gaps = []
+        for g in d.get("gaps") or []:
+            gaps.append({
+                "topic": g.get("topic"),
+                "detail": g.get("detail") or "",
+                "status": g.get("status"),
+                "slot": g.get("slot"),
+                "rung": g.get("rung"),
+                "parkedUntil": g.get("parkedUntil"),
+                "weeks": g.get("weeks") or [],
+            })
         write_json(os.path.join(base, "gaps.json"), gaps)
 
-        if lk.get("position"):
-            os.makedirs(os.path.join(DATA, "curriculum"), exist_ok=True)
+        if d.get("position"):
             allpos = read_json(POSITION, {"schemaVersion": 1, "children": {}})
-            allpos.setdefault("children", {})[child] = lk["position"]
+            allpos.setdefault("children", {})[child] = d["position"]
             write_json(POSITION, allpos)
 
         profile = {
             "child": child,
-            "displayName": child.capitalize(),
-            "kumonLevel": lk.get("kumonLevel") or {},
-            "currentWeek": current["weekNum"] if current else None,
-            "marksOutOf": (current and sum(s.get("totalMarks", 0) for s in current.get("sections", []))) or None,
+            "displayName": profile_in.get("display_name") or child.capitalize(),
+            "kumonLevel": {k: v for k, v in (
+                ("maths", profile_in.get("kumon_maths")),
+                ("english", profile_in.get("kumon_english")),
+            ) if v},
+            "currentWeek": cur_week,
+            "marksOutOf": profile_in.get("marks_total"),
         }
         write_json(os.path.join(base, "profile.json"), profile)
 
@@ -336,26 +332,19 @@ def cmd_pull(args):
             "weeks": len(weeks),
             "weekRange": [min(weeks), max(weeks)] if weeks else None,
             "weeksWithAnswers": sum(1 for w in weeks.values() if w["answers"]),
-            "questionSets": sorted(int(f[1:-5]) for f in os.listdir(os.path.join(base, "question-sets"))
-                                   if f.endswith(".json")) if os.path.isdir(os.path.join(base, "question-sets")) else [],
+            "questionSets": sorted(wk for (ch, wk) in qsets if ch == child),
             "gaps": {"total": len(gaps), "active": len(active),
                      "resolved": sum(1 for g in gaps if g.get("status") == "resolved")},
-            "currentWeek": profile["currentWeek"],
+            "openDecisions": len(d.get("decisions") or []),
+            "currentWeek": cur_week,
         }
         info = manifest["children"][child]
         print(f"  {child:7s} weeks {info['weekRange']} ({info['weeks']}), "
               f"answers for {info['weeksWithAnswers']}, gaps {info['gaps']['active']} active / "
-              f"{info['gaps']['resolved']} resolved, question sets {info['questionSets']}")
+              f"{info['gaps']['resolved']} resolved, question sets {info['questionSets']}, "
+              f"{info['openDecisions']} open decision(s)")
 
-    manifest["binSizes"] = {
-        "live": len(json.dumps(live)),
-        "archive": len(json.dumps(archive)),
-        "current": len(json.dumps(current)),
-        "limit": BIN_SIZE_LIMIT,
-    }
     write_json(os.path.join(DATA, "index.json"), manifest)
-    print(f"bins: live {manifest['binSizes']['live']:,}, archive {manifest['binSizes']['archive']:,}, "
-          f"current week {manifest['binSizes']['current']:,}, limit {BIN_SIZE_LIMIT:,} each")
     print("done")
 
 
@@ -387,46 +376,103 @@ def load_local():
     return out
 
 
-def build_payloads(local):
-    """Split the local data back into the two bins: the live bin carries the
-    last 8 weeks, the active gaps and this week's questions; everything older
-    goes to the archive bin."""
-    live, archive, current = {}, {}, {}
-    qs_note = ("Full question sets per child per week, saved BEFORE currentWeek is overwritten, "
-               "so any week can be re-marked. Each entry is {enc:'gzip+base64', data:...}. "
-               "Decode: json.loads(gzip.decompress(base64.b64decode(data)))")
-    archive["questionSets"] = {"note": qs_note}
+def build_statements(local, include_scores=False):
+    """The statements push will run, in an order that is safe to stop part way.
+
+    Question sets and the week rows they need come first, so the current_week
+    pointer is never moved onto a week whose questions have not landed."""
+    position = read_json(POSITION, {"children": {}})
+    plan = {"question_set": [], "week": [], "gap": [], "position": [], "pointer": []}
 
     for child in CHILDREN:
         d = local[child]
-        recent = d["weeks"][-LIVE_WEEKS:]
-        older = d["weeks"][:-LIVE_WEEKS]
+        cur = d["current"]
 
-        live[child] = {
-            "weeks": [denormalise_week(dict(w, source="live")) for w in recent],
-            "gaps": [{k: v for k, v in g.items() if k != "source"}
-                     for g in d["gaps"] if g.get("status") != "resolved"],
-        }
-        # currentWeek lives in its own bin: it is 35KB of question text that the
-        # dashboard never reads and that pushed the live bin over its 100KB cap.
-        if d["current"]:
-            current[child] = {"currentWeek": d["current"]}
+        sets = dict(d["questionSets"])
+        if cur:
+            sets[cur["weekNum"]] = cur
+        for wk, payload in sorted(sets.items()):
+            plan["question_set"].append(st(
+                "INSERT INTO question_set (child_id, week, payload) VALUES (?, ?, ?) "
+                "ON CONFLICT(child_id, week) DO UPDATE SET payload = excluded.payload",
+                child, wk, json.dumps(payload, ensure_ascii=False, separators=(",", ":"))))
+
+        for w in d["weeks"]:
+            wk = w["week"]
+            # The write up only. An UPDATE, not an upsert: a week the Worker has
+            # no row for has not been sat, and inventing one here is how a local
+            # copy comes to disagree with what actually happened.
+            plan["week"].append(st(
+                "UPDATE week SET notes = ?, summary = ?, verdict = ?, wins = ?, errors = ?, "
+                "design_issues = ?, hinted_sections = ? WHERE child_id = ? AND week = ?",
+                w.get("notes") or None, w.get("summary") or None, w.get("verdict"),
+                jdump(w.get("wins")), jdump(w.get("errors")), jdump(w.get("designIssues")),
+                jdump(w.get("hintedSections")), child, wk))
+
+            if include_scores:
+                s = w["score"]
+                plan["week"].append(st(
+                    "INSERT INTO week (child_id, week, total, out_of, submitted_at) "
+                    "VALUES (?, ?, ?, ?, ?) ON CONFLICT(child_id, week) DO UPDATE SET "
+                    "total = excluded.total, out_of = excluded.out_of",
+                    child, wk, s["total"], s["outOf"], w.get("submittedAt")))
+                for sid, marks in (w.get("sectionMarks") or {}).items():
+                    out_of = 0
+                    qs = sets.get(wk)
+                    if qs:
+                        out_of = next((x.get("totalMarks", 0) for x in qs.get("sections", [])
+                                       if x["id"] == sid), 0)
+                    plan["week"].append(st(
+                        "INSERT INTO section_mark (child_id, week, section_id, marks, out_of) "
+                        "VALUES (?, ?, ?, ?, ?) ON CONFLICT(child_id, week, section_id) "
+                        "DO UPDATE SET marks = excluded.marks",
+                        child, wk, sid, marks, out_of))
+
+        # Gaps have no stable id in the local copy, only their topic, so they are
+        # rebuilt per child rather than matched. Cheap, and always correct.
+        plan["gap"].append(st(
+            "DELETE FROM gap_observation WHERE gap_id IN (SELECT id FROM gap WHERE child_id = ?)",
+            child))
+        plan["gap"].append(st("DELETE FROM gap WHERE child_id = ?", child))
+        recorded = [w["week"] for w in d["weeks"]]
+        last = recorded[-1] if recorded else 0
+        for g in d["gaps"]:
+            obs = g.get("weeks") or []
+            start = last - len(obs) + 1
+            plan["gap"].append(st(
+                "INSERT INTO gap (child_id, topic, detail, status, slot, rung, parked_until, "
+                "opened_week) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                child, g.get("topic"), g.get("detail") or "", g.get("status"),
+                g.get("slot"), g.get("rung"), g.get("parkedUntil"), start))
+            for i, result in enumerate(obs):
+                val = None if result is None else (1 if result else 0)
+                plan["gap"].append(st(
+                    "INSERT INTO gap_observation (gap_id, week, result) SELECT id, ?, ? FROM gap "
+                    "WHERE child_id = ? AND topic = ? "
+                    "ON CONFLICT(gap_id, week) DO UPDATE SET result = excluded.result",
+                    start + i, val, child, g.get("topic")))
+
+        here = ((position.get("children") or {}).get(child) or {}).get("slots") or {}
+        for slot, info in here.items():
+            plan["position"].append(st(
+                "INSERT INTO position (child_id, slot, rung, since_week, note) VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(child_id, slot) DO UPDATE SET rung = excluded.rung, "
+                "since_week = excluded.since_week, note = excluded.note",
+                child, slot, info.get("rung"), info.get("since"), info.get("note")))
+
+        if cur:
+            plan["pointer"].append(st(
+                "UPDATE child SET current_week = ?, marks_total = ? WHERE id = ?",
+                cur["weekNum"],
+                sum(s.get("totalMarks", 0) for s in cur.get("sections", [])) or None,
+                child))
         if d["profile"].get("kumonLevel"):
-            live[child]["kumonLevel"] = d["profile"]["kumonLevel"]
-        pos = read_json(POSITION, {"children": {}})
-        here = (pos.get("children") or {}).get(child)
-        if here:
-            live[child]["position"] = here
+            k = d["profile"]["kumonLevel"]
+            plan["pointer"].append(st(
+                "UPDATE child SET kumon_maths = ?, kumon_english = ? WHERE id = ?",
+                k.get("maths"), k.get("english"), child))
 
-        archive[child] = {
-            "weeks": [denormalise_week(dict(w, source="archive")) for w in older],
-            "resolvedGaps": [{k: v for k, v in g.items() if k != "source"}
-                             for g in d["gaps"] if g.get("status") == "resolved"],
-        }
-        keep = sorted(d["questionSets"])[-QSET_KEEP:]
-        archive["questionSets"][child] = {str(w): gzip_b64(d["questionSets"][w]) for w in keep}
-
-    return live, archive, current
+    return plan
 
 
 def cmd_push(args):
@@ -441,47 +487,52 @@ def cmd_push(args):
             print(f"  {p}")
         die(f"{len(problems)} validation problem(s). Nothing pushed.")
 
-    live, archive, current = build_payloads(local)
-    sizes = {k: len(json.dumps(v)) for k, v in
-             (("live", live), ("archive", archive), ("current", current))}
+    plan = build_statements(local, include_scores=args.include_scores)
+    order = ["question_set", "week", "gap", "position", "pointer"]
+    total = sum(len(plan[k]) for k in order)
 
     print("about to write:")
-    for name in ("live", "archive"):
-        payload = live if name == "live" else archive
-        print(f"  {name:8s} {sizes[name]:>7,} bytes  " + "  ".join(
-            f"{c}: {len(payload[c]['weeks'])}w" for c in CHILDREN))
-    print(f"  current  {sizes['current']:>7,} bytes  " + "  ".join(
-        f"{c}: W{current[c]['currentWeek']['weekNum']}" for c in CHILDREN if c in current))
-    for name, size in sizes.items():
-        if size > BIN_SIZE_LIMIT:
-            die(f"{name} payload is {size} bytes, over the {BIN_SIZE_LIMIT} byte bin limit. "
-                "Condense the oldest notes or raise QSET_KEEP down, then try again.")
-        if size > BIN_SIZE_TARGET:
-            print(f"  warning: {name} is {size} bytes, close to the {BIN_SIZE_LIMIT} limit")
+    for k in order:
+        if plan[k]:
+            print(f"  {k:14s} {len(plan[k]):>5} statement(s)")
+    for child in CHILDREN:
+        cur = local[child]["current"]
+        if cur:
+            print(f"  {child:7s} current week -> W{cur['weekNum']}, "
+                  f"{sum(s.get('totalMarks', 0) for s in cur.get('sections', []))} marks")
+    if args.include_scores:
+        print("  --include-scores is ON: scores and section marks will be overwritten "
+              "from the local copy")
+    print("\n  marks, per question answers and the decision queue are NOT written: "
+          "the Worker owns those.")
 
     if not args.yes:
-        if input("push these to JSONbin? type yes: ").strip().lower() != "yes":
+        if input(f"\npush {total} statement(s) to the API? type yes: ").strip().lower() != "yes":
             print("cancelled, nothing written")
             return
 
     c = creds()
     snap = os.path.join(DATA, "snapshots", now_stamp() + "-prepush")
-    write_json(os.path.join(snap, "live.json"),
-               api_get(c["live"], c["access"], "X-Access-Key"))
-    write_json(os.path.join(snap, "archive.json"),
-               api_get(c["archive"], c["access"], "X-Access-Key"))
-    write_json(os.path.join(snap, "current.json"),
-               api_get(c["current"], c["access"], "X-Access-Key"))
+    write_json(os.path.join(snap, "export.json"), api_export(c))
     print(f"pre-push snapshot -> {os.path.relpath(snap, ROOT)}")
 
-    for name, bin_id, payload in (("live", c["live"], live), ("archive", c["archive"], archive),
-                                  ("current", c["current"], current)):
-        _, written = api_put(bin_id, c["master"], payload)
-        back = api_get(bin_id, c["access"], "X-Access-Key")
-        ok = json.dumps(back, sort_keys=True) == json.dumps(payload, sort_keys=True)
-        print(f"  {name:8s} wrote {written:,} bytes, read back identical: {'yes' if ok else 'NO'}")
-        if not ok:
-            die(f"{name} bin did not read back identical. The snapshot above has the previous contents.")
+    for k in order:
+        if plan[k]:
+            api_sql(c, plan[k], label=k)
+            print(f"  {k:14s} {len(plan[k]):>5} written")
+
+    # Read back the things that are cheap to verify and expensive to get wrong.
+    after = api_export(c)
+    for child in CHILDREN:
+        cur = local[child]["current"]
+        got = ((after.get(child) or {}).get("profile") or {}).get("current_week")
+        if cur and got != cur["weekNum"]:
+            die(f"{child}: current week reads back as {got}, expected {cur['weekNum']}")
+        want_gaps = len(local[child]["gaps"])
+        got_gaps = len((after.get(child) or {}).get("gaps") or [])
+        if got_gaps != want_gaps:
+            die(f"{child}: {got_gaps} gaps read back, expected {want_gaps}")
+    print("read back: current week and gap counts match for both children")
     print("done")
 
 
@@ -962,29 +1013,44 @@ def cmd_status(args):
     if not manifest:
         print("no local data yet. Run: scripts/kh.py pull")
     else:
-        print(f"local data pulled {manifest['pulledAt']}")
+        print(f"local data pulled {manifest['pulledAt']} from {manifest.get('api', '?')}")
         for child, info in manifest["children"].items():
-            print(f"  {child:7s} weeks {info['weekRange'][0]}-{info['weekRange'][1]} "
+            rng = info["weekRange"] or ["?", "?"]
+            print(f"  {child:7s} weeks {rng[0]}-{rng[1]} "
                   f"({info['weeks']} records, {info['weeksWithAnswers']} with answers)  "
                   f"current W{info['currentWeek']}  "
                   f"gaps {info['gaps']['active']} active / {info['gaps']['resolved']} resolved")
-        b = manifest["binSizes"]
-        print(f"  bins at last pull: live {b['live']:,} / archive {b['archive']:,} "
-              f"(limit {b['limit']:,} each)")
 
     c = creds()
-    print("\nlive bins now:")
-    for name, bin_id in (("live", c["live"]), ("archive", c["archive"]), ("current", c["current"])):
-        payload = api_get(bin_id, c["access"], "X-Access-Key")
-        size = len(json.dumps(payload))
-        bits = []
+    print(f"\nthe API now ({c['api']}):")
+    export = api_export(c)
+    for child in CHILDREN:
+        d = export.get(child) or {}
+        weeks = [w["week"] for w in (d.get("weeks") or []) if w.get("total") is not None]
+        prof = d.get("profile") or {}
+        gaps = d.get("gaps") or []
+        active = sum(1 for g in gaps if g.get("status") in ("new", "persists", "improving"))
+        decisions = d.get("decisions") or []
+        print(f"  {child:7s} W{min(weeks) if weeks else '?'}-{max(weeks) if weeks else '?'} "
+              f"({len(weeks)} scored)  current W{prof.get('current_week')}  "
+              f"gaps {active} active / {len(gaps) - active} other")
+        if decisions:
+            print(f"          {len(decisions)} OPEN DECISION(S) waiting on you:")
+            for dec in decisions[:5]:
+                print(f"            W{dec.get('week')} {str(dec.get('summary'))[:64]}")
+            if len(decisions) > 5:
+                print(f"            ... and {len(decisions) - 5} more")
+
+    # A week the Worker has scored but the local copy has no write up for is the
+    # thing the weekly cycle exists to fix, so say it here rather than later.
+    if manifest:
+        local = load_local()
         for child in CHILDREN:
-            k = payload.get(child) or {}
-            if k.get("weeks"):
-                nums = [w["week"] for w in k["weeks"]]
-                bits.append(f"{child} W{min(nums)}-{max(nums)}")
-        pct = size / BIN_SIZE_LIMIT * 100
-        print(f"  {name:8s} {size:>7,} bytes ({pct:.0f}% of limit)  {', '.join(bits)}")
+            missing = [w["week"] for w in local[child]["weeks"][-3:]
+                       if not w.get("summary") or not w.get("notes")]
+            if missing:
+                print(f"  {child:7s} no summary or notes yet for week(s) "
+                      f"{', '.join(str(m) for m in missing)}")
 
     problems = validate() if manifest else []
     print(f"\nvalidation: {'clean' if not problems else str(len(problems)) + ' problem(s), run kh.py validate'}")
@@ -993,11 +1059,9 @@ def cmd_status(args):
 def cmd_backup(args):
     c = creds()
     snap = os.path.join(DATA, "snapshots", now_stamp())
-    for name, bin_id in (("live", c["live"]), ("archive", c["archive"]), ("current", c["current"])):
-        payload = api_get(bin_id, c["access"], "X-Access-Key")
-        path = os.path.join(snap, f"{name}.json")
-        write_json(path, payload)
-        print(f"  {name:8s} {os.path.getsize(path):>7,} bytes -> {os.path.relpath(path, ROOT)}")
+    path = os.path.join(snap, "export.json")
+    write_json(path, api_export(c))
+    print(f"  export   {os.path.getsize(path):>8,} bytes -> {os.path.relpath(path, ROOT)}")
     print("done")
 
 
@@ -1047,13 +1111,16 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("pull", help="bins -> data/").set_defaults(fn=cmd_pull)
-    sub.add_parser("status", help="summary of disk and bins").set_defaults(fn=cmd_status)
+    sub.add_parser("pull", help="API -> data/").set_defaults(fn=cmd_pull)
+    sub.add_parser("status", help="summary of disk and the API").set_defaults(fn=cmd_status)
     sub.add_parser("validate", help="check data/ against the rules").set_defaults(fn=cmd_validate)
-    sub.add_parser("backup", help="raw snapshot of both bins").set_defaults(fn=cmd_backup)
+    sub.add_parser("backup", help="raw snapshot of the API export").set_defaults(fn=cmd_backup)
 
-    sp = sub.add_parser("push", help="data/ -> bins")
+    sp = sub.add_parser("push", help="data/ -> API, the fields a human owns")
     sp.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    sp.add_argument("--include-scores", action="store_true",
+                    help="also overwrite scores and section marks from the local copy. "
+                         "Only for repairing a week by hand: normally the Worker owns these.")
     sp.set_defaults(fn=cmd_push)
 
     spn = sub.add_parser("plan", help="the spec for NEXT week, built from the rungs and open gaps")
