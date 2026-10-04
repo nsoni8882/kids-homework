@@ -566,6 +566,12 @@
             "advanceWhen": "two clean weeks giving the share, not the leftover"
           },
           {
+            "id": "2C.3b",
+            "skill": "Minutes between two times inside the same hour, subtracting not adding",
+            "advanceWhen": "two clean weeks subtracting correctly, unhinted",
+            "note": "Ahead of the school sequence. Nik confirmed 4 Oct 2026 that she practises it at home."
+          },
+          {
             "id": "2C.4",
             "skill": "Money: counting coins and giving change",
             "advanceWhen": "two clean weeks"
@@ -685,10 +691,9 @@
       },
       {
         "id": "ely.time-minutes",
-        "rule": "Time to the minute, including minutes between two times, is forbidden until Summer 2 2027. Keep time to o'clock, half past, quarter past and quarter to.",
-        "why": "Not on the school sequence until Summer 2 2027.",
-        "check": "automated",
-        "note": "Weeks 18 and 19 broke this rule before it was written down. The open gap 'Minutes between two times' must be PARKED, not retested, until Summer 2 2027."
+        "rule": "Time to the minute is allowed: Nik confirmed on 4 Oct 2026 that she is already learning it at home. Keep the two times inside the same hour for now, and do not assume the school has taught it.",
+        "why": "Ahead of the school sequence, which reaches it in Summer 2 2027, but practised at home.",
+        "check": "none"
       }
     ],
     "mason": [

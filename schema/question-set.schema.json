@@ -4,58 +4,189 @@
   "title": "One week's question set",
   "description": "The shape of currentWeek in the live bin, and of each archived question set.",
   "type": "object",
-  "required": ["weekNum", "sections"],
+  "required": [
+    "weekNum",
+    "sections"
+  ],
   "properties": {
-    "weekNum": { "type": "integer", "minimum": 1 },
-    "sections": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/section" } }
+    "weekNum": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/section"
+      }
+    }
   },
   "$defs": {
     "section": {
       "type": "object",
-      "required": ["id", "subject", "title", "timerMins", "totalMarks", "questions"],
+      "required": [
+        "id",
+        "subject",
+        "title",
+        "timerMins",
+        "totalMarks",
+        "questions"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[123][A-C]$", "description": "leading digit is the subject" },
-        "subject": { "enum": ["english", "maths", "thinking"] },
-        "title": { "type": "string", "minLength": 1 },
-        "timerMins": { "type": "number", "minimum": 1 },
-        "totalMarks": { "type": "integer", "minimum": 1 },
-        "passage": { "type": "string", "description": "reading passage or worked example box" },
-        "scoreBand": { "type": "boolean", "description": "drill section. Marks come from scoreBandRules, not the sum of question marks." },
+        "id": {
+          "type": "string",
+          "pattern": "^[123][A-C]$",
+          "description": "leading digit is the subject"
+        },
+        "subject": {
+          "enum": [
+            "english",
+            "maths",
+            "thinking"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timerMins": {
+          "type": "number",
+          "minimum": 1
+        },
+        "totalMarks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "passage": {
+          "type": "string",
+          "description": "reading passage or worked example box"
+        },
+        "scoreBand": {
+          "type": "boolean",
+          "description": "drill section. Marks come from scoreBandRules, not the sum of question marks."
+        },
         "scoreBandRules": {
           "type": "array",
           "description": "[lowCorrect, highCorrect, marks]. First matching band wins.",
-          "items": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "integer" } }
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer"
+            }
+          }
         },
-        "questions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/question" } }
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/question"
+          }
+        },
+        "hinted": {
+          "type": "boolean",
+          "description": "true when the passage states the rule this section tests. A pass then proves only that the child can copy, so it can never RESOLVE a gap: record true and keep the gap IMPROVING."
+        },
+        "hintedWhy": {
+          "type": "string",
+          "description": "which part of the passage gives it away"
+        }
       },
-      "allOf": [{
-        "if": { "properties": { "scoreBand": { "const": true } }, "required": ["scoreBand"] },
-        "then": { "required": ["scoreBandRules"] }
-      }]
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scoreBand": {
+                "const": true
+              }
+            },
+            "required": [
+              "scoreBand"
+            ]
+          },
+          "then": {
+            "required": [
+              "scoreBandRules"
+            ]
+          }
+        }
+      ]
     },
     "question": {
       "type": "object",
-      "required": ["id", "text", "marks", "inputType", "autoMark"],
+      "required": [
+        "id",
+        "text",
+        "marks",
+        "inputType",
+        "autoMark"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[123][A-C]-Q[0-9]+$" },
-        "text": { "type": "string", "minLength": 1 },
-        "marks": { "type": "integer", "minimum": 0 },
+        "id": {
+          "type": "string",
+          "pattern": "^[123][A-C]-Q[0-9]+$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "marks": {
+          "type": "integer",
+          "minimum": 0
+        },
         "inputType": {
-          "enum": ["text", "number", "letter", "multiline", "none"],
+          "enum": [
+            "text",
+            "number",
+            "letter",
+            "multiline",
+            "none"
+          ],
           "description": "none is a display only item and is never marked"
         },
-        "autoMark": { "type": "boolean" },
+        "autoMark": {
+          "type": "boolean"
+        },
         "accepted": {
           "type": "array",
-          "items": { "type": ["string", "number"] },
+          "items": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
           "description": "required when autoMark is true. Must be tolerant of case, spacing and common variants."
         },
-        "markScheme": { "type": "string", "description": "shown to the parent when autoMark is false" }
+        "markScheme": {
+          "type": "string",
+          "description": "shown to the parent when autoMark is false"
+        }
       },
-      "allOf": [{
-        "if": { "properties": { "autoMark": { "const": true } }, "required": ["autoMark"] },
-        "then": { "required": ["accepted"], "properties": { "accepted": { "minItems": 1 } } }
-      }]
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "autoMark": {
+                "const": true
+              }
+            },
+            "required": [
+              "autoMark"
+            ]
+          },
+          "then": {
+            "required": [
+              "accepted"
+            ],
+            "properties": {
+              "accepted": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

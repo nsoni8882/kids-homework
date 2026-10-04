@@ -405,7 +405,9 @@ def cmd_push(args):
     local = load_local()
     problems = validate(local)
     if os.path.exists(SPINE):
-        problems += check_curriculum(local, load_spine())
+        spine = load_spine()
+        problems += check_curriculum(local, spine)
+        problems += check_coverage(local, spine)
     if problems:
         for p in problems:
             print(f"  {p}")
@@ -693,17 +695,9 @@ def check_curriculum(local, spine):
                     problems.append(f"{child} W{week} {sid}: {a} divided by {b} is written "
                                     "division, which is not taught yet")
 
-            # time to the minute, banned until Summer 2 2027
-            if today() < "2027-05-29":
-                times = re.findall(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", texts)
-                off_quarter = [f"{h}:{m}" for h, m in times if int(m) not in (0, 15, 30, 45)]
-                if off_quarter:
-                    problems.append(f"{child} W{week} {sid}: uses time to the minute "
-                                    f"({', '.join(off_quarter[:4])}). Only o'clock, quarter past, "
-                                    "half past and quarter to are allowed until Summer 2 2027.")
-                if re.search(r"minutes? (between|from|until|past|to)\b", texts, re.I) and off_quarter:
-                    problems.append(f"{child} W{week} {sid}: asks for minutes between two times, "
-                                    "which is banned until Summer 2 2027")
+            # Time to the minute was banned here until 4 Oct 2026, when Nik confirmed
+            # Elysia is already learning it at home. The spine carries it as rung
+            # 2C.3b instead of as a prohibition.
 
     # the recorded position must point at rungs that exist
     position = read_json(POSITION, {"children": {}})
@@ -720,10 +714,200 @@ def check_curriculum(local, spine):
     return problems
 
 
+
+def cmd_plan(args):
+    """The specification for the NEXT week, derived from the spine, the recorded
+    position and the open gaps. Produce this BEFORE writing any questions, then
+    build to it. It is what stops each week being designed from scratch."""
+    spine = load_spine()
+    position = read_json(POSITION, {"children": {}})
+    local = load_local()
+    term = current_term(spine)
+    children = [args.child] if args.child else list(CHILDREN)
+
+    for child in children:
+        pos = (position.get("children") or {}).get(child, {})
+        slots = pos.get("slots", {})
+        gaps = [g for g in local[child]["gaps"] if g.get("status") != "resolved"]
+        weeks = local[child]["weeks"]
+        cur = local[child]["current"] or {}
+        next_week = (cur.get("weekNum") or (weeks[-1]["week"] if weeks else 0)) + 1
+        goal = spine["goals"][child]
+
+        print("=" * 78)
+        print(f"SPEC FOR {child.upper()} WEEK {next_week}")
+        print("=" * 78)
+        print(f"  total {goal['weeklyMarks']['total']} marks: "
+              f"English {goal['weeklyMarks']['english']}, Maths {goal['weeklyMarks']['maths']}, "
+              f"Thinking {goal['weeklyMarks']['thinking']}")
+        print(f"  school term {term['term']} to {term['ends']}, 2C topic \"{term[child]}\"")
+        print()
+
+        for sid in sorted(spine["slots"]):
+            slot = spine["slots"][sid]
+            ladder = spine["ladders"][child][sid]
+            rungs = ladder["rungs"]
+            here = slots.get(sid, {})
+            idx = next((i for i, r in enumerate(rungs) if r["id"] == here.get("rung")), None)
+            rung = rungs[idx] if idx is not None else None
+
+            # what blocks this slot
+            blocking = [g for g in gaps
+                        if (g.get("slot") == sid)
+                        or (not g.get("slot") and sid in (g.get("detail") or "") + (g.get("topic") or ""))]
+            blocking = [g for g in blocking if g["status"] in ("new", "persists")]
+
+            # was the last attempt at this rung hinted, or inconclusive?
+            last_marks = None
+            if weeks and weeks[-1].get("sectionMarks"):
+                last_marks = weeks[-1]["sectionMarks"].get(sid)
+            last_section = next((x for x in cur.get("sections", []) if x["id"] == sid), None)
+            was_hinted = bool(last_section and last_section.get("hinted"))
+            out_of = last_section.get("totalMarks") if last_section else None
+            pct = round(last_marks / out_of * 100) if last_marks is not None and out_of else None
+
+            print(f"  [{sid}] {slot['purpose']}")
+            print(f"       marks   : {out_of if out_of else '?'}   subject {slot['subject']}")
+            if rung:
+                print(f"       BUILD AT: {rung['id']} {rung['skill']}")
+                print(f"       evidence: {rung['advanceWhen']}")
+            else:
+                print("       BUILD AT: rung not recorded. Set it before generating.")
+            print(f"       format  : {slot['fixed']}")
+
+            must = []
+            if blocking:
+                for g in blocking:
+                    must.append(f"re-test the open gap: {g['topic'][:66]}")
+            if was_hinted:
+                must.append("last week was HINTED, so this week must be UNHINTED or the rung "
+                            "still cannot be evidenced")
+            if pct is not None and pct < 95:
+                must.append(f"last score {pct}%, so open with a worked example box, then drill "
+                            "at the same level")
+            if pct is not None and pct >= 95 and not blocking and not was_hinted:
+                nxt = rungs[idx + 1] if idx is not None and idx + 1 < len(rungs) else None
+                must.append(f"last score {pct}% and nothing blocking: this is a candidate to "
+                            f"advance to {nxt['id'] + ' ' + nxt['skill'] if nxt else 'a harder variant'}")
+            if slot.get("inferredRule"):
+                must.append("the rule must be INFERRED, so do not state it in the passage")
+            if sid == "2C":
+                must.append(f"school topic this half term: {term[child]}")
+            if sid == "2A":
+                must.append("scoreBand true, scoreBandRules included, at least 30 items, "
+                            "first third easy, last third harder")
+
+            for m in must:
+                print(f"       MUST    : {m}")
+            print()
+
+        unslotted = [g for g in gaps if not g.get("slot")
+                     and not any(x in (g.get("detail") or "") + (g.get("topic") or "")
+                                 for x in spine["slots"])]
+        if unslotted:
+            print("  gaps with no slot, give each one a home before generating:")
+            for g in unslotted:
+                print(f"    [{g['status']:9s}] {g['topic'][:66]}")
+            print()
+
+        limits = spine["hardLimits"].get(child, []) + spine["hardLimits"]["both"]
+        print("  HARD LIMITS:")
+        for lim in limits:
+            print(f"    - {lim['rule']}")
+        print()
+        print("  When the week is written, gate it:  node scripts/check-week.mjs " + child)
+        print()
+
+
+def check_coverage(local, spine):
+    """Does the generated week actually test what the child is on?
+
+    These are the deterministic coverage rules. They are the ones that stop a
+    week being plausible but pointless: a slot missing, a marks split that does
+    not add up, an open gap nobody re-tests, or a rung that cannot be evidenced
+    because the section hands the rule over."""
+    problems = []
+    position = read_json(POSITION, {"children": {}})
+
+    for child in CHILDREN:
+        cur = local[child]["current"]
+        if not cur:
+            continue
+        week = cur.get("weekNum")
+        sections = {s["id"]: s for s in cur.get("sections", [])}
+        goal = spine["goals"][child]["weeklyMarks"]
+        slots = (((position.get("children") or {}).get(child) or {}).get("slots")) or {}
+        gaps = [g for g in local[child]["gaps"] if g.get("status") in ("new", "persists")]
+
+        # every slot present
+        for sid in spine["slots"]:
+            if sid not in sections:
+                problems.append(f"{child} W{week}: slot {sid} is missing from the week")
+
+        # the marks split must match the spine
+        by_subject = {}
+        for s in sections.values():
+            by_subject[s["subject"]] = by_subject.get(s["subject"], 0) + s.get("totalMarks", 0)
+        for subject in ("english", "maths", "thinking"):
+            want = goal[subject]
+            got = by_subject.get(subject, 0)
+            if got != want:
+                problems.append(f"{child} W{week}: {subject} is {got} marks, the spine says {want}")
+        total = sum(by_subject.values())
+        if total != goal["total"]:
+            problems.append(f"{child} W{week}: total is {total} marks, the spine says {goal['total']}")
+
+        # every open gap must be re-tested somewhere
+        for g in gaps:
+            sid = g.get("slot")
+            if not sid:
+                continue
+            if sid not in sections:
+                problems.append(f"{child} W{week}: gap '{g['topic'][:48]}' is assigned to slot "
+                                f"{sid}, which is not in this week")
+
+        # a hinted section cannot evidence its rung
+        for sid, s in sections.items():
+            if not s.get("hinted"):
+                continue
+            blocking = [g for g in gaps if g.get("slot") == sid]
+            if blocking:
+                problems.append(f"{child} W{week} {sid}: the section declares itself hinted, so it "
+                                f"cannot resolve the open gap '{blocking[0]['topic'][:40]}'. Either "
+                                "remove the hint or accept the gap stays open.")
+
+        # the drill must actually be a drill
+        for sid, s in sections.items():
+            if sid != "2A":
+                continue
+            if not s.get("scoreBand"):
+                problems.append(f"{child} W{week} 2A: the fluency drill must set scoreBand true")
+            elif not s.get("scoreBandRules"):
+                problems.append(f"{child} W{week} 2A: scoreBand is set but scoreBandRules is missing")
+            n = len([q for q in s.get("questions", []) if q.get("inputType") != "none"])
+            if n < 12:
+                problems.append(f"{child} W{week} 2A: only {n} drill items, the spine asks for at "
+                                "least 30 for maths and 12 for an English letter drill")
+
+        # a recorded rung must exist on the ladder
+        for sid, here in slots.items():
+            ladder = spine["ladders"].get(child, {}).get(sid)
+            if not ladder:
+                continue
+            if here.get("rung") not in [r["id"] for r in ladder["rungs"]]:
+                problems.append(f"{child}: recorded rung {here.get('rung')!r} for {sid} is not on "
+                                "the ladder")
+
+    return problems
+
+
 def cmd_validate(args):
     problems = validate()
     if os.path.exists(SPINE):
-        problems += check_curriculum(load_local(), load_spine())
+        local = load_local()
+        spine = load_spine()
+        problems += check_curriculum(local, spine)
+        problems += check_coverage(local, spine)
     if not problems:
         print("data/ is valid")
         return
@@ -834,6 +1018,10 @@ def main():
     sp = sub.add_parser("push", help="data/ -> bins")
     sp.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
     sp.set_defaults(fn=cmd_push)
+
+    spn = sub.add_parser("plan", help="the spec for NEXT week, built from the rungs and open gaps")
+    spn.add_argument("child", nargs="?", choices=CHILDREN)
+    spn.set_defaults(fn=cmd_plan)
 
     sc = sub.add_parser("curriculum", help="the weekly brief: the map plus where the child stands")
     sc.add_argument("child", nargs="?", choices=CHILDREN)

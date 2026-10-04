@@ -340,7 +340,8 @@ export async function checkQuestion(jev, { child, section, question, spineSlot, 
 
   // Only ask about hinting where the rule is supposed to be inferred. Asking it
   // of a cipher, where the shift is deliberately given, produced nothing but noise.
-  if (state.ruleMustBeInferred && section.passage) {
+  // A section that already declares itself hinted is a known, deliberate choice.
+  if (state.ruleMustBeInferred && section.passage && !section.hinted) {
     questions.hinted = {
       type: 'noul',
       instructions:

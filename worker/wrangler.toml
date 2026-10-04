@@ -1,0 +1,20 @@
+name = "kids-homework-api"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# The site is served from GitHub Pages, so this Worker is cross origin and
+# answers preflight requests. Only the two Pages origins are allowed.
+[vars]
+ALLOWED_ORIGINS = "https://nsoni8882.github.io,http://127.0.0.1:8788,http://localhost:8788"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kids-homework"
+database_id = "1cec5463-1e5c-4975-ab99-9abb72ccc563"
+
+[observability]
+enabled = true
+
+# Secrets are set with `wrangler secret put` and never live in this file:
+#   JEV_API_KEY    TypeSafe Jev
+#   ADMIN_TOKEN    lets scripts/kh.py write
