@@ -523,7 +523,7 @@ def validate(local=None):
         for g in d["gaps"]:
             if g.get("slot") and g["slot"] not in [f"{a}{b}" for a in "123" for b in "ABC"]:
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': slot {g['slot']!r} is not 1A to 3C")
-            if g.get("status") not in ("new", "persists", "improving", "resolved"):
+            if g.get("status") not in ("new", "persists", "improving", "resolved", "parked"):
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': bad status {g.get('status')!r}")
             if not g.get("topic") or not isinstance(g.get("weeks"), list):
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': needs a topic and a weeks list")
@@ -873,6 +873,8 @@ def check_coverage(local, spine):
         goal = spine["goals"][child]["weeklyMarks"]
         slots = (((position.get("children") or {}).get(child) or {}).get("slots")) or {}
         gaps = [g for g in local[child]["gaps"] if g.get("status") in ("new", "persists")]
+        # a parked gap names a skill the child has not been taught, so it is not
+        # work that is owed and must not be forced into next week
 
         # every slot present
         for sid in spine["slots"]:

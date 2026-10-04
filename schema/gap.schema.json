@@ -23,9 +23,10 @@
         "new",
         "persists",
         "improving",
-        "resolved"
+        "resolved",
+        "parked"
       ],
-      "description": "resolved needs two clean appearances on unhinted, unambiguous items"
+      "description": "resolved needs two clean appearances on unhinted, unambiguous items. parked means the skill is not taught yet, so it must not be retested until parkedUntil."
     },
     "weeks": {
       "type": "array",
@@ -46,6 +47,14 @@
       "type": "string",
       "pattern": "^[123][A-C]$",
       "description": "which section slot re-tests this gap. Optional on older gaps, set it on new ones."
+    },
+    "parkedUntil": {
+      "type": "string",
+      "description": "date or term after which a parked gap may be retested"
+    },
+    "rung": {
+      "type": "string",
+      "description": "the curriculum rung this gap blocks, e.g. 2C.3b"
     }
   }
 }

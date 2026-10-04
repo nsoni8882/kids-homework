@@ -4,57 +4,209 @@
   "title": "Normalised week record",
   "description": "One graded week for one child. The same shape whether it came from the live bin or the archive bin, which the two bin formats are not.",
   "type": "object",
-  "required": ["schemaVersion", "child", "week", "source", "score", "subjects", "sectionMarks", "answers"],
+  "required": [
+    "schemaVersion",
+    "child",
+    "week",
+    "source",
+    "score",
+    "subjects",
+    "sectionMarks",
+    "answers"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": 2 },
-    "child": { "enum": ["mason", "elysia"] },
-    "week": { "type": "integer", "minimum": 1 },
-    "source": { "enum": ["live", "archive"], "description": "which bin it was read from" },
+    "schemaVersion": {
+      "const": 2
+    },
+    "child": {
+      "enum": [
+        "mason",
+        "elysia"
+      ]
+    },
+    "week": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "enum": [
+        "live",
+        "archive"
+      ],
+      "description": "which bin it was read from"
+    },
     "score": {
       "type": "object",
-      "required": ["total", "outOf"],
+      "required": [
+        "total",
+        "outOf"
+      ],
       "additionalProperties": false,
       "properties": {
-        "total": { "type": "integer", "minimum": 0 },
-        "outOf": { "type": "integer", "minimum": 1 },
-        "pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outOf": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pct": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        }
       }
     },
     "subjects": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "english": { "$ref": "#/$defs/subjectScore" },
-        "maths": { "$ref": "#/$defs/subjectScore" },
-        "thinking": { "$ref": "#/$defs/subjectScore" }
+        "english": {
+          "$ref": "#/$defs/subjectScore"
+        },
+        "maths": {
+          "$ref": "#/$defs/subjectScore"
+        },
+        "thinking": {
+          "$ref": "#/$defs/subjectScore"
+        }
       }
     },
     "sectionMarks": {
       "type": "object",
       "description": "section id to marks earned. Must sum to score.total.",
-      "patternProperties": { "^[123][A-C]$": { "type": "integer", "minimum": 0 } },
+      "patternProperties": {
+        "^[123][A-C]$": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
       "additionalProperties": false
     },
     "answers": {
       "type": "object",
       "description": "question id to the text the child typed",
-      "patternProperties": { "^[123][A-C]-Q[0-9]+$": { "type": "string" } },
-      "additionalProperties": { "type": "string" }
+      "patternProperties": {
+        "^[123][A-C]-Q[0-9]+$": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
     },
-    "submittedAt": { "type": ["string", "null"], "format": "date-time" },
-    "adjustedAt": { "type": ["string", "null"], "description": "set when a mark was changed by hand" },
-    "notes": { "type": "string" },
-    "extra": { "type": "object", "description": "any bin field this schema does not name, kept so a round trip is lossless" }
+    "submittedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "adjustedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "set when a mark was changed by hand"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "extra": {
+      "type": "object",
+      "description": "any bin field this schema does not name, kept so a round trip is lossless"
+    },
+    "summary": {
+      "type": "string",
+      "description": "ONE or TWO sentences, the single most important thing about the week. The dashboard leads with it."
+    },
+    "verdict": {
+      "enum": [
+        "strong",
+        "steady",
+        "dip",
+        "concern"
+      ],
+      "description": "drives the badge on the dashboard"
+    },
+    "wins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "short lines, what went well"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      },
+      "description": "real child errors. A count of issues, NOT of marks: one issue can cost two marks, or none inside a drill band."
+    },
+    "designIssues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      },
+      "description": "question faults, which are the author's to fix and not the child's"
+    },
+    "hintedSections": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[123][A-C]$"
+      },
+      "description": "sections whose passage stated the rule they test. A pass there proves only that the child can copy, so it can never RESOLVE a gap."
+    }
   },
   "$defs": {
     "subjectScore": {
       "type": "object",
-      "required": ["marks"],
+      "required": [
+        "marks"
+      ],
       "additionalProperties": false,
       "properties": {
-        "marks": { "type": ["integer", "null"], "minimum": 0 },
-        "outOf": { "type": ["integer", "null"], "minimum": 1 }
+        "marks": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "outOf": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "what"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "where": {
+          "type": "string",
+          "description": "a section or question id"
+        },
+        "what": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "type": "string",
+          "description": "on a design issue: what was decided"
+        }
       }
     }
   }

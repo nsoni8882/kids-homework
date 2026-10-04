@@ -174,24 +174,26 @@ export function subjectChart(canvas, weeks) {
 
 /* ---------------------------------------------------------- where marks go */
 
-/** Part to whole across weeks: what the lost marks were made of.
-    Status hues, which are reserved and never reused as a fourth series. */
+/** Where the marks actually went, by subject.
+ *
+ * This used to split lost marks into real errors and question faults by counting
+ * the records in each list. That was wrong: an error record is not worth one
+ * mark. A slip inside a drill's top band costs nothing, and a two mark question
+ * costs two. Mason's week 20 had three recorded errors against two marks lost.
+ *
+ * Marks lost per subject IS exactly known for every week, so that is what this
+ * shows now. The error and fault counts are reported as counts beside it, where
+ * they are honest. */
 export function lossChart(canvas, weeks) {
   const o = base();
-  const series = [
-    { key: 'errors', label: 'Real errors', colour: css('--bad') },
-    { key: 'design', label: 'Question faults', colour: css('--warn') },
-    { key: 'untraced', label: 'Not traced', colour: css('--neutral') },
-  ];
-
   return new Chart(canvas, {
     type: 'bar',
     data: {
       labels: weeks.map((w) => `W${w.week}`),
-      datasets: series.map((s) => ({
-        label: s.label,
-        data: weeks.map((w) => w.loss[s.key]),
-        backgroundColor: s.colour,
+      datasets: SUBJECTS.map((s) => ({
+        label: SUBJECT_LABEL[s],
+        data: weeks.map((w) => (w[s] == null ? null : w[`${s}Max`] - w[s])),
+        backgroundColor: subjectColour(s),
         borderRadius: 4,
         borderSkipped: false,
         maxBarThickness: 26,
@@ -208,7 +210,7 @@ export function lossChart(canvas, weeks) {
           ...o.scales.y,
           stacked: true,
           beginAtZero: true,
-          ticks: { ...o.scales.y.ticks, precision: 0, callback: (v) => `${v}` },
+          ticks: { ...o.scales.y.ticks, precision: 0 },
           title: { display: true, text: 'marks lost', color: css('--text-3'), font: { size: 10 } },
         },
       },
@@ -216,7 +218,13 @@ export function lossChart(canvas, weeks) {
         ...o.plugins,
         tooltip: {
           ...o.plugins.tooltip,
-          callbacks: { label: (i) => `${i.dataset.label}: ${i.parsed.y} mark${i.parsed.y === 1 ? '' : 's'}` },
+          callbacks: {
+            label: (i) => `${i.dataset.label}: ${i.parsed.y} mark${i.parsed.y === 1 ? '' : 's'} lost`,
+            footer: (items) => {
+              const total = items.reduce((t, i) => t + (i.parsed.y || 0), 0);
+              return `${total} lost in total`;
+            },
+          },
         },
       },
     },

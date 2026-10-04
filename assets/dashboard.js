@@ -15,7 +15,7 @@
 import { CHILDREN } from './config.js';
 import { loadLive, loadArchive } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
-import { trendChart, subjectChart, lossChart, sparkline, SUBJECTS, SUBJECT_LABEL, subjectColour } from './charts.js';
+import { trendChart, subjectChart, lossChart, sparkline, SUBJECTS, SUBJECT_LABEL } from './charts.js';
 
 const KIDS = ['mason', 'elysia'];
 const MAX = {
@@ -27,6 +27,7 @@ const GAP_STATUS = {
   persists: { label: 'Persists', cls: 'badge-warn', icon: 'alert' },
   improving: { label: 'Improving', cls: 'badge-info', icon: 'trend' },
   resolved: { label: 'Resolved', cls: 'badge-ok', icon: 'checkCircle' },
+  parked: { label: 'Parked', cls: 'badge-neutral', icon: 'clock' },
 };
 const VERDICT = {
   strong: { label: 'Strong week', icon: 'award' },
@@ -116,14 +117,7 @@ function norm(kid, raw) {
     notes: raw.notes || '',
     submittedAt: raw.submittedAt || null,
     hasAnswers: !!(raw.archive && Object.keys(raw.archive).length),
-    // What the lost marks were made of. Errors and question faults are counted
-    // from the structured record; whatever is left over is honestly labelled
-    // "not traced" rather than silently folded into one of the other two.
-    loss: {
-      errors: Math.min(lost, errors.length),
-      design: Math.min(Math.max(0, lost - errors.length), design.length),
-      untraced: Math.max(0, lost - errors.length - design.length),
-    },
+    lost,
   };
 }
 
@@ -218,13 +212,17 @@ function renderKid(kid) {
     </div>
     <section class="card" style="margin-top:var(--s4)">
       <div class="chart-head">${icon('search')}<h2>Where the marks went</h2></div>
-      <p class="card-note" style="margin-bottom:var(--s3)">Lost marks split by cause. Question
-        faults are mine to fix, not theirs.</p>
+      <p class="card-note" style="margin-bottom:var(--s3)">Marks lost each week, by subject.</p>
       <div class="chart-box" style="height:200px"><canvas id="${kid}-loss-chart"></canvas></div>
       <div class="legend">
-        ${[['Real errors', 'var(--bad)'], ['Question faults', 'var(--warn)'], ['Not traced', 'var(--neutral)']]
-          .map(([l, c]) => `<span class="legend-item"><span class="legend-swatch" style="background:${c}"></span>${l}</span>`).join('')}
+        ${SUBJECTS.map((s) => `<span class="legend-item">
+          <span class="legend-swatch" style="background:var(--series-${s})"></span>${SUBJECT_LABEL[s]}</span>`).join('')}
       </div>
+      <p class="card-note" style="margin-top:var(--s3)">
+        Week ${w.week} lost ${w.lost} mark${w.lost === 1 ? '' : 's'}.
+        ${w.errors.length} were logged as real errors and ${w.design.length} as question faults,
+        which are mine to fix rather than theirs. Those are counts of issues, not of marks: one
+        issue can cost two marks, or none at all inside a drill band.</p>
     </section>
 
     <h2 class="section-label">Mastery</h2>
