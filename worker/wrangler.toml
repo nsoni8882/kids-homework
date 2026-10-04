@@ -1,9 +1,7 @@
 name = "kids-homework-api"
+main = "src/index.js"
 compatibility_date = "2026-09-01"
-
-# main is deliberately absent: src/index.js is not written yet, and pointing at a
-# missing file makes `wrangler deploy` fail with a confusing error. See README.md.
-# main = "src/index.js"
+compatibility_flags = ["nodejs_compat"]
 
 # The site is served from GitHub Pages, so this Worker is cross origin and
 # answers preflight requests. Only the two Pages origins are allowed.

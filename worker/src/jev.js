@@ -41,7 +41,10 @@ export class Jev {
   constructor(apiKey, { fetchImpl = fetch } = {}) {
     if (!apiKey) throw new Error('Jev needs an API key');
     this.apiKey = apiKey;
-    this.fetch = fetchImpl;
+    // Bound to the global. Calling this.fetch(...) would pass the Jev instance
+    // as `this`, which a Worker rejects with "Illegal invocation". Node is
+    // lenient about it, so this only shows up once it is deployed.
+    this.fetch = fetchImpl.bind(globalThis);
     this.usage = { requests: 0, inputTokens: 0 };
   }
 
