@@ -10,265 +10,776 @@
     "Anything in hardLimits is absolute. A week that breaks one is wrong even if every other rule passes.",
     "scripts/kh.py validate checks the generated week against this file. Run it before pushing."
   ],
-
   "goals": {
     "mason": {
       "target": "NSW Selective High School placement test",
       "testShape": "Reading, Mathematical Reasoning, Thinking Skills, Writing. Multiple choice under time pressure, plus one writing task.",
       "endState": "Reads an unfamiliar non fiction passage once and answers inference questions accurately. Carries out multi step arithmetic including division with remainders without a calculator and checks the result. Solves verbal and numerical reasoning items under about one minute each.",
       "currentPosture": "Accuracy is high, around 90 percent. The work now is removing the repeat slips, not adding breadth.",
-      "weeklyMarks": { "total": 55, "english": 20, "maths": 20, "thinking": 15 }
+      "weeklyMarks": {
+        "total": 55,
+        "english": 20,
+        "maths": 20,
+        "thinking": 15
+      }
     },
     "elysia": {
       "target": "NSW Opportunity Class (OC) placement test",
       "testShape": "Reading, Mathematical Reasoning, Thinking Skills. Multiple choice.",
       "endState": "Reads a short passage and answers literal and simple inference questions. Fluent mental addition and subtraction within 100. Recognises number and shape patterns and explains the rule.",
       "currentPosture": "Accuracy is around 73 percent and the losses are mostly carelessness and incomplete answers rather than missing knowledge. Fluency and finishing the paper matter more than new topics.",
-      "weeklyMarks": { "total": 40, "english": 15, "maths": 15, "thinking": 10 }
+      "weeklyMarks": {
+        "total": 40,
+        "english": 15,
+        "maths": 15,
+        "thinking": 10
+      }
     }
   },
-
   "slots": {
-    "1A": { "subject": "english", "purpose": "Reading comprehension from a passage", "format": "One passage of 150 to 250 words, then literal and inference questions. At least one question must require joining two facts from different paragraphs.", "fixed": "Always a passage. Never a standalone question set." },
-    "1B": { "subject": "english", "purpose": "Sentence level comprehension and grammar in context", "format": "A short passage or set of sentences, then questions about who, what, when, where, why, how, or about sentence structure.", "fixed": "Always tied to text the child can point at. Never abstract grammar labelling." },
-    "1C": { "subject": "english", "purpose": "Word level accuracy: spelling, word classes, word building", "format": "Short items. Use the school spelling list when Nik supplies it.", "fixed": "Always the week's spelling plus one word knowledge skill." },
-    "2A": { "subject": "maths", "purpose": "Arithmetic fluency drill, timed", "format": "A score banded drill. At least 30 problems. First third easy, middle moderate, last third harder.", "fixed": "Always scoreBand true with scoreBandRules. Always the child's current Kumon arithmetic operation." },
-    "2B": { "subject": "maths", "purpose": "The current Kumon procedure, worked carefully rather than fast", "format": "6 or fewer items on one written method, with a worked example box when the last score was under 95 percent.", "fixed": "Always the single operation the child is currently on in Kumon. Never a mixed bag." },
-    "2C": { "subject": "maths", "purpose": "Applied reasoning on the school's current half term topic", "format": "Word problems. Mason keeps a couple of remainder or two step problems regardless of the school topic.", "fixed": "Always follows schoolSync for today's date. This is the only slot that tracks the school calendar." },
-    "3A": { "subject": "thinking", "purpose": "Verbal reasoning", "format": "Analogies, odd one out on words, or relationships between words.", "fixed": "Exactly one defensible answer per item. No two valid splits." },
-    "3B": { "subject": "thinking", "purpose": "Numerical and pattern reasoning", "format": "Number patterns, sequences, odd one out on numbers.", "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails." },
-    "3C": { "subject": "thinking", "purpose": "Logic and coded reasoning", "format": "Logic puzzles, ciphers, deduction grids.", "fixed": "Every item must be solvable from the information given. No outside knowledge." }
+    "1A": {
+      "subject": "english",
+      "purpose": "Reading comprehension from a passage",
+      "format": "One passage of 150 to 250 words, then literal and inference questions. At least one question must require joining two facts from different paragraphs.",
+      "fixed": "Always a passage. Never a standalone question set.",
+      "inferredRule": false
+    },
+    "1B": {
+      "subject": "english",
+      "purpose": "Sentence level comprehension and grammar in context",
+      "format": "A short passage or set of sentences, then questions about who, what, when, where, why, how, or about sentence structure.",
+      "fixed": "Always tied to text the child can point at. Never abstract grammar labelling.",
+      "inferredRule": false
+    },
+    "1C": {
+      "subject": "english",
+      "purpose": "Word level accuracy: spelling, word classes, word building",
+      "format": "Short items. Use the school spelling list when Nik supplies it.",
+      "fixed": "Always the week's spelling plus one word knowledge skill.",
+      "inferredRule": false
+    },
+    "2A": {
+      "subject": "maths",
+      "purpose": "Arithmetic fluency drill, timed",
+      "format": "A score banded drill. At least 30 problems. First third easy, middle moderate, last third harder.",
+      "fixed": "Always scoreBand true with scoreBandRules. Always the child's current Kumon arithmetic operation.",
+      "inferredRule": false
+    },
+    "2B": {
+      "subject": "maths",
+      "purpose": "The current Kumon procedure, worked carefully rather than fast",
+      "format": "6 or fewer items on one written method, with a worked example box when the last score was under 95 percent.",
+      "fixed": "Always the single operation the child is currently on in Kumon. Never a mixed bag.",
+      "inferredRule": false
+    },
+    "2C": {
+      "subject": "maths",
+      "purpose": "Applied reasoning on the school's current half term topic",
+      "format": "Word problems. Mason keeps a couple of remainder or two step problems regardless of the school topic.",
+      "fixed": "Always follows schoolSync for today's date. This is the only slot that tracks the school calendar.",
+      "inferredRule": false
+    },
+    "3A": {
+      "subject": "thinking",
+      "purpose": "Verbal reasoning",
+      "format": "Analogies, odd one out on words, or relationships between words.",
+      "fixed": "Exactly one defensible answer per item. No two valid splits.",
+      "inferredRule": true
+    },
+    "3B": {
+      "subject": "thinking",
+      "purpose": "Numerical and pattern reasoning",
+      "format": "Number patterns, sequences, odd one out on numbers.",
+      "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails.",
+      "inferredRule": true
+    },
+    "3C": {
+      "subject": "thinking",
+      "purpose": "Logic and coded reasoning",
+      "format": "Logic puzzles, ciphers, deduction grids.",
+      "fixed": "Every item must be solvable from the information given. No outside knowledge.",
+      "inferredRule": false,
+      "note": "The method, such as the cipher shift, is deliberately given. That is the task, not a hint."
+    }
   },
-
   "ladders": {
     "mason": {
       "1A": {
         "endGoal": "Answers an inference question on an unseen passage without re-reading, and quotes the text to support it.",
         "rungs": [
-          { "id": "1A.1", "skill": "Literal retrieval: the answer is one phrase in the passage", "advanceWhen": "two clean weeks at full marks" },
-          { "id": "1A.2", "skill": "Retrieval where the question wording differs from the passage wording", "advanceWhen": "two clean weeks, no substituted synonyms" },
-          { "id": "1A.3", "skill": "Joining two facts from different paragraphs", "advanceWhen": "two clean weeks on unhinted items" },
-          { "id": "1A.4", "skill": "Inference: a conclusion the passage supports but does not state", "advanceWhen": "two clean weeks" },
-          { "id": "1A.5", "skill": "Author purpose, tone, and why a detail was included", "advanceWhen": "sustained, this is the exam level" }
+          {
+            "id": "1A.1",
+            "skill": "Literal retrieval: the answer is one phrase in the passage",
+            "advanceWhen": "two clean weeks at full marks"
+          },
+          {
+            "id": "1A.2",
+            "skill": "Retrieval where the question wording differs from the passage wording",
+            "advanceWhen": "two clean weeks, no substituted synonyms"
+          },
+          {
+            "id": "1A.3",
+            "skill": "Joining two facts from different paragraphs",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
+            "id": "1A.4",
+            "skill": "Inference: a conclusion the passage supports but does not state",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.5",
+            "skill": "Author purpose, tone, and why a detail was included",
+            "advanceWhen": "sustained, this is the exam level"
+          }
         ]
       },
       "1B": {
         "endGoal": "Identifies the exact element a 5W-1H question asks for, including when a plausible distractor sits nearby.",
         "rungs": [
-          { "id": "1B.1", "skill": "5W-1H where only one candidate exists in the sentence", "advanceWhen": "two clean weeks" },
-          { "id": "1B.2", "skill": "5W-1H where a plausible wrong detail is also present", "advanceWhen": "two clean weeks on unhinted items" },
-          { "id": "1B.3", "skill": "Subject and predicate in longer and compound sentences", "advanceWhen": "two clean weeks" },
-          { "id": "1B.4", "skill": "Contrast and concession sentences using although, however, whereas", "advanceWhen": "two clean weeks writing both ideas in ONE sentence" },
-          { "id": "1B.5", "skill": "Reported speech and relative clauses", "advanceWhen": "sustained" }
+          {
+            "id": "1B.1",
+            "skill": "5W-1H where only one candidate exists in the sentence",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1B.2",
+            "skill": "5W-1H where a plausible wrong detail is also present",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
+            "id": "1B.3",
+            "skill": "Subject and predicate in longer and compound sentences",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1B.4",
+            "skill": "Contrast and concession sentences using although, however, whereas",
+            "advanceWhen": "two clean weeks writing both ideas in ONE sentence"
+          },
+          {
+            "id": "1B.5",
+            "skill": "Reported speech and relative clauses",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "1C": {
         "endGoal": "Spells the week's list correctly under time, and builds related words from a root.",
         "rungs": [
-          { "id": "1C.1", "skill": "Spelling the week's list", "advanceWhen": "runs every week, never retired" },
-          { "id": "1C.2", "skill": "Word classes: noun, verb, adjective, adverb in a sentence", "advanceWhen": "two clean weeks" },
-          { "id": "1C.3", "skill": "Modifiers: naming the modifying word, not the word it modifies", "advanceWhen": "two clean weeks on unhinted items" },
-          { "id": "1C.4", "skill": "Word families: finding related words from a shared root", "advanceWhen": "two clean weeks" },
-          { "id": "1C.5", "skill": "Prefixes, suffixes and shades of meaning", "advanceWhen": "sustained" }
+          {
+            "id": "1C.1",
+            "skill": "Spelling the week's list",
+            "advanceWhen": "runs every week, never retired"
+          },
+          {
+            "id": "1C.2",
+            "skill": "Word classes: noun, verb, adjective, adverb in a sentence",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1C.3",
+            "skill": "Modifiers: naming the modifying word, not the word it modifies",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
+            "id": "1C.4",
+            "skill": "Word families: finding related words from a shared root",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1C.5",
+            "skill": "Prefixes, suffixes and shades of meaning",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "2A": {
         "endGoal": "Kumon Level D fluency: 30 mixed multiplication and division items inside the time band.",
         "kumonTrack": "maths",
         "rungs": [
-          { "id": "2A.1", "skill": "Tables x1 to x9 recall", "advanceWhen": "cleared" },
-          { "id": "2A.2", "skill": "2-digit x 1-digit", "advanceWhen": "two weeks in the top band" },
-          { "id": "2A.3", "skill": "3 and 4-digit x 1-digit", "advanceWhen": "two weeks in the top band" },
-          { "id": "2A.4", "skill": "Mixed multiplication and division, 1-digit divisor", "advanceWhen": "two weeks in the top band" },
-          { "id": "2A.5", "skill": "2-digit x 2-digit", "advanceWhen": "Kumon Level D1 to D4" },
-          { "id": "2A.6", "skill": "Division by a 2-digit divisor", "advanceWhen": "Kumon Level D5 onward" }
+          {
+            "id": "2A.1",
+            "skill": "Tables x1 to x9 recall",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "2A.2",
+            "skill": "2-digit x 1-digit",
+            "advanceWhen": "two weeks in the top band"
+          },
+          {
+            "id": "2A.3",
+            "skill": "3 and 4-digit x 1-digit",
+            "advanceWhen": "two weeks in the top band"
+          },
+          {
+            "id": "2A.4",
+            "skill": "Mixed multiplication and division, 1-digit divisor",
+            "advanceWhen": "two weeks in the top band"
+          },
+          {
+            "id": "2A.5",
+            "skill": "2-digit x 2-digit",
+            "advanceWhen": "Kumon Level D1 to D4"
+          },
+          {
+            "id": "2A.6",
+            "skill": "Division by a 2-digit divisor",
+            "advanceWhen": "Kumon Level D5 onward"
+          }
         ]
       },
       "2B": {
         "endGoal": "Long division with a 2-digit divisor, checked by multiplying back.",
         "kumonTrack": "maths",
         "rungs": [
-          { "id": "2B.1", "skill": "Short division, no remainder", "advanceWhen": "cleared" },
-          { "id": "2B.2", "skill": "Short division with remainders, remainder always smaller than the divisor", "advanceWhen": "two clean weeks INCLUDING the check step shown" },
-          { "id": "2B.3", "skill": "2-digit divided by 1-digit written method", "advanceWhen": "two clean weeks" },
-          { "id": "2B.4", "skill": "3-digit divided by 1-digit written method", "advanceWhen": "two clean weeks, completes Kumon Level C" },
-          { "id": "2B.5", "skill": "Division with a 2-digit divisor", "advanceWhen": "Kumon Level D" },
-          { "id": "2B.6", "skill": "Fractions: reduction and equivalence", "advanceWhen": "Kumon Level D9 onward" }
+          {
+            "id": "2B.1",
+            "skill": "Short division, no remainder",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "2B.2",
+            "skill": "Short division with remainders, remainder always smaller than the divisor",
+            "advanceWhen": "two clean weeks INCLUDING the check step shown"
+          },
+          {
+            "id": "2B.3",
+            "skill": "2-digit divided by 1-digit written method",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2B.4",
+            "skill": "3-digit divided by 1-digit written method",
+            "advanceWhen": "two clean weeks, completes Kumon Level C"
+          },
+          {
+            "id": "2B.5",
+            "skill": "Division with a 2-digit divisor",
+            "advanceWhen": "Kumon Level D"
+          },
+          {
+            "id": "2B.6",
+            "skill": "Fractions: reduction and equivalence",
+            "advanceWhen": "Kumon Level D9 onward"
+          }
         ]
       },
       "2C": {
         "endGoal": "Reads a multi step word problem, chooses the operations, and checks whether the answer makes sense in context.",
         "followsSchoolSync": true,
         "rungs": [
-          { "id": "2C.1", "skill": "One step word problems", "advanceWhen": "cleared" },
-          { "id": "2C.2", "skill": "Two step word problems where both steps are the same operation", "advanceWhen": "two clean weeks" },
-          { "id": "2C.3", "skill": "Two step problems mixing operations", "advanceWhen": "two clean weeks with the second step correct" },
-          { "id": "2C.4", "skill": "Remainder interpretation: round up, round down, or the remainder IS the answer", "advanceWhen": "two clean weeks with the sense check shown" },
-          { "id": "2C.5", "skill": "Multi step problems on the school's half term topic, with a redundant fact to ignore", "advanceWhen": "sustained, this is the exam level" }
+          {
+            "id": "2C.1",
+            "skill": "One step word problems",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "2C.2",
+            "skill": "Two step word problems where both steps are the same operation",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2C.3",
+            "skill": "Two step problems mixing operations",
+            "advanceWhen": "two clean weeks with the second step correct"
+          },
+          {
+            "id": "2C.4",
+            "skill": "Remainder interpretation: round up, round down, or the remainder IS the answer",
+            "advanceWhen": "two clean weeks with the sense check shown"
+          },
+          {
+            "id": "2C.5",
+            "skill": "Multi step problems on the school's half term topic, with a redundant fact to ignore",
+            "advanceWhen": "sustained, this is the exam level"
+          }
         ]
       },
       "3A": {
         "endGoal": "Names the relationship in an analogy before choosing, and rejects an indirect match.",
         "rungs": [
-          { "id": "3A.1", "skill": "Synonym and antonym analogies", "advanceWhen": "cleared" },
-          { "id": "3A.2", "skill": "Part to whole analogies", "advanceWhen": "two clean weeks picking the direct whole, not an indirect one" },
-          { "id": "3A.3", "skill": "Function, category and degree analogies", "advanceWhen": "two clean weeks" },
-          { "id": "3A.4", "skill": "Odd one out on words, where two plausible groupings exist and only one is defensible", "advanceWhen": "two clean weeks" },
-          { "id": "3A.5", "skill": "Mixed verbal reasoning under one minute per item", "advanceWhen": "sustained" }
+          {
+            "id": "3A.1",
+            "skill": "Synonym and antonym analogies",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "3A.2",
+            "skill": "Part to whole analogies",
+            "advanceWhen": "two clean weeks picking the direct whole, not an indirect one"
+          },
+          {
+            "id": "3A.3",
+            "skill": "Function, category and degree analogies",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3A.4",
+            "skill": "Odd one out on words, where two plausible groupings exist and only one is defensible",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3A.5",
+            "skill": "Mixed verbal reasoning under one minute per item",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "3B": {
         "endGoal": "States the rule of a number pattern, then applies it forwards and backwards.",
         "rungs": [
-          { "id": "3B.1", "skill": "Odd one out on numbers by a single property", "advanceWhen": "cleared" },
-          { "id": "3B.2", "skill": "Odd one out on numbers by a multiplication or factor rule, with odd and even mixed inside the rule", "advanceWhen": "two clean weeks" },
-          { "id": "3B.3", "skill": "Number sequences with a changing step", "advanceWhen": "two clean weeks" },
-          { "id": "3B.4", "skill": "Two rule sequences, and continuing a sequence backwards", "advanceWhen": "two clean weeks" },
-          { "id": "3B.5", "skill": "Matrix and grid number reasoning", "advanceWhen": "sustained" }
+          {
+            "id": "3B.1",
+            "skill": "Odd one out on numbers by a single property",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "3B.2",
+            "skill": "Odd one out on numbers by a multiplication or factor rule, with odd and even mixed inside the rule",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.3",
+            "skill": "Number sequences with a changing step",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.4",
+            "skill": "Two rule sequences, and continuing a sequence backwards",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.5",
+            "skill": "Matrix and grid number reasoning",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "3C": {
         "endGoal": "Works a coded or logical system out from the examples given, with no outside knowledge.",
         "rungs": [
-          { "id": "3C.1", "skill": "Caesar cipher, fixed shift, given", "advanceWhen": "cleared" },
-          { "id": "3C.2", "skill": "Caesar cipher, mixed encode and decode", "advanceWhen": "two clean weeks" },
-          { "id": "3C.3", "skill": "Caesar cipher where the shift must be worked out from one example", "advanceWhen": "two clean weeks" },
-          { "id": "3C.4", "skill": "Substitution codes and simple symbol systems", "advanceWhen": "two clean weeks" },
-          { "id": "3C.5", "skill": "Deduction grids: three or more clues, one consistent solution", "advanceWhen": "sustained" }
+          {
+            "id": "3C.1",
+            "skill": "Caesar cipher, fixed shift, given",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "3C.2",
+            "skill": "Caesar cipher, mixed encode and decode",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3C.3",
+            "skill": "Caesar cipher where the shift must be worked out from one example",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3C.4",
+            "skill": "Substitution codes and simple symbol systems",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3C.5",
+            "skill": "Deduction grids: three or more clues, one consistent solution",
+            "advanceWhen": "sustained"
+          }
         ]
       }
     },
-
     "elysia": {
       "1A": {
         "endGoal": "Reads a short passage once and answers every part of each question asked.",
         "rungs": [
-          { "id": "1A.1", "skill": "Literal retrieval from a 60 to 100 word passage", "advanceWhen": "two clean weeks" },
-          { "id": "1A.2", "skill": "Retrieval where the question wording differs from the passage", "advanceWhen": "two clean weeks" },
-          { "id": "1A.3", "skill": "Questions asking for TWO things, both required", "advanceWhen": "two clean weeks giving both parts" },
-          { "id": "1A.4", "skill": "Sequencing: what happened first, next, last", "advanceWhen": "two clean weeks" },
-          { "id": "1A.5", "skill": "Simple inference: how a character felt and why", "advanceWhen": "sustained, this is the OC level" }
+          {
+            "id": "1A.1",
+            "skill": "Literal retrieval from a 60 to 100 word passage",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.2",
+            "skill": "Retrieval where the question wording differs from the passage",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.3",
+            "skill": "Questions asking for TWO things, both required",
+            "advanceWhen": "two clean weeks giving both parts"
+          },
+          {
+            "id": "1A.4",
+            "skill": "Sequencing: what happened first, next, last",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.5",
+            "skill": "Simple inference: how a character felt and why",
+            "advanceWhen": "sustained, this is the OC level"
+          }
         ]
       },
       "1B": {
         "endGoal": "Finds the subject and the predicate in a longer sentence and uses correct punctuation.",
         "rungs": [
-          { "id": "1B.1", "skill": "Subject and predicate in a simple sentence", "advanceWhen": "cleared" },
-          { "id": "1B.2", "skill": "Subject and predicate in longer sentences with an opening phrase", "advanceWhen": "two clean weeks" },
-          { "id": "1B.3", "skill": "Compound sentences joined by and, but, so", "advanceWhen": "two clean weeks" },
-          { "id": "1B.4", "skill": "Capital letters and full stops inside direct speech", "advanceWhen": "two clean weeks" },
-          { "id": "1B.5", "skill": "Past and present tense consistency across a sentence", "advanceWhen": "sustained" }
+          {
+            "id": "1B.1",
+            "skill": "Subject and predicate in a simple sentence",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "1B.2",
+            "skill": "Subject and predicate in longer sentences with an opening phrase",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1B.3",
+            "skill": "Compound sentences joined by and, but, so",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1B.4",
+            "skill": "Capital letters and full stops inside direct speech",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1B.5",
+            "skill": "Past and present tense consistency across a sentence",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "1C": {
         "endGoal": "Spells the week's list under time and chooses the adjective that fits the sentence.",
         "rungs": [
-          { "id": "1C.1", "skill": "Spelling the week's list", "advanceWhen": "runs every week, never retired" },
-          { "id": "1C.2", "skill": "Nouns, verbs and adjectives named in a sentence", "advanceWhen": "two clean weeks" },
-          { "id": "1C.3", "skill": "Choosing the adjective that fits the meaning", "advanceWhen": "two clean weeks" },
-          { "id": "1C.4", "skill": "Common prefixes un, re, dis", "advanceWhen": "two clean weeks" },
-          { "id": "1C.5", "skill": "Synonyms and antonyms", "advanceWhen": "sustained" }
+          {
+            "id": "1C.1",
+            "skill": "Spelling the week's list",
+            "advanceWhen": "runs every week, never retired"
+          },
+          {
+            "id": "1C.2",
+            "skill": "Nouns, verbs and adjectives named in a sentence",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1C.3",
+            "skill": "Choosing the adjective that fits the meaning",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1C.4",
+            "skill": "Common prefixes un, re, dis",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1C.5",
+            "skill": "Synonyms and antonyms",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "2A": {
         "endGoal": "Kumon Level B fluency: 30 two and three digit addition and subtraction items inside the time band.",
         "kumonTrack": "maths",
         "rungs": [
-          { "id": "2A.1", "skill": "Addition facts to 20", "advanceWhen": "cleared" },
-          { "id": "2A.2", "skill": "Addition within 100, no crossing a ten", "advanceWhen": "cleared" },
-          { "id": "2A.3", "skill": "Addition within 100 crossing a ten", "advanceWhen": "two weeks in the top band with no tens boundary slips" },
-          { "id": "2A.4", "skill": "Subtraction within 100 crossing a ten", "advanceWhen": "two weeks in the top band" },
-          { "id": "2A.5", "skill": "Mixed addition and subtraction, 2 and 3 digit, vertical", "advanceWhen": "two weeks in the top band, completes Kumon Level B" },
-          { "id": "2A.6", "skill": "Times tables 2, 5 and 10 recall", "advanceWhen": "Kumon Level C AND the school has taught them, see hardLimits" }
+          {
+            "id": "2A.1",
+            "skill": "Addition facts to 20",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "2A.2",
+            "skill": "Addition within 100, no crossing a ten",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "2A.3",
+            "skill": "Addition within 100 crossing a ten",
+            "advanceWhen": "two weeks in the top band with no tens boundary slips"
+          },
+          {
+            "id": "2A.4",
+            "skill": "Subtraction within 100 crossing a ten",
+            "advanceWhen": "two weeks in the top band"
+          },
+          {
+            "id": "2A.5",
+            "skill": "Mixed addition and subtraction, 2 and 3 digit, vertical",
+            "advanceWhen": "two weeks in the top band, completes Kumon Level B"
+          },
+          {
+            "id": "2A.6",
+            "skill": "Times tables 2, 5 and 10 recall",
+            "advanceWhen": "Kumon Level C AND the school has taught them, see hardLimits"
+          }
         ]
       },
       "2B": {
         "endGoal": "Vertical addition and subtraction with carrying and borrowing, done accurately.",
         "kumonTrack": "maths",
         "rungs": [
-          { "id": "2B.1", "skill": "Subtraction within 100 crossing a ten", "advanceWhen": "two clean weeks" },
-          { "id": "2B.2", "skill": "Vertical 2-digit addition with carrying", "advanceWhen": "two clean weeks" },
-          { "id": "2B.3", "skill": "Vertical 2-digit subtraction with borrowing", "advanceWhen": "two clean weeks" },
-          { "id": "2B.4", "skill": "Vertical 3-digit addition and subtraction", "advanceWhen": "two clean weeks, completes Kumon Level B" },
-          { "id": "2B.5", "skill": "Equal groups and arrays as repeated addition", "advanceWhen": "Kumon Level C" }
+          {
+            "id": "2B.1",
+            "skill": "Subtraction within 100 crossing a ten",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2B.2",
+            "skill": "Vertical 2-digit addition with carrying",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2B.3",
+            "skill": "Vertical 2-digit subtraction with borrowing",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2B.4",
+            "skill": "Vertical 3-digit addition and subtraction",
+            "advanceWhen": "two clean weeks, completes Kumon Level B"
+          },
+          {
+            "id": "2B.5",
+            "skill": "Equal groups and arrays as repeated addition",
+            "advanceWhen": "Kumon Level C"
+          }
         ]
       },
       "2C": {
         "endGoal": "Applies a maths idea to a short real world question on the school's current topic.",
         "followsSchoolSync": true,
         "rungs": [
-          { "id": "2C.1", "skill": "One step word problems within 20", "advanceWhen": "cleared" },
-          { "id": "2C.2", "skill": "One step word problems within 100", "advanceWhen": "two clean weeks" },
-          { "id": "2C.3", "skill": "Halves, quarters, thirds of a number", "advanceWhen": "two clean weeks giving the share, not the leftover" },
-          { "id": "2C.4", "skill": "Money: counting coins and giving change", "advanceWhen": "two clean weeks" },
-          { "id": "2C.5", "skill": "Two step problems on the school's half term topic", "advanceWhen": "sustained" }
+          {
+            "id": "2C.1",
+            "skill": "One step word problems within 20",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "2C.2",
+            "skill": "One step word problems within 100",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2C.3",
+            "skill": "Halves, quarters, thirds of a number",
+            "advanceWhen": "two clean weeks giving the share, not the leftover"
+          },
+          {
+            "id": "2C.4",
+            "skill": "Money: counting coins and giving change",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "2C.5",
+            "skill": "Two step problems on the school's half term topic",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "3A": {
         "endGoal": "Explains the rule a group shares before choosing the odd one out.",
         "rungs": [
-          { "id": "3A.1", "skill": "Odd one out by an obvious category", "advanceWhen": "cleared" },
-          { "id": "3A.2", "skill": "Odd one out where surface similarity points the wrong way", "advanceWhen": "two clean weeks choosing by the rule, not by looks" },
-          { "id": "3A.3", "skill": "Simple word analogies", "advanceWhen": "two clean weeks" },
-          { "id": "3A.4", "skill": "Grouping: which two belong together and why", "advanceWhen": "two clean weeks" },
-          { "id": "3A.5", "skill": "Mixed verbal reasoning", "advanceWhen": "sustained" }
+          {
+            "id": "3A.1",
+            "skill": "Odd one out by an obvious category",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "3A.2",
+            "skill": "Odd one out where surface similarity points the wrong way",
+            "advanceWhen": "two clean weeks choosing by the rule, not by looks"
+          },
+          {
+            "id": "3A.3",
+            "skill": "Simple word analogies",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3A.4",
+            "skill": "Grouping: which two belong together and why",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3A.5",
+            "skill": "Mixed verbal reasoning",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "3B": {
         "endGoal": "Continues a number pattern and says what the rule is.",
         "rungs": [
-          { "id": "3B.1", "skill": "Counting patterns in 2s, 5s and 10s", "advanceWhen": "cleared" },
-          { "id": "3B.2", "skill": "Patterns with a constant step that is not 2, 5 or 10", "advanceWhen": "two clean weeks" },
-          { "id": "3B.3", "skill": "Patterns continued backwards", "advanceWhen": "two clean weeks" },
-          { "id": "3B.4", "skill": "Shape and position patterns", "advanceWhen": "two clean weeks" },
-          { "id": "3B.5", "skill": "Patterns with a changing step", "advanceWhen": "sustained" }
+          {
+            "id": "3B.1",
+            "skill": "Counting patterns in 2s, 5s and 10s",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "3B.2",
+            "skill": "Patterns with a constant step that is not 2, 5 or 10",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.3",
+            "skill": "Patterns continued backwards",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.4",
+            "skill": "Shape and position patterns",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.5",
+            "skill": "Patterns with a changing step",
+            "advanceWhen": "sustained"
+          }
         ]
       },
       "3C": {
         "endGoal": "Uses two or three clues together to reach one answer.",
         "rungs": [
-          { "id": "3C.1", "skill": "One clue logic: who has what", "advanceWhen": "cleared" },
-          { "id": "3C.2", "skill": "Two clue logic needing both clues", "advanceWhen": "two clean weeks" },
-          { "id": "3C.3", "skill": "Three clue logic with one elimination", "advanceWhen": "two clean weeks" },
-          { "id": "3C.4", "skill": "Simple picture or symbol codes", "advanceWhen": "two clean weeks" },
-          { "id": "3C.5", "skill": "Small deduction grids", "advanceWhen": "sustained" }
+          {
+            "id": "3C.1",
+            "skill": "One clue logic: who has what",
+            "advanceWhen": "cleared"
+          },
+          {
+            "id": "3C.2",
+            "skill": "Two clue logic needing both clues",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3C.3",
+            "skill": "Three clue logic with one elimination",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3C.4",
+            "skill": "Simple picture or symbol codes",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3C.5",
+            "skill": "Small deduction grids",
+            "advanceWhen": "sustained"
+          }
         ]
       }
     }
   },
-
   "hardLimits": {
     "elysia": [
-      { "id": "ely.tables", "rule": "Multiplication and division facts may only use the 2, 3, 4, 5, 6 and 10 times tables. Never the 7, 8, 9, 11 or 12 tables.", "why": "She practises those six daily at home. School only teaches 2, 5 and 10 from January 2027.", "check": "automated" },
-      { "id": "ely.written-muldiv", "rule": "No written (column or long) multiplication or division.", "why": "Not taught yet.", "check": "automated" },
-      { "id": "ely.time-minutes", "rule": "Time to the minute, including minutes between two times, is forbidden until Summer 2 2027. Keep time to o'clock, half past, quarter past and quarter to.", "why": "Not on the school sequence until Summer 2 2027.", "check": "automated", "note": "Weeks 18 and 19 broke this rule before it was written down. The open gap 'Minutes between two times' must be PARKED, not retested, until Summer 2 2027." }
+      {
+        "id": "ely.tables",
+        "rule": "Multiplication and division facts may only use the 2, 3, 4, 5, 6 and 10 times tables. Never the 7, 8, 9, 11 or 12 tables.",
+        "why": "She practises those six daily at home. School only teaches 2, 5 and 10 from January 2027.",
+        "check": "automated"
+      },
+      {
+        "id": "ely.written-muldiv",
+        "rule": "No written (column or long) multiplication or division.",
+        "why": "Not taught yet.",
+        "check": "automated"
+      },
+      {
+        "id": "ely.time-minutes",
+        "rule": "Time to the minute, including minutes between two times, is forbidden until Summer 2 2027. Keep time to o'clock, half past, quarter past and quarter to.",
+        "why": "Not on the school sequence until Summer 2 2027.",
+        "check": "automated",
+        "note": "Weeks 18 and 19 broke this rule before it was written down. The open gap 'Minutes between two times' must be PARKED, not retested, until Summer 2 2027."
+      }
     ],
     "mason": [
-      { "id": "mas.calculator", "rule": "No question may require a calculator.", "why": "The selective test is non calculator.", "check": "manual" },
-      { "id": "mas.outside-knowledge", "rule": "Thinking Skills items must be solvable from the information given. No general knowledge.", "why": "Tests reasoning, not recall.", "check": "manual" }
+      {
+        "id": "mas.calculator",
+        "rule": "No question may require a calculator.",
+        "why": "The selective test is non calculator.",
+        "check": "manual"
+      },
+      {
+        "id": "mas.outside-knowledge",
+        "rule": "Thinking Skills items must be solvable from the information given. No general knowledge.",
+        "why": "Tests reasoning, not recall.",
+        "check": "manual"
+      }
     ],
     "both": [
-      { "id": "all.one-answer", "rule": "Odd one out and analogy items must have exactly one defensible answer. No two valid splits.", "check": "manual" },
-      { "id": "all.odd-even", "rule": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails.", "check": "manual" },
-      { "id": "all.unhinted", "rule": "If a test is meant to be unhinted, the passage must not print the answer rule.", "why": "A hinted pass cannot resolve a gap. It records true but stays IMPROVING.", "check": "manual" },
-      { "id": "all.repeat-answers", "rule": "No more than 2 identical answers in any set of short answers.", "check": "automated" },
-      { "id": "all.no-em-dash", "rule": "No em dashes in child facing text.", "check": "automated" },
-      { "id": "all.computed", "rule": "Every sum, key and cipher is computed by script, never written by hand.", "check": "automated via kh.py validate" }
+      {
+        "id": "all.one-answer",
+        "rule": "Odd one out and analogy items must have exactly one defensible answer. No two valid splits.",
+        "check": "manual"
+      },
+      {
+        "id": "all.odd-even",
+        "rule": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails.",
+        "check": "manual"
+      },
+      {
+        "id": "all.unhinted",
+        "rule": "If a test is meant to be unhinted, the passage must not print the answer rule.",
+        "why": "A hinted pass cannot resolve a gap. It records true but stays IMPROVING.",
+        "check": "manual"
+      },
+      {
+        "id": "all.repeat-answers",
+        "rule": "No more than 2 identical answers in any set of short answers.",
+        "check": "automated"
+      },
+      {
+        "id": "all.no-em-dash",
+        "rule": "No em dashes in child facing text.",
+        "check": "automated"
+      },
+      {
+        "id": "all.computed",
+        "rule": "Every sum, key and cipher is computed by script, never written by hand.",
+        "check": "automated via kh.py validate"
+      }
     ]
   },
-
   "schoolSync": {
     "note": "Only slot 2C follows this. Everything else follows the ladder. Full map in the Project doc curriculum-timeline.md.",
     "terms": [
-      { "term": "Autumn 1", "ends": "2026-10-24", "mason": "4 digit place value, add and subtract", "elysia": "add and subtract within 100" },
-      { "term": "Autumn 2", "ends": "2026-12-19", "mason": "length and perimeter", "elysia": "money counting, equal groups and arrays" },
-      { "term": "Spring 1", "ends": "2027-02-12", "mason": "area", "elysia": "tables 2, 5, 10 and tally charts" },
-      { "term": "Spring 2", "ends": "2027-04-01", "mason": "fractions over 1, decimals", "elysia": "shapes, symmetry, fractions" },
-      { "term": "Summer 1", "ends": "2027-05-28", "mason": "money in pounds and pence, 24 hour clock", "elysia": "length and position" },
-      { "term": "Summer 2", "ends": "2027-07-22", "mason": "statistics, properties of shape", "elysia": "time to quarter hours, mass, capacity" }
+      {
+        "term": "Autumn 1",
+        "ends": "2026-10-24",
+        "mason": "4 digit place value, add and subtract",
+        "elysia": "add and subtract within 100"
+      },
+      {
+        "term": "Autumn 2",
+        "ends": "2026-12-19",
+        "mason": "length and perimeter",
+        "elysia": "money counting, equal groups and arrays"
+      },
+      {
+        "term": "Spring 1",
+        "ends": "2027-02-12",
+        "mason": "area",
+        "elysia": "tables 2, 5, 10 and tally charts"
+      },
+      {
+        "term": "Spring 2",
+        "ends": "2027-04-01",
+        "mason": "fractions over 1, decimals",
+        "elysia": "shapes, symmetry, fractions"
+      },
+      {
+        "term": "Summer 1",
+        "ends": "2027-05-28",
+        "mason": "money in pounds and pence, 24 hour clock",
+        "elysia": "length and position"
+      },
+      {
+        "term": "Summer 2",
+        "ends": "2027-07-22",
+        "mason": "statistics, properties of shape",
+        "elysia": "time to quarter hours, mass, capacity"
+      }
     ]
   },
-
   "retired": {
     "note": "Item shapes Nik ruled ambiguous or unfair. Never generate these again, in any wording.",
     "mason": [],
