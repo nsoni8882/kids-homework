@@ -1,7 +1,12 @@
-backups/
-*.bak*
-*.json
+# Never commit: this repo is public
 CLAUDE.md
 memory.md
 MEMORY.md
+data/
+backups/
+*.bak*
 .DS_Store
+.venv/
+node_modules/
+__pycache__/
+*.pyc

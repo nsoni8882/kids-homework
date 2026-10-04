@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "week.schema.json",
+  "title": "Normalised week record",
+  "description": "One graded week for one child. The same shape whether it came from the live bin or the archive bin, which the two bin formats are not.",
+  "type": "object",
+  "required": ["schemaVersion", "child", "week", "source", "score", "subjects", "sectionMarks", "answers"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "child": { "enum": ["mason", "elysia"] },
+    "week": { "type": "integer", "minimum": 1 },
+    "source": { "enum": ["live", "archive"], "description": "which bin it was read from" },
+    "score": {
+      "type": "object",
+      "required": ["total", "outOf"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "outOf": { "type": "integer", "minimum": 1 },
+        "pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+      }
+    },
+    "subjects": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "english": { "$ref": "#/$defs/subjectScore" },
+        "maths": { "$ref": "#/$defs/subjectScore" },
+        "thinking": { "$ref": "#/$defs/subjectScore" }
+      }
+    },
+    "sectionMarks": {
+      "type": "object",
+      "description": "section id to marks earned. Must sum to score.total.",
+      "patternProperties": { "^[123][A-C]$": { "type": "integer", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "answers": {
+      "type": "object",
+      "description": "question id to the text the child typed",
+      "patternProperties": { "^[123][A-C]-Q[0-9]+$": { "type": "string" } },
+      "additionalProperties": { "type": "string" }
+    },
+    "submittedAt": { "type": ["string", "null"], "format": "date-time" },
+    "adjustedAt": { "type": ["string", "null"], "description": "set when a mark was changed by hand" },
+    "notes": { "type": "string" },
+    "extra": { "type": "object", "description": "any bin field this schema does not name, kept so a round trip is lossless" }
+  },
+  "$defs": {
+    "subjectScore": {
+      "type": "object",
+      "required": ["marks"],
+      "additionalProperties": false,
+      "properties": {
+        "marks": { "type": ["integer", "null"], "minimum": 0 },
+        "outOf": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    }
+  }
+}

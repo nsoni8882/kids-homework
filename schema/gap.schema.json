@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gap.schema.json",
+  "title": "Learning gap",
+  "description": "One tracked weakness. weeks[] is a per week log, oldest first: true correct, false wrong, null not tested or inconclusive.",
+  "type": "object",
+  "required": ["topic", "status", "weeks"],
+  "additionalProperties": false,
+  "properties": {
+    "topic": { "type": "string", "minLength": 1 },
+    "detail": { "type": "string" },
+    "status": {
+      "enum": ["new", "persists", "improving", "resolved"],
+      "description": "resolved needs two clean appearances on unhinted, unambiguous items"
+    },
+    "weeks": { "type": "array", "items": { "type": ["boolean", "null"] } },
+    "source": { "enum": ["live", "archive"] }
+  }
+}
