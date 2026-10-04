@@ -31,6 +31,8 @@ from datetime import datetime, timezone
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 SCHEMA = os.path.join(ROOT, "schema")
+SPINE = os.path.join(ROOT, "curriculum", "spine.json")
+POSITION = os.path.join(DATA, "curriculum", "position.json")
 CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 
 CHILDREN = ("mason", "elysia")
@@ -402,6 +404,8 @@ def build_payloads(local):
 def cmd_push(args):
     local = load_local()
     problems = validate(local)
+    if os.path.exists(SPINE):
+        problems += check_curriculum(local, load_spine())
     if problems:
         for p in problems:
             print(f"  {p}")
@@ -480,6 +484,8 @@ def validate(local=None):
             if b != a + 1:
                 problems.append(f"{child}: gap in week numbers between {a} and {b}")
         for g in d["gaps"]:
+            if g.get("slot") and g["slot"] not in [f"{a}{b}" for a in "123" for b in "ABC"]:
+                problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': slot {g['slot']!r} is not 1A to 3C")
             if g.get("status") not in ("new", "persists", "improving", "resolved"):
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': bad status {g.get('status')!r}")
             if not g.get("topic") or not isinstance(g.get("weeks"), list):
@@ -499,8 +505,225 @@ def validate(local=None):
     return problems
 
 
+
+# --------------------------------------------------------------------------
+# curriculum
+# --------------------------------------------------------------------------
+
+def load_spine():
+    spine = read_json(SPINE)
+    if not spine:
+        die(f"curriculum/spine.json not found at {SPINE}")
+    return spine
+
+
+def current_term(spine, when=None):
+    when = when or today()
+    for t in spine["schoolSync"]["terms"]:
+        if when <= t["ends"]:
+            return t
+    return spine["schoolSync"]["terms"][-1]
+
+
+def slot_of(qid_or_section):
+    """Section ids are 1A..3C and question ids are 1A-Q3, so the slot is the first two."""
+    return str(qid_or_section)[:2]
+
+
+def cmd_curriculum(args):
+    """Print the brief: the map, where the child stands on it, what is blocking
+    each slot, and what next week must therefore contain."""
+    spine = load_spine()
+    position = read_json(POSITION, {"children": {}})
+    local = load_local()
+    children = [args.child] if args.child else list(CHILDREN)
+    term = current_term(spine)
+
+    for child in children:
+        goal = spine["goals"][child]
+        pos = (position.get("children") or {}).get(child, {})
+        slots = pos.get("slots", {})
+        gaps = [g for g in local[child]["gaps"] if g.get("status") != "resolved"]
+        cur = local[child]["current"] or {}
+        weeks = local[child]["weeks"]
+        latest = weeks[-1] if weeks else None
+
+        print("=" * 78)
+        print(f"{child.upper()}  target: {goal['target']}")
+        print("=" * 78)
+        print(f"  end state : {goal['endState']}")
+        print(f"  posture   : {goal['currentPosture']}")
+        m = goal["weeklyMarks"]
+        print(f"  marks     : {m['total']} total, English {m['english']}, "
+              f"Maths {m['maths']}, Thinking {m['thinking']}")
+        if latest:
+            print(f"  last week : W{latest['week']} {latest['score']['total']}/"
+                  f"{latest['score']['outOf']} ({latest['score']['pct']}%)")
+        print(f"  next week : W{(cur.get('weekNum') or 0)} is loaded now; "
+              f"position recorded as of W{pos.get('asOfWeek', '?')}")
+        print(f"  school    : {term['term']} to {term['ends']}, "
+              f"2C topic is \"{term[child]}\"")
+        print()
+
+        for slot_id in sorted(spine["slots"]):
+            slot = spine["slots"][slot_id]
+            ladder = spine["ladders"][child][slot_id]
+            here = slots.get(slot_id, {})
+            rungs = ladder["rungs"]
+            idx = next((i for i, r in enumerate(rungs) if r["id"] == here.get("rung")), None)
+
+            # A gap can name its slot explicitly. Older gaps do not, so fall back to
+            # looking for the slot id in the text, which is how they were written up.
+            slot_gaps = [g for g in gaps if (g.get("slot") == slot_id)
+                         or (not g.get("slot") and (slot_id in (g.get("detail") or "")
+                                                    or slot_id in (g.get("topic") or "")))]
+            blocking = [g for g in slot_gaps if g["status"] in ("new", "persists")]
+
+            section = next((x for x in cur.get("sections", []) if x["id"] == slot_id), None)
+            marks = f"{section['totalMarks']}m" if section else "?"
+
+            print(f"  [{slot_id}] {slot['purpose']}  ({marks}, {slot['subject']})")
+            print(f"       goal   : {ladder['endGoal']}")
+            if idx is None:
+                print("       RUNG   : not recorded. Set it in data/curriculum/position.json.")
+            else:
+                r = rungs[idx]
+                print(f"       rung   : {r['id']} {r['skill']}")
+                print(f"       advance: {r['advanceWhen']}")
+                nxt = rungs[idx + 1] if idx + 1 < len(rungs) else None
+                print(f"       next   : {nxt['id'] + ' ' + nxt['skill'] if nxt else 'top of the ladder, keep sustaining'}")
+            if here.get("note"):
+                print(f"       note   : {here['note']}")
+            if blocking:
+                print(f"       HOLD   : {len(blocking)} open gap(s) attached, re-test this rung, do not advance")
+                for g in blocking:
+                    print(f"                - [{g['status']}] {g['topic'][:70]}")
+            if section and slot.get("fixed"):
+                print(f"       fixed  : {slot['fixed']}")
+            print()
+
+        unattached = [g for g in gaps
+                      if not g.get("slot")
+                      and not any(s in (g.get("detail") or "") + (g.get("topic") or "")
+                                  for s in spine["slots"])]
+        if unattached:
+            print(f"  gaps not tied to a slot ({len(unattached)}), decide where each is tested:")
+            for g in unattached:
+                print(f"    [{g['status']:9s}] {g['topic'][:68]}")
+            print()
+
+        limits = spine["hardLimits"].get(child, []) + spine["hardLimits"]["both"]
+        print(f"  HARD LIMITS ({len(limits)}), a week that breaks one is wrong:")
+        for lim in limits:
+            print(f"    - {lim['rule']}")
+            if lim.get("note"):
+                print(f"      NOTE: {lim['note']}")
+        print()
+        retired = spine["retired"].get(child) or []
+        print(f"  retired item shapes, never generate again: "
+              f"{len(retired) and chr(10) + chr(10).join('    - ' + r for r in retired) or 'none yet'}")
+        print()
+
+
+# --------------------------------------------------------------------------
+# automated curriculum checks, run as part of validate
+# --------------------------------------------------------------------------
+
+ELYSIA_BANNED_TABLES = (7, 8, 9, 11, 12)
+
+
+def check_curriculum(local, spine):
+    """The hardLimits marked check: automated. These are the rules that have
+    actually been broken in the past, so they are machine checked rather than
+    trusted to a reading."""
+    problems = []
+
+    for child in CHILDREN:
+        cur = local[child]["current"]
+        if not cur:
+            continue
+        ladder = spine["ladders"][child]
+        week = cur.get("weekNum")
+
+        for sec in cur.get("sections", []):
+            sid = sec.get("id")
+            if sid not in spine["slots"]:
+                problems.append(f"{child} W{week}: section {sid} is not a slot in the spine")
+                continue
+            want = spine["slots"][sid]["subject"]
+            if sec.get("subject") != want:
+                problems.append(f"{child} W{week} {sid}: subject is {sec.get('subject')!r}, "
+                                f"the spine says this slot is always {want!r}")
+            if sid not in ladder:
+                problems.append(f"{child} W{week} {sid}: no ladder for this slot")
+
+            texts = " ".join(str(q.get("text", "")) for q in sec.get("questions", []))
+
+            # no more than 2 identical short answers in one section
+            if not sec.get("scoreBand"):
+                firsts = [str(q["accepted"][0]).strip().lower()
+                          for q in sec.get("questions", [])
+                          if q.get("autoMark") and q.get("accepted")]
+                for val in set(firsts):
+                    if firsts.count(val) > 2:
+                        problems.append(f"{child} W{week} {sid}: the answer {val!r} appears "
+                                        f"{firsts.count(val)} times, the limit is 2")
+
+            # no em dashes in child facing text
+            facing = texts + " " + str(sec.get("passage", "")) + " " + str(sec.get("title", ""))
+            if "\u2014" in facing:
+                problems.append(f"{child} W{week} {sid}: contains an em dash in child facing text")
+
+            if child != "elysia":
+                continue
+
+            # Elysia only: the three limits that have been broken before
+            for a, b in re.findall(r"(\d{1,3})\s*(?:x|\u00d7|\*)\s*(\d{1,3})", texts):
+                for n in (int(a), int(b)):
+                    if n in ELYSIA_BANNED_TABLES:
+                        problems.append(f"{child} W{week} {sid}: uses the {n} times table "
+                                        f"({a} x {b}), which is banned until school teaches it")
+                if int(a) > 12 and int(b) > 12:
+                    problems.append(f"{child} W{week} {sid}: {a} x {b} is written multiplication, "
+                                    "which is not taught yet")
+            for a, b in re.findall(r"(\d{1,4})\s*(?:\u00f7|/)\s*(\d{1,3})", texts):
+                if int(b) in ELYSIA_BANNED_TABLES:
+                    problems.append(f"{child} W{week} {sid}: divides by {b}, a banned table")
+                if int(a) > 100:
+                    problems.append(f"{child} W{week} {sid}: {a} divided by {b} is written "
+                                    "division, which is not taught yet")
+
+            # time to the minute, banned until Summer 2 2027
+            if today() < "2027-05-29":
+                times = re.findall(r"\b([01]?\d|2[0-3]):([0-5]\d)\b", texts)
+                off_quarter = [f"{h}:{m}" for h, m in times if int(m) not in (0, 15, 30, 45)]
+                if off_quarter:
+                    problems.append(f"{child} W{week} {sid}: uses time to the minute "
+                                    f"({', '.join(off_quarter[:4])}). Only o'clock, quarter past, "
+                                    "half past and quarter to are allowed until Summer 2 2027.")
+                if re.search(r"minutes? (between|from|until|past|to)\b", texts, re.I) and off_quarter:
+                    problems.append(f"{child} W{week} {sid}: asks for minutes between two times, "
+                                    "which is banned until Summer 2 2027")
+
+    # the recorded position must point at rungs that exist
+    position = read_json(POSITION, {"children": {}})
+    for child, d in (position.get("children") or {}).items():
+        for sid, here in (d.get("slots") or {}).items():
+            if sid not in spine["ladders"].get(child, {}):
+                problems.append(f"position: {child} {sid} is not a slot in the spine")
+                continue
+            ids = [r["id"] for r in spine["ladders"][child][sid]["rungs"]]
+            if here.get("rung") not in ids:
+                problems.append(f"position: {child} {sid} rung {here.get('rung')!r} "
+                                f"is not on the ladder ({', '.join(ids)})")
+
+    return problems
+
+
 def cmd_validate(args):
     problems = validate()
+    if os.path.exists(SPINE):
+        problems += check_curriculum(load_local(), load_spine())
     if not problems:
         print("data/ is valid")
         return
@@ -611,6 +834,10 @@ def main():
     sp = sub.add_parser("push", help="data/ -> bins")
     sp.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
     sp.set_defaults(fn=cmd_push)
+
+    sc = sub.add_parser("curriculum", help="the weekly brief: the map plus where the child stands")
+    sc.add_argument("child", nargs="?", choices=CHILDREN)
+    sc.set_defaults(fn=cmd_curriculum)
 
     sa = sub.add_parser("answers", help="print a week's questions with the answers given")
     sa.add_argument("child", choices=CHILDREN)

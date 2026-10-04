@@ -4,16 +4,48 @@
   "title": "Learning gap",
   "description": "One tracked weakness. weeks[] is a per week log, oldest first: true correct, false wrong, null not tested or inconclusive.",
   "type": "object",
-  "required": ["topic", "status", "weeks"],
+  "required": [
+    "topic",
+    "status",
+    "weeks"
+  ],
   "additionalProperties": false,
   "properties": {
-    "topic": { "type": "string", "minLength": 1 },
-    "detail": { "type": "string" },
+    "topic": {
+      "type": "string",
+      "minLength": 1
+    },
+    "detail": {
+      "type": "string"
+    },
     "status": {
-      "enum": ["new", "persists", "improving", "resolved"],
+      "enum": [
+        "new",
+        "persists",
+        "improving",
+        "resolved"
+      ],
       "description": "resolved needs two clean appearances on unhinted, unambiguous items"
     },
-    "weeks": { "type": "array", "items": { "type": ["boolean", "null"] } },
-    "source": { "enum": ["live", "archive"] }
+    "weeks": {
+      "type": "array",
+      "items": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "source": {
+      "enum": [
+        "live",
+        "archive"
+      ]
+    },
+    "slot": {
+      "type": "string",
+      "pattern": "^[123][A-C]$",
+      "description": "which section slot re-tests this gap. Optional on older gaps, set it on new ones."
+    }
   }
 }
