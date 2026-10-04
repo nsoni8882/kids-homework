@@ -5,7 +5,7 @@
    read only from the welcome screen. */
 
 import { CHILDREN, currentChild } from './config.js';
-import { loadLive, saveWeek } from './store.js';
+import { loadLive, loadCurrent, saveWeek } from './store.js';
 import { answersMatch, markSection, parentMarkedQuestions } from './marking.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
 
@@ -70,11 +70,13 @@ async function init() {
     <p>Loading this week's homework</p>
   </div>`);
   try {
-    const data = await loadLive();
-    const kid = data[child];
-    if (!kid || !kid.currentWeek) throw new Error('no week has been set up yet');
-    week = kid.currentWeek;
-    savedEntry = (kid.weeks || []).find((w) => w.week === week.weekNum) || null;
+    // Two small reads rather than one large one: the questions and the record of
+    // whether this week was already submitted.
+    const [currentBin, liveBin] = await Promise.all([loadCurrent(), loadLive()]);
+    const entry = currentBin[child];
+    if (!entry || !entry.currentWeek) throw new Error('no week has been set up yet');
+    week = entry.currentWeek;
+    savedEntry = ((liveBin[child] || {}).weeks || []).find((w) => w.week === week.weekNum) || null;
     showWelcome();
   } catch (err) {
     render(`<div class="center-state">

@@ -23,6 +23,9 @@ async function getBin(binId, { fresh = false } = {}) {
 
 export const loadLive = (opts) => getBin(BINS.live, opts);
 export const loadArchive = (opts) => getBin(BINS.archive, opts);
+/* The question set moved to its own bin when the live one hit its 100KB cap.
+   The worksheet now downloads only the week it is about to sit. */
+export const loadCurrent = (opts) => getBin(BINS.current, opts);
 
 async function putLive(payload) {
   const res = await fetch(`${API}/${BINS.live}`, {

@@ -9,8 +9,9 @@
 export const ACCESS_KEY = '$2a$10$Y9F3Cfhg1.rVgc23d7egfuECDbmcBIXPjm6GKBcb/MyGb5kt6vIiG';
 
 export const BINS = {
-  live: '6a0a0384adc21f119ab47d7e',
-  archive: '6aa7b068ac6210605aca94c2',
+  live: '6a0a0384adc21f119ab47d7e',       // weeks, gaps, curriculum position
+  archive: '6aa7b068ac6210605aca94c2',    // older weeks, resolved gaps, past question sets
+  current: '6ac2a281ffd5d160534cc69a',    // only this week's questions
 };
 
 export const CHILDREN = {

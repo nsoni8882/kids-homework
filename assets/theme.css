@@ -51,10 +51,18 @@
   --neutral: #52607A;
   --neutral-wash: #EDF0F6;
 
-  /* subjects */
-  --english: #7C3AED;
-  --maths: #0E7490;
-  --thinking: #B45309;
+  /* Chart categorical series. Validated with the data-viz palette checker in
+     both modes: worst all-pairs CVD dE 9.2 light and 9.4 dark, normal vision
+     27.6 and 24.6. The previous violet/teal/amber set failed at dE 5.9 dark. */
+  --series-english: #4a3aa7;
+  --series-maths: #1baf7a;
+  --series-thinking: #eb6834;
+  --grid: #E8ECF4;
+
+  /* subject ink for text and icons, which needs contrast rather than separation */
+  --english: #5B21B6;
+  --maths: #0F766E;
+  --thinking: #C2410C;
 
   /* spacing, 4px scale */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -124,9 +132,13 @@
     --neutral: #9AA7BC;
     --neutral-wash: #1B2431;
 
+    --series-english: #9085e9;
+    --series-maths: #199e70;
+    --series-thinking: #d95926;
+    --grid: #263041;
     --english: #C4A6FF;
-    --maths: #67D5E8;
-    --thinking: #FFC979;
+    --maths: #5EEAD4;
+    --thinking: #FDBA74;
 
     --sh-1: 0 1px 2px rgba(0, 0, 0, .40);
     --sh-2: 0 2px 6px rgba(0, 0, 0, .45), 0 8px 20px rgba(0, 0, 0, .35);
@@ -151,7 +163,9 @@
   --bad: #FF8098; --bad-wash: #2E1319;
   --info: #8DB2FF; --info-wash: #121E36;
   --neutral: #9AA7BC; --neutral-wash: #1B2431;
-  --english: #C4A6FF; --maths: #67D5E8; --thinking: #FFC979;
+  --series-english: #9085e9; --series-maths: #199e70; --series-thinking: #d95926;
+  --grid: #263041;
+  --english: #C4A6FF; --maths: #5EEAD4; --thinking: #FDBA74;
   --sh-1: 0 1px 2px rgba(0,0,0,.40);
   --sh-2: 0 2px 6px rgba(0,0,0,.45), 0 8px 20px rgba(0,0,0,.35);
   --sh-3: 0 10px 30px rgba(0,0,0,.50);
@@ -772,3 +786,158 @@ label.field-label { display: block; font-size: .82rem; font-weight: 700; color: 
   body { background: #fff; }
   .card, .q-card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
 }
+
+
+/* ==========================================================================
+   Dashboard modules
+   ========================================================================== */
+
+/* Hero: the one line that answers "how did this week go" before any chart. */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s6);
+  box-shadow: var(--sh-2);
+  display: grid; gap: var(--s4);
+}
+.hero::after {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 25%, transparent));
+}
+.hero-top { display: flex; align-items: flex-start; gap: var(--s4); flex-wrap: wrap; }
+.hero-score {
+  font-family: var(--font-head); font-weight: 800; line-height: .95;
+  font-size: clamp(2.6rem, 9vw, 4rem); color: var(--accent-ink);
+  letter-spacing: -0.03em;
+}
+.hero-score small { font-size: .32em; font-weight: 700; color: var(--text-3); letter-spacing: 0; }
+.hero-meta { display: grid; gap: var(--s1); }
+.hero-week {
+  font-family: var(--font-head); font-weight: 800; font-size: 1.05rem;
+}
+.hero-delta { display: inline-flex; align-items: center; gap: var(--s1); font-size: .88rem; font-weight: 700; }
+.hero-summary {
+  font-size: clamp(1.02rem, 2.4vw, 1.18rem); line-height: 1.55; color: var(--text);
+  max-width: 68ch;
+}
+.hero-tags { display: flex; gap: var(--s2); flex-wrap: wrap; }
+
+.verdict {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  font-size: .74rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  padding: var(--s1) var(--s3); border-radius: var(--r-full); border: 1px solid transparent;
+}
+.verdict svg { width: 13px; height: 13px; stroke-width: 2.4; }
+.verdict-strong { background: var(--ok-wash); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+.verdict-steady { background: var(--info-wash); color: var(--info); border-color: color-mix(in srgb, var(--info) 30%, transparent); }
+.verdict-dip { background: var(--warn-wash); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+.verdict-concern { background: var(--bad-wash); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
+
+/* KPI tiles with a sparkline shape behind the number */
+.kpi-row { display: grid; gap: var(--s3); grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 760px) { .kpi-row { grid-template-columns: repeat(4, 1fr); } }
+.kpi {
+  position: relative; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: var(--s4);
+  display: grid; gap: var(--s1); align-content: start;
+  min-height: 118px;
+}
+.kpi-label {
+  font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-3); display: flex; align-items: center; gap: var(--s1);
+}
+.kpi-label svg { width: 14px; height: 14px; }
+.kpi-value {
+  font-family: var(--font-head); font-weight: 800; font-size: 1.9rem; line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.kpi-sub { font-size: .78rem; color: var(--text-3); }
+.kpi-spark { position: absolute; inset: auto 0 0 0; height: 38px; opacity: .55; pointer-events: none; }
+
+/* Mastery ladder: the curriculum spine made visible */
+.ladder { display: grid; gap: var(--s2); }
+.ladder-row {
+  display: grid; grid-template-columns: 42px 1fr; gap: var(--s3);
+  align-items: center; padding: var(--s3);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.ladder-slot {
+  font-family: var(--font-head); font-weight: 800; font-size: .88rem;
+  display: grid; place-items: center; height: 32px; border-radius: var(--r-sm);
+  background: var(--accent-wash); color: var(--accent-ink);
+}
+.ladder-main { min-width: 0; display: grid; gap: var(--s2); }
+.ladder-head { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
+.ladder-skill { font-weight: 700; font-size: .92rem; }
+.ladder-purpose { font-size: .76rem; color: var(--text-3); }
+.ladder-track { display: flex; gap: 3px; align-items: center; }
+.rung {
+  flex: 1; height: 8px; border-radius: var(--r-full); background: var(--surface-3);
+  position: relative;
+}
+.rung-done { background: color-mix(in srgb, var(--ok) 55%, transparent); }
+.rung-now { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.ladder-foot { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; font-size: .76rem; color: var(--text-3); }
+
+/* Gap heatmap */
+.heat { display: grid; gap: var(--s1); }
+.heat-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: var(--s3); align-items: center; }
+.heat-topic { font-size: .84rem; min-width: 0; }
+.heat-topic strong { font-weight: 600; }
+.heat-cells { display: flex; gap: 3px; }
+.heat-cell {
+  width: 18px; height: 18px; border-radius: 4px; border: 1px solid transparent;
+  display: grid; place-items: center; font-size: .6rem; font-weight: 700;
+}
+
+/* Decisions queue */
+.decision {
+  display: flex; gap: var(--s3); align-items: flex-start;
+  padding: var(--s3) var(--s4); border-radius: var(--r-md);
+  background: var(--warn-wash); border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+}
+.decision svg { color: var(--warn); margin-top: 2px; }
+
+/* Week detail */
+.detail-grid { display: grid; gap: var(--s3); }
+@media (min-width: 720px) { .detail-grid { grid-template-columns: 1fr 1fr; } }
+.detail-list { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.detail-item {
+  display: flex; gap: var(--s2); align-items: flex-start;
+  font-size: .86rem; line-height: 1.5; color: var(--text-2);
+}
+.detail-item svg { flex: none; margin-top: 3px; width: 14px; height: 14px; }
+.detail-where {
+  font-family: var(--font-head); font-weight: 800; font-size: .72rem;
+  padding: 1px var(--s1); border-radius: 4px; background: var(--surface-3); color: var(--text-2);
+  flex: none;
+}
+.detail-head {
+  font-size: .74rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: var(--s2); display: flex; align-items: center; gap: var(--s1);
+}
+
+/* Chart card with a table toggle. The light aqua series sits below 3:1 on the
+   light surface, so the relief rule applies and this view is mandatory. */
+.chart-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
+.chart-head h2 { flex: 1; min-width: 0; }
+.seg {
+  display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--r-full);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.seg button {
+  min-height: 32px; padding: 0 var(--s3); border: 0; background: transparent;
+  border-radius: var(--r-full); cursor: pointer;
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700; color: var(--text-3);
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--sh-1); }
+.legend { display: flex; gap: var(--s4); flex-wrap: wrap; margin-top: var(--s3); }
+.legend-item { display: inline-flex; align-items: center; gap: var(--s2); font-size: .8rem; color: var(--text-2); }
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.data-table { display: none; }
+.data-table[data-open="true"] { display: block; }
+.chart-wrap[data-open="false"] { display: none; }

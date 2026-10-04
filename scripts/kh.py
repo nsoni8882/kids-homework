@@ -66,6 +66,7 @@ def creds():
         "access": grab(r"JSONbin Access Key `kids-homework-site`:\s*`([^`]+)`", "the browser access key"),
         "live": grab(r"Live bin ID:\s*`([^`]+)`", "the live bin ID"),
         "archive": grab(r"Archive bin ID:\s*`([^`]+)`", "the archive bin ID"),
+        "current": grab(r"Current week bin ID:\s*`([^`]+)`", "the current week bin ID"),
     }
 
 
@@ -191,13 +192,22 @@ def normalise_week(child, raw, source, sections=None):
         "submittedAt": raw.get("submittedAt"),
         "adjustedAt": raw.get("adjustedAt"),
         "notes": raw.get("notes") or "",
+        # The headline fields the dashboard leads with. The notes paragraph stays
+        # as the full record behind a disclosure.
+        "summary": raw.get("summary") or "",
+        "verdict": raw.get("verdict"),
+        "wins": raw.get("wins") or [],
+        "errors": raw.get("errors") or [],
+        "designIssues": raw.get("designIssues") or [],
+        "hintedSections": raw.get("hintedSections") or [],
     }
 
     # Anything the bin carries that this schema does not name is kept verbatim so a
     # pull/push round trip never silently drops a field.
     known = {"week", "total", "outOf", "max", "sectionMarks", "archive", "submittedAt",
              "adjustedAt", "notes", "english", "englishMax", "maths", "mathsMax",
-             "thinking", "thinkingMax"}
+             "thinking", "thinkingMax", "summary", "verdict", "wins", "errors",
+             "designIssues", "hintedSections"}
     extra = {k: v for k, v in raw.items() if k not in known}
     if extra:
         rec["extra"] = extra
@@ -226,8 +236,10 @@ def denormalise_week(rec):
             if subj in rec["subjects"]:
                 out[subj] = rec["subjects"][subj]["marks"]
                 out[subj + "Max"] = rec["subjects"][subj]["outOf"]
-        if rec.get("notes"):
-            out["notes"] = rec["notes"]
+        for field in ("notes", "summary", "verdict", "wins", "errors",
+                      "designIssues", "hintedSections"):
+            if rec.get(field):
+                out[field] = rec[field]
         out.update(rec.get("extra") or {})
         return out
 
@@ -238,7 +250,8 @@ def denormalise_week(rec):
         "sectionMarks": rec["sectionMarks"],
         "archive": rec["answers"],
     }
-    for field in ("submittedAt", "notes", "adjustedAt"):
+    for field in ("submittedAt", "notes", "adjustedAt", "summary", "verdict",
+                  "wins", "errors", "designIssues", "hintedSections"):
         if rec.get(field):
             out[field] = rec[field]
     out.update(rec.get("extra") or {})
@@ -254,10 +267,12 @@ def cmd_pull(args):
     print(f"reading bins with access key {mask(c['access'])}")
     live = api_get(c["live"], c["access"], "X-Access-Key")
     archive = api_get(c["archive"], c["access"], "X-Access-Key")
+    current = api_get(c["current"], c["access"], "X-Access-Key")
 
     snap = os.path.join(DATA, "snapshots", now_stamp())
     write_json(os.path.join(snap, "live.json"), live)
     write_json(os.path.join(snap, "archive.json"), archive)
+    write_json(os.path.join(snap, "current.json"), current)
     print(f"raw snapshot -> {os.path.relpath(snap, ROOT)}")
 
     manifest = {"pulledAt": datetime.now(timezone.utc).isoformat(), "children": {}}
@@ -279,7 +294,7 @@ def cmd_pull(args):
             sections_by_week[int(week_str)] = decoded.get("sections") or []
             write_json(os.path.join(base, "question-sets", f"w{int(week_str):02d}.json"), decoded)
 
-        current = lk.get("currentWeek")
+        current = (current.get(child) or {}).get("currentWeek") or lk.get("currentWeek")
         if current:
             sections_by_week.setdefault(current["weekNum"], current.get("sections") or [])
             write_json(os.path.join(DATA, "current", f"{child}.json"), current)
@@ -300,6 +315,12 @@ def cmd_pull(args):
         gaps = [dict(g, source="live") for g in (lk.get("gaps") or [])]
         gaps += [dict(g, source="archive") for g in (ak.get("resolvedGaps") or [])]
         write_json(os.path.join(base, "gaps.json"), gaps)
+
+        if lk.get("position"):
+            os.makedirs(os.path.join(DATA, "curriculum"), exist_ok=True)
+            allpos = read_json(POSITION, {"schemaVersion": 1, "children": {}})
+            allpos.setdefault("children", {})[child] = lk["position"]
+            write_json(POSITION, allpos)
 
         profile = {
             "child": child,
@@ -329,11 +350,12 @@ def cmd_pull(args):
     manifest["binSizes"] = {
         "live": len(json.dumps(live)),
         "archive": len(json.dumps(archive)),
+        "current": len(json.dumps(current)),
         "limit": BIN_SIZE_LIMIT,
     }
     write_json(os.path.join(DATA, "index.json"), manifest)
-    print(f"live bin {manifest['binSizes']['live']} bytes, "
-          f"archive {manifest['binSizes']['archive']} bytes, limit {BIN_SIZE_LIMIT}")
+    print(f"bins: live {manifest['binSizes']['live']:,}, archive {manifest['binSizes']['archive']:,}, "
+          f"current week {manifest['binSizes']['current']:,}, limit {BIN_SIZE_LIMIT:,} each")
     print("done")
 
 
@@ -369,7 +391,7 @@ def build_payloads(local):
     """Split the local data back into the two bins: the live bin carries the
     last 8 weeks, the active gaps and this week's questions; everything older
     goes to the archive bin."""
-    live, archive = {}, {}
+    live, archive, current = {}, {}, {}
     qs_note = ("Full question sets per child per week, saved BEFORE currentWeek is overwritten, "
                "so any week can be re-marked. Each entry is {enc:'gzip+base64', data:...}. "
                "Decode: json.loads(gzip.decompress(base64.b64decode(data)))")
@@ -385,10 +407,16 @@ def build_payloads(local):
             "gaps": [{k: v for k, v in g.items() if k != "source"}
                      for g in d["gaps"] if g.get("status") != "resolved"],
         }
+        # currentWeek lives in its own bin: it is 35KB of question text that the
+        # dashboard never reads and that pushed the live bin over its 100KB cap.
         if d["current"]:
-            live[child]["currentWeek"] = d["current"]
+            current[child] = {"currentWeek": d["current"]}
         if d["profile"].get("kumonLevel"):
             live[child]["kumonLevel"] = d["profile"]["kumonLevel"]
+        pos = read_json(POSITION, {"children": {}})
+        here = (pos.get("children") or {}).get(child)
+        if here:
+            live[child]["position"] = here
 
         archive[child] = {
             "weeks": [denormalise_week(dict(w, source="archive")) for w in older],
@@ -398,7 +426,7 @@ def build_payloads(local):
         keep = sorted(d["questionSets"])[-QSET_KEEP:]
         archive["questionSets"][child] = {str(w): gzip_b64(d["questionSets"][w]) for w in keep}
 
-    return live, archive
+    return live, archive, current
 
 
 def cmd_push(args):
@@ -413,14 +441,18 @@ def cmd_push(args):
             print(f"  {p}")
         die(f"{len(problems)} validation problem(s). Nothing pushed.")
 
-    live, archive = build_payloads(local)
-    live_size, arch_size = len(json.dumps(live)), len(json.dumps(archive))
+    live, archive, current = build_payloads(local)
+    sizes = {k: len(json.dumps(v)) for k, v in
+             (("live", live), ("archive", archive), ("current", current))}
 
     print("about to write:")
-    for name, payload, size in (("live", live, live_size), ("archive", archive, arch_size)):
-        print(f"  {name:8s} {size:>7,} bytes  " + "  ".join(
+    for name in ("live", "archive"):
+        payload = live if name == "live" else archive
+        print(f"  {name:8s} {sizes[name]:>7,} bytes  " + "  ".join(
             f"{c}: {len(payload[c]['weeks'])}w" for c in CHILDREN))
-    for name, size in (("live", live_size), ("archive", arch_size)):
+    print(f"  current  {sizes['current']:>7,} bytes  " + "  ".join(
+        f"{c}: W{current[c]['currentWeek']['weekNum']}" for c in CHILDREN if c in current))
+    for name, size in sizes.items():
         if size > BIN_SIZE_LIMIT:
             die(f"{name} payload is {size} bytes, over the {BIN_SIZE_LIMIT} byte bin limit. "
                 "Condense the oldest notes or raise QSET_KEEP down, then try again.")
@@ -438,9 +470,12 @@ def cmd_push(args):
                api_get(c["live"], c["access"], "X-Access-Key"))
     write_json(os.path.join(snap, "archive.json"),
                api_get(c["archive"], c["access"], "X-Access-Key"))
+    write_json(os.path.join(snap, "current.json"),
+               api_get(c["current"], c["access"], "X-Access-Key"))
     print(f"pre-push snapshot -> {os.path.relpath(snap, ROOT)}")
 
-    for name, bin_id, payload in (("live", c["live"], live), ("archive", c["archive"], archive)):
+    for name, bin_id, payload in (("live", c["live"], live), ("archive", c["archive"], archive),
+                                  ("current", c["current"], current)):
         _, written = api_put(bin_id, c["master"], payload)
         back = api_get(bin_id, c["access"], "X-Access-Key")
         ok = json.dumps(back, sort_keys=True) == json.dumps(payload, sort_keys=True)
@@ -937,7 +972,7 @@ def cmd_status(args):
 
     c = creds()
     print("\nlive bins now:")
-    for name, bin_id in (("live", c["live"]), ("archive", c["archive"])):
+    for name, bin_id in (("live", c["live"]), ("archive", c["archive"]), ("current", c["current"])):
         payload = api_get(bin_id, c["access"], "X-Access-Key")
         size = len(json.dumps(payload))
         bits = []
@@ -956,7 +991,7 @@ def cmd_status(args):
 def cmd_backup(args):
     c = creds()
     snap = os.path.join(DATA, "snapshots", now_stamp())
-    for name, bin_id in (("live", c["live"]), ("archive", c["archive"])):
+    for name, bin_id in (("live", c["live"]), ("archive", c["archive"]), ("current", c["current"])):
         payload = api_get(bin_id, c["access"], "X-Access-Key")
         path = os.path.join(snap, f"{name}.json")
         write_json(path, payload)
