@@ -935,9 +935,41 @@ label.field-label { display: block; font-size: .82rem; font-weight: 700; color: 
   font-family: var(--font-body); font-size: .78rem; font-weight: 700; color: var(--text-3);
 }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--sh-1); }
-.legend { display: flex; gap: var(--s4); flex-wrap: wrap; margin-top: var(--s3); }
+.legend {
+  display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center;
+  margin-top: var(--s3);
+}
 .legend-item { display: inline-flex; align-items: center; gap: var(--s2); font-size: .8rem; color: var(--text-2); }
 .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+
+/* The legend is also the focus control, so each entry is a real button:
+   keyboard reachable, and it announces its own pressed state rather than
+   relying on the colour change alone. */
+.legend-btn {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  min-height: var(--tap); padding: var(--s2) var(--s3);
+  font-family: var(--font-body); font-size: .82rem; font-weight: 600;
+  color: var(--text-2); background: transparent;
+  border: 1px solid transparent; border-radius: var(--r-full);
+  cursor: pointer; touch-action: manipulation;
+  transition: background-color var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+.legend-btn:hover { background: var(--surface-2); color: var(--text); }
+.legend-btn[aria-pressed="true"] {
+  background: var(--surface-2); border-color: var(--border-strong); color: var(--text);
+  font-weight: 700;
+}
+/* Any button pressed in the group recedes the ones that are not, so the control
+   mirrors what the chart is doing. */
+.legend:has(.legend-btn[aria-pressed="true"]) .legend-btn[aria-pressed="false"] { opacity: .5; }
+.legend:has(.legend-btn[aria-pressed="true"]) .legend-btn[aria-pressed="false"]:hover { opacity: 1; }
+
+.legend-hint {
+  font-size: .76rem; color: var(--text-3); margin-left: auto;
+}
+@media (max-width: 560px) { .legend-hint { margin-left: 0; width: 100%; } }
 .data-table { display: none; }
 .data-table[data-open="true"] { display: block; }
 .chart-wrap[data-open="false"] { display: none; }

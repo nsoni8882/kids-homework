@@ -15,7 +15,8 @@
 import { CHILDREN } from './config.js';
 import { loadLive, loadArchive } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
-import { trendChart, subjectChart, lossChart, sparkline, SUBJECTS, SUBJECT_LABEL } from './charts.js';
+import { trendChart, subjectChart, lossChart, sparkline,
+  SUBJECTS, SUBJECT_LABEL } from './charts.js';
 
 const KIDS = ['mason', 'elysia'];
 const MAX = {
@@ -37,6 +38,7 @@ const VERDICT = {
 };
 
 const charts = {};
+const focus = {};   // child -> the focused subject, or null
 let live = null;
 let archive = null;
 let archivePromise = null;
@@ -208,15 +210,18 @@ function renderKid(kid) {
       ${chartCard(`${kid}-trend`, 'trend', 'Accuracy over time',
         `last ${weeks.length} weeks`, trendTable(kid, weeks))}
       ${chartCard(`${kid}-subject`, 'target', 'By subject', '', subjectTable(kid, weeks),
-        SUBJECTS.map((s) => ({ label: SUBJECT_LABEL[s], colour: `var(--series-${s})` })))}
+        subjectLegend(kid))}
     </div>
     <section class="card" style="margin-top:var(--s4)">
       <div class="chart-head">${icon('search')}<h2>Where the marks went</h2></div>
       <p class="card-note" style="margin-bottom:var(--s3)">Marks lost each week, by subject.</p>
       <div class="chart-box" style="height:200px"><canvas id="${kid}-loss-chart"></canvas></div>
-      <div class="legend">
-        ${SUBJECTS.map((s) => `<span class="legend-item">
-          <span class="legend-swatch" style="background:var(--series-${s})"></span>${SUBJECT_LABEL[s]}</span>`).join('')}
+      <div class="legend" role="group" aria-label="Focus one subject">
+        ${SUBJECTS.map((s) => `<button type="button" class="legend-btn" data-focus="${s}"
+          data-kid="${kid}" aria-pressed="false">
+          <span class="legend-swatch" style="background:var(--series-${s})"></span>
+          ${SUBJECT_LABEL[s]}</button>`).join('')}
+        <span class="legend-hint" id="${kid}-focus-hint-loss">Tap a subject to focus it</span>
       </div>
       <p class="card-note" style="margin-top:var(--s3)">
         Week ${w.week} lost ${w.lost} mark${w.lost === 1 ? '' : 's'}.
@@ -269,6 +274,7 @@ function renderKid(kid) {
 
   wireCard(`${kid}-trend`);
   wireCard(`${kid}-subject`);
+  wireLegends(kid);
   $(`${kid}-resolved`).addEventListener('toggle', function once() {
     this.removeEventListener('toggle', once); loadResolvedGaps(kid);
   });
@@ -386,6 +392,38 @@ function decisionsHtml(kid, w, gaps) {
 
 /* ------------------------------------------------------------ chart cards */
 
+/** The legend doubles as the focus control. Buttons rather than coloured
+    squares, so it is keyboard reachable and announces its state. */
+function subjectLegend(kid) {
+  return `<div class="legend" role="group" aria-label="Focus one subject">
+    ${SUBJECTS.map((s) => `<button type="button" class="legend-btn" data-focus="${s}"
+      data-kid="${kid}" aria-pressed="false">
+      <span class="legend-swatch" style="background:var(--series-${s})"></span>
+      ${SUBJECT_LABEL[s]}</button>`).join('')}
+    <span class="legend-hint" id="${kid}-focus-hint">Tap a subject to focus it</span>
+  </div>`;
+}
+
+function setFocus(kid, subject) {
+  const next = focus[kid] === subject ? null : subject;   // same one again resets
+  focus[kid] = next;
+  drawCharts(kid);   // rebuilds with the focus baked in
+  document.querySelectorAll(`[data-focus][data-kid="${kid}"]`).forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.focus === next));
+  });
+  document.querySelectorAll(`#${kid}-focus-hint, #${kid}-focus-hint-loss`).forEach((h) => {
+    h.textContent = next
+      ? `Showing ${SUBJECT_LABEL[next]}. Tap it again to show all three.`
+      : 'Tap a subject to focus it';
+  });
+}
+
+function wireLegends(kid) {
+  document.querySelectorAll(`[data-focus][data-kid="${kid}"]`).forEach((btn) => {
+    btn.addEventListener('click', () => setFocus(kid, btn.dataset.focus));
+  });
+}
+
 function chartCard(id, ic, title, pill, table, legend) {
   return `<section class="card">
     <div class="chart-head">${icon(ic)}<h2>${title}</h2>
@@ -397,8 +435,7 @@ function chartCard(id, ic, title, pill, table, legend) {
     </div>
     <div class="chart-wrap" id="${id}-chart-wrap" data-open="true">
       <div class="chart-box"><canvas id="${id}-chart"></canvas></div>
-      ${legend ? `<div class="legend">${legend.map((l) => `<span class="legend-item">
-        <span class="legend-swatch" style="background:${l.colour}"></span>${l.label}</span>`).join('')}</div>` : ''}
+      ${legend || ''}
     </div>
     <div class="data-table table-wrap" id="${id}-table" data-open="false">${table}</div>
   </section>`;
@@ -547,11 +584,12 @@ function drawCharts(kid) {
   const trendEl = $(`${kid}-trend-chart`);
   if (trendEl) charts[`${kid}-trend`] = trendChart(trendEl, weeks, accent);
   const subjEl = $(`${kid}-subject-chart`);
-  if (subjEl) charts[`${kid}-subject`] = subjectChart(subjEl, weeks);
+  if (subjEl) charts[`${kid}-subject`] = subjectChart(subjEl, weeks, focus[kid] || null);
   const lossEl = $(`${kid}-loss-chart`);
-  if (lossEl) charts[`${kid}-loss`] = lossChart(lossEl, weeks);
+  if (lossEl) charts[`${kid}-loss`] = lossChart(lossEl, weeks, focus[kid] || null);
   const sparkEl = $(`${kid}-spark-acc`);
   if (sparkEl) charts[`${kid}-spark`] = sparkline(sparkEl, weeks.map((w) => pct(w.total, w.outOf)), accent);
+
 }
 
 /* ------------------------------------------------------- lazy archive bits */

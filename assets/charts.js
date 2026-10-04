@@ -19,9 +19,49 @@
 const css = (name) => getComputedStyle(document.documentElement)
   .getPropertyValue(name).trim();
 
+/* Chart.js parses colours with its own parser, which does NOT understand the
+   CSS color-mix() function. Passing one in is accepted silently and then
+   ignored, which is why the first version of the focus interaction changed the
+   buttons but left the bars at full strength. Everything handed to Chart.js is
+   therefore a real rgba string. */
+function alpha(colour, a) {
+  const hex = colour.trim();
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex);
+  if (m) {
+    const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1];
+    const n = parseInt(h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
+  const rgb = /^rgba?\(([^)]+)\)$/i.exec(hex);
+  if (rgb) {
+    const [r, g, b] = rgb[1].split(',').map((x) => parseFloat(x));
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+  return hex;   // a named colour: leave it alone rather than mangle it
+}
+
 export const SUBJECTS = ['english', 'maths', 'thinking'];
 export const SUBJECT_LABEL = { english: 'English', maths: 'Maths', thinking: 'Thinking' };
 export const subjectColour = (s) => css(`--series-${s}`);
+
+/* Emphasis. Clicking a legend entry focuses one series and recedes the rest,
+   which the data-viz guidance calls the most underused form: when the story is
+   "this one subject moved", three equal-weight series bury it.
+   The others fade rather than disappear, so the comparison is still there. */
+const FADE = 0.18;   // opacity kept for a series that is not focused
+
+/** The fill for one subject, given which subject is focused.
+ *
+ *  Chart.js caches a resolved colour on each element, and neither mutating
+ *  dataset.backgroundColor nor a scriptable option reliably invalidates that
+ *  cache: both changed the data and left the pixels alone, confirmed by
+ *  sampling the canvas. So the focus is baked in at construction and changing
+ *  it rebuilds the chart, which for eight columns is instant and is always
+ *  right. */
+function subjectFill(key, focus) {
+  const full = subjectColour(key);
+  return (!focus || focus === key) ? full : alpha(full, FADE);
+}
 
 /** Shared scaffolding. Grid and axes stay recessive so the data reads first. */
 function base() {
@@ -89,8 +129,8 @@ export function trendChart(canvas, weeks, accent) {
           const { ctx: c, chartArea: a } = ctx.chart;
           if (!a) return 'transparent';
           const g = c.createLinearGradient(0, a.top, 0, a.bottom);
-          g.addColorStop(0, `color-mix(in srgb, ${accent} 26%, transparent)`);
-          g.addColorStop(1, `color-mix(in srgb, ${accent} 2%, transparent)`);
+          g.addColorStop(0, alpha(accent, 0.26));
+          g.addColorStop(1, alpha(accent, 0.02));
           return g;
         },
         borderWidth: 2,
@@ -130,7 +170,7 @@ export function trendChart(canvas, weeks, accent) {
 
 /** Three series, so a legend is always present and all three are direct
     labelled on the final column. 2px gaps between adjacent bars. */
-export function subjectChart(canvas, weeks) {
+export function subjectChart(canvas, weeks, focus = null) {
   const o = base();
   const last = weeks.length - 1;
 
@@ -140,8 +180,9 @@ export function subjectChart(canvas, weeks) {
       labels: weeks.map((w) => `W${w.week}`),
       datasets: SUBJECTS.map((s) => ({
         label: SUBJECT_LABEL[s],
+        subjectKey: s,
         data: weeks.map((w) => (w[s] == null ? null : Math.round(w[s] / w[`${s}Max`] * 100))),
-        backgroundColor: subjectColour(s),
+        backgroundColor: subjectFill(s, focus),
         borderRadius: 4,
         borderSkipped: false,
         maxBarThickness: 18,
@@ -159,6 +200,7 @@ export function subjectChart(canvas, weeks) {
         ...o.plugins,
         tooltip: {
           ...o.plugins.tooltip,
+          filter: (i) => !focus || i.dataset.subjectKey === focus,
           callbacks: {
             label: (i) => {
               const w = weeks[i.dataIndex];
@@ -184,7 +226,7 @@ export function subjectChart(canvas, weeks) {
  * Marks lost per subject IS exactly known for every week, so that is what this
  * shows now. The error and fault counts are reported as counts beside it, where
  * they are honest. */
-export function lossChart(canvas, weeks) {
+export function lossChart(canvas, weeks, focus = null) {
   const o = base();
   return new Chart(canvas, {
     type: 'bar',
@@ -192,8 +234,9 @@ export function lossChart(canvas, weeks) {
       labels: weeks.map((w) => `W${w.week}`),
       datasets: SUBJECTS.map((s) => ({
         label: SUBJECT_LABEL[s],
+        subjectKey: s,
         data: weeks.map((w) => (w[s] == null ? null : w[`${s}Max`] - w[s])),
-        backgroundColor: subjectColour(s),
+        backgroundColor: subjectFill(s, focus),
         borderRadius: 4,
         borderSkipped: false,
         maxBarThickness: 26,
@@ -218,6 +261,7 @@ export function lossChart(canvas, weeks) {
         ...o.plugins,
         tooltip: {
           ...o.plugins.tooltip,
+          filter: (i) => !focus || i.dataset.subjectKey === focus,
           callbacks: {
             label: (i) => `${i.dataset.label}: ${i.parsed.y} mark${i.parsed.y === 1 ? '' : 's'} lost`,
             footer: (items) => {
@@ -247,7 +291,7 @@ export function sparkline(canvas, values, colour) {
         pointRadius: 0,
         tension: 0.35,
         fill: true,
-        backgroundColor: `color-mix(in srgb, ${colour} 14%, transparent)`,
+        backgroundColor: alpha(colour, 0.14),
       }],
     },
     options: {
