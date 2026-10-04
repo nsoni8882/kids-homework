@@ -1,0 +1,7 @@
+backups/
+*.bak*
+*.json
+CLAUDE.md
+memory.md
+MEMORY.md
+.DS_Store
