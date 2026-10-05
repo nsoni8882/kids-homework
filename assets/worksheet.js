@@ -144,7 +144,7 @@ function showWelcome() {
          <button class="btn btn-primary btn-lg" data-act="fresh">${icon('play')} Start homework</button>
        </div>`;
 
-  render(`<div class="welcome">
+  render(`<div class="page page-narrow"><div class="welcome">
     <div class="welcome-mark">${icon(PROFILE.icon, 'i')}</div>
     <h1>${esc(NAME)}'s homework</h1>
     <div class="week-badge">Week ${week.weekNum}</div>
@@ -152,7 +152,7 @@ function showWelcome() {
     <ul class="section-chips" style="list-style:none;padding:0;margin:0">${chips}</ul>
     ${banner}
     ${actions}
-  </div>`);
+  </div></div>`);
 
   app.querySelector('[data-act="fresh"]').addEventListener('click', startFresh);
   const rev = app.querySelector('[data-act="review"]');

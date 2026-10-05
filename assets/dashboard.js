@@ -209,7 +209,7 @@ function renderKid(kid) {
       ${chartCard(`${kid}-subject`, 'target', 'By subject', '', subjectTable(kid, weeks),
         subjectLegend(kid))}
     </div>
-    <section class="card" style="margin-top:var(--s4)">
+    <section class="card">
       <div class="chart-head">${icon('search')}<h2>Where the marks went</h2></div>
       <p class="card-note" style="margin-bottom:var(--s3)">Marks lost each week, by subject.</p>
       <div class="chart-box" style="height:200px"><canvas id="${kid}-loss-chart"></canvas></div>
@@ -335,7 +335,7 @@ function kpiHtml(kid, weeks, gaps) {
 
   const gapColour = active > 2 ? 'var(--bad)' : active > 0 ? 'var(--warn)' : 'var(--ok)';
 
-  return `<div class="kpi-row" style="margin-top:var(--s4)">
+  return `<div class="kpi-row">
     ${tile(`${kid}-spark-acc`, 'Accuracy', 'target', `${pct(w.total, w.outOf)}%`,
       `${avg}% average over ${weeks.length} weeks`, 'var(--accent-ink)', true)}
     ${tile('', 'Best week', 'award', `${pct(best.total, best.outOf)}%`, `week ${best.week}`, 'var(--text)')}
@@ -386,7 +386,7 @@ function decisionsHtml(kid, w, gaps, data) {
     items.push(`Sections ${w.hintedSections.join(', ')} were hinted, so they are not clean evidence.`);
   }
   if (!items.length) return '';
-  return `<section style="margin-top:var(--s4)">
+  return `<section>
     <div class="decision">
       ${icon('clipboard')}
       <div>

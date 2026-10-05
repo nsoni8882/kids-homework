@@ -24,32 +24,36 @@
   --accent-wash: color-mix(in srgb, var(--accent) 8%, transparent);
   --accent-edge: color-mix(in srgb, var(--accent) 24%, transparent);
 
-  /* surfaces, from the page backwards */
-  --bg: #F6F7FB;
-  --bg-tint: #EEF2FA;
-  --surface: #FFFFFF;
-  --surface-2: #F4F6FB;
-  --surface-3: #E9EDF6;
-  --border: #DEE4EF;
-  --border-strong: #C4CDDE;
+  /* surfaces, from the page backwards.
+     Warm paper rather than cool white: the page is a low chroma cream, cards
+     sit a shade lighter than it, and every border carries the same warmth so
+     nothing reads as a grey panel dropped onto a beige page. */
+  --bg: #FAF6EF;
+  --bg-tint: #F3ECE0;
+  --surface: #FFFCF7;
+  --surface-2: #F6F0E6;
+  --surface-3: #EDE4D5;
+  --border: #E7DECF;
+  --border-strong: #D2C5AF;
+  --topbar-bg: color-mix(in srgb, var(--bg-tint) 86%, transparent);
 
-  /* text */
-  --text: #111827;
-  --text-2: #4B5563;
-  --text-3: #6B7280;
-  --text-on-dark: #F9FAFB;
+  /* text, warmed to match the paper and contrast checked against --surface */
+  --text: #1A1713;
+  --text-2: #4D463C;
+  --text-3: #6F6757;
+  --text-on-dark: #FAF6EF;
 
   /* status. Each is always paired with an icon or a word, never colour alone. */
   --ok: #047857;
-  --ok-wash: #E7F6EF;
+  --ok-wash: #E7F1E4;
   --warn: #B45309;
-  --warn-wash: #FDF3E3;
+  --warn-wash: #FBF0DA;
   --bad: #BE123C;
-  --bad-wash: #FDECEF;
+  --bad-wash: #FBE8E6;
   --info: #1D4ED8;
-  --info-wash: #E8EEFC;
-  --neutral: #52607A;
-  --neutral-wash: #EDF0F6;
+  --info-wash: #EAEDF7;
+  --neutral: #5A5244;
+  --neutral-wash: #F0E9DD;
 
   /* Chart categorical series. Validated with the data-viz palette checker in
      both modes: worst all-pairs CVD dE 9.2 light and 9.4 dark, normal vision
@@ -57,7 +61,7 @@
   --series-english: #4a3aa7;
   --series-maths: #1baf7a;
   --series-thinking: #eb6834;
-  --grid: #E8ECF4;
+  --grid: #E9E0D1;
 
   /* subject ink for text and icons, which needs contrast rather than separation */
   --english: #5B21B6;
@@ -72,10 +76,10 @@
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-full: 999px;
 
   /* elevation */
-  --sh-1: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .06);
-  --sh-2: 0 2px 4px rgba(16, 24, 40, .05), 0 6px 16px rgba(16, 24, 40, .07);
-  --sh-3: 0 8px 24px rgba(16, 24, 40, .10), 0 2px 6px rgba(16, 24, 40, .06);
-  --sh-press: inset 0 2px 4px rgba(16, 24, 40, .10);
+  --sh-1: 0 1px 2px rgba(74, 56, 32, .05), 0 1px 3px rgba(74, 56, 32, .06);
+  --sh-2: 0 2px 4px rgba(74, 56, 32, .06), 0 6px 16px rgba(74, 56, 32, .08);
+  --sh-3: 0 8px 24px rgba(74, 56, 32, .12), 0 2px 6px rgba(74, 56, 32, .07);
+  --sh-press: inset 0 2px 4px rgba(74, 56, 32, .12);
 
   /* type */
   --font-head: 'Nunito', ui-rounded, system-ui, sans-serif;
@@ -116,6 +120,7 @@
     --surface-3: #232D3D;
     --border: #2B3647;
     --border-strong: #3C4A60;
+    --topbar-bg: color-mix(in srgb, var(--surface) 88%, transparent);
 
     --text: #EEF2F8;
     --text-2: #B3BECE;
@@ -157,6 +162,7 @@
   --bg: #0B1017; --bg-tint: #0E141E;
   --surface: #151C27; --surface-2: #1B2431; --surface-3: #232D3D;
   --border: #2B3647; --border-strong: #3C4A60;
+  --topbar-bg: color-mix(in srgb, var(--surface) 88%, transparent);
   --text: #EEF2F8; --text-2: #B3BECE; --text-3: #8D99AB;
   --ok: #4ADE9E; --ok-wash: #10291F;
   --warn: #FBBF5E; --warn-wash: #2B2010;
@@ -249,7 +255,7 @@ svg.i-lg { width: 28px; height: 28px; }
 
 .topbar {
   position: sticky; top: 0; z-index: 20;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: var(--topbar-bg);
   backdrop-filter: blur(12px) saturate(1.4);
   border-bottom: 1px solid var(--border);
 }
@@ -281,11 +287,20 @@ svg.i-lg { width: 28px; height: 28px; }
 @media (min-width: 680px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 900px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
 
+/* The dashboard panel owns the rhythm between its cards. Before this it was a
+   plain block flow with no margins at all, so every card butted against the
+   next and a .section-label with a negative bottom margin was overlapped by
+   the card it labels, clipping its descenders. */
+[role="tabpanel"] { display: grid; gap: var(--s5); align-content: start; }
+
 .section-label {
   font-family: var(--font-head); font-weight: 800; font-size: .8rem;
   text-transform: uppercase; letter-spacing: .08em; color: var(--text-3);
-  margin: var(--s6) 0 calc(-1 * var(--s1));
+  line-height: 1.4;
+  /* pushed away from the block above, pulled towards the card it labels */
+  margin: var(--s5) 0 calc(-1 * var(--s3));
 }
+.section-label:first-child { margin-top: 0; }
 
 /* --------------------------------------------------------------------------
    Cards
