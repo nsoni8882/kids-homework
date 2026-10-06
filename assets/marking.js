@@ -7,9 +7,10 @@
 
    The matching is tolerant of: case, surrounding whitespace, trailing
    punctuation, a trailing unit after a number, a leading filler word or phrase,
-   "and" and comma differences, stray internal spacing, and a correct phrase
-   sitting inside a slightly longer answer. It refuses that last, loosest rule
-   when the child's answer is negated, so "not Monday" never matches "Monday". */
+   "and" and comma differences, stray internal spacing, a missing or added
+   possessive apostrophe, and a correct phrase sitting inside a slightly longer
+   answer. It refuses that last, loosest rule when the child's answer is negated,
+   so "not Monday" never matches "Monday". */
 
 const ANSWER_LEADING_FILLERS = [
   'because ', 'it was ', 'it is ', 'to the ', 'to ', 'for the ', 'for ',
@@ -17,10 +18,33 @@ const ANSWER_LEADING_FILLERS = [
   'about ', 'every ', 'a ', 'an ', 'the ',
 ];
 
+/* Words where the apostrophe IS the answer. Dropping it from these would mark a
+   child right for the exact mistake a word level question is testing, so they
+   keep theirs. Every other apostrophe is a possessive or a contraction the child
+   is not being tested on, for example "the bakery's garden", and a missing one
+   is not a wrong answer. */
+const APOSTROPHE_SENSITIVE = new Set([
+  'its', 'itd', 'itll', 'your', 'youd', 'youll', 'youre', 'youve',
+  'their', 'theirs', 'there', 'theyd', 'theyll', 'theyre', 'theyve',
+  'whos', 'whose', 'wholl', 'lets', 'hes', 'hed', 'hell', 'shes', 'shed', 'shell',
+  'wed', 'well', 'were', 'weve', 'id', 'ill', 'im', 'ive',
+  'aint', 'arent', 'cant', 'couldnt', 'didnt', 'dont', 'hasnt', 'havent',
+  'isnt', 'shouldnt', 'wasnt', 'werent', 'wont', 'wouldnt', 'oclock',
+]);
+
+/** One word with a possessive or contraction apostrophe taken out, unless taking
+    it out would turn the word into a different one that a question might test. */
+function stripApostrophe(word) {
+  if (!/['\u2019]/.test(word)) return word;
+  const bare = word.replace(/['\u2019]/g, '');
+  return APOSTROPHE_SENSITIVE.has(bare) ? word : bare;
+}
+
 function normaliseAnswerText(s) {
   return (s || '').toString().trim().toLowerCase()
     .replace(/[^a-z0-9]+$/, '')
     .replace(/\s+and\s+/g, ' ')
+    .split(/\s+/).map(stripApostrophe).join(' ')
     .trim();
 }
 
@@ -77,6 +101,7 @@ export function answersMatch(kidRaw, acceptedRaw, inputType) {
   // Punctuation and "and" differences, and a few extra words around a correct text
   // answer. Never applied when the answer is negated or names both true and false.
   const toks = (s) => (s || '').toString().toLowerCase()
+    .split(/\s+/).map(stripApostrophe).join(' ')
     .replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
     .filter((t) => t && t !== 'and');
 

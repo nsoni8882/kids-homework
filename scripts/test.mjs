@@ -74,6 +74,21 @@ function unitTests() {
   ok('"and" added', match('tall and thin', ['tall thin']));
   ok('commas instead of "and"', match('tall, thin, hungry', ['tall, thin and hungry']));
 
+  // a missing or added possessive apostrophe, and the words that keep theirs
+  ok('possessive apostrophe missing from the child\'s answer',
+    match('behind the shed in the bakerys garden', ["behind the shed in the bakery's garden"]));
+  ok('possessive apostrophe missing from the key',
+    match("the bakery's garden", ['the bakerys garden']));
+  ok('apostrophe inside a slightly longer answer still contains the key',
+    match("in the bakerys garden", ["the bakery's garden"]));
+  ok("'its' does not match \"it's\"", !match('its', ["it's"]));
+  ok("\"it's\" does not match 'its'", !match("it's", ['its']));
+  ok("\"you're\" does not match 'your'", !match("you're", ['your']));
+  ok("\"they're\" does not match 'their'", !match("they're", ['their']));
+  ok("\"who's\" does not match 'whose'", !match("who's", ['whose']));
+  ok('a contraction is not flattened into a different word',
+    !match("can't", ['cant']));
+
   // the loose containment rule, and the guard on it
   ok('extra words around a text answer', match('On Monday morning', ['Monday']));
   ok('negated answer is wrong', !match('not Monday', ['Monday']));

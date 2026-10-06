@@ -848,7 +848,12 @@ def cmd_plan(args):
             if weeks and weeks[-1].get("sectionMarks"):
                 last_marks = weeks[-1]["sectionMarks"].get(sid)
             last_section = next((x for x in cur.get("sections", []) if x["id"] == sid), None)
-            was_hinted = bool(last_section and last_section.get("hinted"))
+            # Hinted two ways: the section declared it when it was written, or the
+            # weekly review found the rule printed in the questions and recorded it
+            # in hintedSections afterwards. The second is the one a human notices,
+            # so a spec that reads only the flag asks for evidence that cannot exist.
+            last_hinted_list = (weeks[-1].get("hintedSections") or []) if weeks else []
+            was_hinted = bool(last_section and last_section.get("hinted")) or sid in last_hinted_list
             out_of = last_section.get("totalMarks") if last_section else None
             pct = round(last_marks / out_of * 100) if last_marks is not None and out_of else None
 
@@ -871,7 +876,15 @@ def cmd_plan(args):
             if pct is not None and pct < 95:
                 must.append(f"last score {pct}%, so open with a worked example box, then drill "
                             "at the same level")
-            if pct is not None and pct >= 95 and not blocking and not was_hinted:
+            # A rung recorded as starting next week has never been sat, so last
+            # week's score belongs to the rung BELOW it and says nothing about
+            # advancing again. Without this the spec tells you to skip a rung the
+            # child has not been tested on once.
+            just_advanced = (here.get("since") or 0) >= next_week
+            if just_advanced:
+                must.append(f"rung {rung['id'] if rung else '?'} was set this week and has not "
+                            "been sat yet, so build AT it and do not advance again")
+            elif pct is not None and pct >= 95 and not blocking and not was_hinted:
                 nxt = rungs[idx + 1] if idx is not None and idx + 1 < len(rungs) else None
                 must.append(f"last score {pct}% and nothing blocking: this is a candidate to "
                             f"advance to {nxt['id'] + ' ' + nxt['skill'] if nxt else 'a harder variant'}")
