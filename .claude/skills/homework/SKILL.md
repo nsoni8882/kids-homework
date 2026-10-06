@@ -104,16 +104,36 @@ and returns a cause (misread, slip, wrong method, incomplete, spelling, blank, b
 plus a separate probability that the QUESTION is at fault. Use it as evidence, not as the
 verdict: it reports and changes nothing.
 
+**Jev sees one question at a time.** A question that carries its context in the question above
+it, "Every student must have a seat. How many minibuses are needed?", reads as unanswerable
+alone and comes back as a question fault at 60 or 70 percent. It is clear on screen. Check
+whether the context sits in the section before believing the flag, and write the item so it
+reads alone next time.
+
 Rules that do not bend:
-- `autoMark:false` questions are not re-marked. Infer partial credit from the section total.
+- `autoMark:false` questions are not re-marked, but the award IS checked against the mark
+  scheme. `--mark` only knows the ceiling, so it prints "+2 from parent marking, up to 2
+  available" and calls that explained even when the scheme says 1 mark each and the child gave
+  one of the two things. Read the scheme next to the answer and flag an over award in step 7.
+- A `--mark` difference that is genuinely old and settled still prints every week. Write the
+  explanation into that week's `notes` once, so the next run is not re-investigating it.
 - Drill sections report the correct count and the band, plus any slip inside the top band.
 - Two submissions inside 48 hours count as ONE data point for advancement. Check `submittedAt`.
 - Record each error as section, question, topic, the child's answer, the correct answer.
 
 ## Step 5. Diagnose gaps and write the week up
 
-Statuses: NEW, PERSISTS, IMPROVING, RESOLVED. Append `true`, `false` or `null` to each gap's
-`weeks[]`.
+Statuses: NEW, PERSISTS, IMPROVING, RESOLVED, PARKED. Append one observation to each gap's
+`weeks[]`: `1` the child got it right, `0` the child got it wrong, `null` it was not tested.
+
+**EVERY active gap gets EXACTLY ONE observation, every cycle. No exceptions.** `weeks[]` carries
+no week numbers. `kh.py push` aligns it by length alone, with
+`start = last_recorded_week - len(weeks) + 1`, so the final entry is always read as THIS week.
+Skip a gap and every one of its past observations silently shifts a week earlier, which is wrong
+history that nothing will ever flag. Not tested is `null`, never a missing entry. A parked gap is
+not active and takes no observation.
+
+Count them before pushing: active gaps in, observations appended, same number out.
 
 - **Never resolve on one good week.** RESOLVED needs two clean appearances on unhinted,
   unambiguous items.
@@ -124,6 +144,13 @@ Statuses: NEW, PERSISTS, IMPROVING, RESOLVED. Append `true`, `false` or `null` t
 - An ambiguous question is inconclusive: record `null` and retire the item into
   `curriculum/spine.json` under `retired`.
 - A gap untested for 6 or more weeks: flag it in step 7 and ask to retest or close.
+- **A resolved gap that comes back is re-opened, not re-created.** Set its status to `persists`,
+  append the `0`, and say in the detail which week closed it and which week broke it. A second
+  gap with the same topic splits the history in two.
+- **PARKED is for a skill the child has not been taught yet.** It is a real status: `kh.py`
+  accepts it, the dashboard shows it, and `check-week.mjs` leaves parked gaps out of the
+  must-retest list, so parking is how a gap stops being work that is owed. Park only on Nik's
+  say so, and set `parkedUntil` to the condition that un-parks it.
 - Give every new gap a `slot`, and a `rung` where you can. That is what makes the dashboard and
   the coverage checks work.
 
@@ -195,9 +222,32 @@ That prints the spec: the rung to build each slot at, the evidence that rung nee
 that must be re-tested, whether last week was hinted, the school topic for 2C, and the drill
 rules. **Build to that spec.** Do not design a week and check it afterwards.
 
+**The worked example trap, which comes up nearly every week.** A slot under 95 percent gets
+"open with a worked example box", and that same slot usually has a gap that MUST be re-tested
+there. A box that states the rule the section tests makes the section hinted, and
+`check-week.mjs` blocks a hinted section that is the only evidence for a gap it is meant to
+close. So the box has to teach without stating the thing being tested. Three ways that work:
+
+- **Anchor the half that is secure.** Elysia confuses subject and predicate, so the box labels
+  the SUBJECT of one sentence and every question asks for the PREDICATE.
+- **Demonstrate the format, not the rule.** For analogies, work one example of a DIFFERENT
+  relationship type: the layout is shown and the part to whole rule is still inferred.
+- **Teach the check, not the method.** For a drill losing marks to slips, show one solved item
+  checked by taking it back off. That is the actual remedy and it hints nothing.
+
+If none of those fit, hint it deliberately, set `hinted` and `hintedWhy`, and say in step 7 that
+the gap cannot close this week.
+
 Write the questions into `data/current/<child>.json`.
 
-Compute every sum, key and cipher with a script, never by hand.
+Compute every sum, key and cipher with a script, never by hand. Assert the properties in that
+script, and assert the right one:
+
+- **Odd one out: no number may be the only odd or the only even one in the SET.** It is not
+  enough that the three that belong mix parity. In `4, 6, 9, 10` the three that belong are 4, 6
+  and 9, which do mix, and yet 9 is the only odd number in the row, so parity alone names it and
+  the item has two defensible answers. Jev caught exactly that at 86 percent after a generator
+  assertion tested the weaker rule. At least two odd and at least two even, every time.
 
 Then gate it:
 
@@ -254,7 +304,8 @@ Create a todo per line and tick them off.
 - [ ] `kh.py answers` read for each active child
 - [ ] `test.mjs --mark` run, every difference explained
 - [ ] each wrong answer classified: child error or question fault
-- [ ] gaps updated, `null` recorded where an item could not test the skill
+- [ ] gaps updated: EXACTLY ONE observation appended per active gap, `null` where it was not
+      tested or the item could not test the skill
 - [ ] `summary` and `verdict` written for every processed week
 - [ ] `node scripts/test.mjs` passes
 - [ ] `kh.py push` succeeded and read back the expected current week and gap counts

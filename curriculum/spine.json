@@ -90,7 +90,7 @@
       "subject": "thinking",
       "purpose": "Numerical and pattern reasoning",
       "format": "Number patterns, sequences, odd one out on numbers.",
-      "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails.",
+      "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails, and no number may be the only odd or the only even one in the set. At least two of each.",
       "inferredRule": true
     },
     "3C": {
@@ -718,7 +718,7 @@
       },
       {
         "id": "all.odd-even",
-        "rule": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails.",
+        "rule": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails, and no number may be the only odd or the only even one in the set. At least two of each.",
         "check": "manual"
       },
       {
