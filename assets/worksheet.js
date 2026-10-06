@@ -7,6 +7,7 @@
 import { CHILDREN, currentChild } from './config.js';
 import { apiWeek, apiSubmit, apiAward } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
+import { loadDraft, saveDraft, clearDraft, draftAnswered } from './draft.js';
 
 const child = currentChild();
 const PROFILE = CHILDREN[child];
@@ -28,6 +29,8 @@ let markIdx = 0;
 let reviewMode = false;
 let timerId = null;
 let serverResult = null;
+let draft = null;               // this browser's unfinished attempt, if any
+let typingTimer = null;        // debounce for the save while typing
 const sectionSecs = {};        // how long each section actually took
 let sectionStarted = Date.now();
 const startedAt = Date.now();
@@ -90,6 +93,8 @@ async function init() {
           sectionMarks: data.submitted.sectionMarks, archive: data.submitted.answers,
           perQuestion: data.submitted.perQuestion || {} }
       : null;
+    if (savedEntry) clearDraft(child, week.weekNum);
+    draft = savedEntry ? null : loadDraft(child, week.weekNum);
     showWelcome();
   } catch (err) {
     render(`<div class="center-state">
@@ -135,14 +140,29 @@ function showWelcome() {
     </div>`;
   }
 
-  const actions = savedEntry
-    ? `<div class="welcome-actions">
+  const answered = draftAnswered(draft);
+
+  let actions;
+  if (savedEntry) {
+    actions = `<div class="welcome-actions">
          <button class="btn btn-primary btn-lg" data-act="review">${icon('eye')} Review ${esc(NAME)}'s answers</button>
          <button class="btn btn-secondary" data-act="fresh">Start again with a blank sheet</button>
-       </div>`
-    : `<div class="welcome-actions">
+       </div>`;
+  } else if (answered) {
+    const where = week.sections[draft.sectionIdx] || week.sections[0];
+    actions = `<div class="banner banner-draft">
+         <div class="banner-title">${icon('checkCircle')} Saved on this device</div>
+         <div class="banner-sub">${answered} ${answered === 1 ? 'answer' : 'answers'} kept, up to ${esc(where.title)}. Nothing has been marked yet.</div>
+       </div>
+       <div class="welcome-actions">
+         <button class="btn btn-primary btn-lg" data-act="resume">${icon('play')} Carry on where ${esc(NAME)} left off</button>
+         <button class="btn btn-secondary" data-act="fresh">Start again with a blank sheet</button>
+       </div>`;
+  } else {
+    actions = `<div class="welcome-actions">
          <button class="btn btn-primary btn-lg" data-act="fresh">${icon('play')} Start homework</button>
        </div>`;
+  }
 
   render(`<div class="page page-narrow"><div class="welcome">
     <div class="welcome-mark">${icon(PROFILE.icon, 'i')}</div>
@@ -157,6 +177,8 @@ function showWelcome() {
   app.querySelector('[data-act="fresh"]').addEventListener('click', startFresh);
   const rev = app.querySelector('[data-act="review"]');
   if (rev) rev.addEventListener('click', startReview);
+  const res = app.querySelector('[data-act="resume"]');
+  if (res) res.addEventListener('click', resumeDraft);
 }
 
 function startReview() {
@@ -173,6 +195,22 @@ function startFresh() {
   sectionMarks = {};
   toMark = [];
   sectionIdx = 0;
+  Object.keys(sectionSecs).forEach((k) => delete sectionSecs[k]);
+  draft = null;
+  clearDraft(child, week.weekNum);
+  showSection();
+}
+
+/* Pick the week back up from what this browser saved. Only the typing and the
+   place in the sheet come back: nothing has been marked, so there is no score
+   to restore. */
+function resumeDraft() {
+  reviewMode = false;
+  answers = { ...draft.answers };
+  sectionMarks = {};
+  toMark = [];
+  Object.assign(sectionSecs, draft.sectionSecs);
+  sectionIdx = Math.min(draft.sectionIdx, week.sections.length - 1);
   showSection();
 }
 
@@ -234,7 +272,19 @@ function showSection() {
   const prev = app.querySelector('[data-nav="prev"]');
   if (prev) prev.addEventListener('click', prevSection);
 
-  if (!reviewMode) { sectionStarted = Date.now(); startTimer(sec); }
+  if (!reviewMode) {
+    // Save a second after the typing stops, so a closed tab or a flat battery
+    // mid section loses nothing. The listeners go with the next render.
+    clearTimeout(typingTimer);
+    app.querySelectorAll('[data-qid]').forEach((el) => {
+      el.addEventListener('input', () => {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(collect, 1000);
+      });
+    });
+    sectionStarted = Date.now();
+    startTimer(sec);
+  }
 }
 
 function startTimer(sec) {
@@ -342,17 +392,30 @@ function collect() {
   app.querySelectorAll('[data-qid]').forEach((el) => {
     answers[el.dataset.qid] = el.value.trim();
   });
+  if (!reviewMode) {
+    saveDraft(child, week.weekNum, { answers, sectionIdx, sectionSecs });
+  }
 }
 
 function prevSection() {
+  clearTimeout(typingTimer);
   if (!reviewMode) { collect(); recordSectionTime(); }
-  if (sectionIdx > 0) { sectionIdx--; showSection(); }
+  if (sectionIdx > 0) {
+    sectionIdx--;
+    if (!reviewMode) saveDraft(child, week.weekNum, { answers, sectionIdx, sectionSecs });
+    showSection();
+  }
 }
 
 function nextSection() {
+  clearTimeout(typingTimer);
   if (!reviewMode) { collect(); recordSectionTime(); }
   sectionIdx++;
-  if (sectionIdx < week.sections.length) { showSection(); return; }
+  if (sectionIdx < week.sections.length) {
+    if (!reviewMode) saveDraft(child, week.weekNum, { answers, sectionIdx, sectionSecs });
+    showSection();
+    return;
+  }
 
   clearInterval(timerId);
   if (reviewMode) { showResults(true); return; }
@@ -375,6 +438,8 @@ async function submitToServer() {
       elapsedSecs: Math.round((Date.now() - startedAt) / 1000),
       sectionSecs,
     });
+    clearDraft(child, week.weekNum);
+    draft = null;
     sectionMarks = serverResult.sectionMarks;
     // Only what Jev could not settle needs a grown up.
     toMark = Object.entries(serverResult.perQuestion)

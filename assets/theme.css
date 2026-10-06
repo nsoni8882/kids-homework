@@ -592,6 +592,13 @@ details.disclose[open] > summary svg.chev { transform: rotate(90deg); }
 .banner-score { font-family: var(--font-head); font-weight: 800; font-size: 1.6rem; }
 .banner-sub { font-size: .84rem; color: var(--text-2); }
 
+/* A draft is kept, not finished, so it reads as information rather than as the
+   green of a submitted week. */
+.banner-draft {
+  background: var(--info-wash); border-color: color-mix(in srgb, var(--info) 30%, transparent);
+}
+.banner-draft .banner-title { color: var(--info); }
+
 .welcome-actions { display: grid; gap: var(--s3); width: 100%; max-width: 420px; }
 
 .progress-track {
