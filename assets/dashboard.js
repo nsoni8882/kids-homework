@@ -571,10 +571,6 @@ function detailHtml(w) {
     cards.push(`<div class="card"><div class="detail-head">${icon('cross', 'i i-sm')} Real errors</div>
       <ul class="detail-list">${list(w.errors, 'cross', 'var(--bad)')}</ul></div>`);
   }
-  if (w.design.length) {
-    cards.push(`<div class="card"><div class="detail-head">${icon('alert', 'i i-sm')} Question faults, not theirs</div>
-      <ul class="detail-list">${list(w.design, 'alert', 'var(--warn)')}</ul></div>`);
-  }
   if (!cards.length) cards.push(`<div class="card"><p class="card-note">No detail recorded for this week.</p></div>`);
 
   return `<div class="detail-grid">${cards.join('')}</div>
