@@ -46,7 +46,13 @@
       "marks": {
         "mason": 6
       },
-      "marksNote": "Mason's English 20 was re-split on 11 Oct 2026 to make room for writing: 1A 6, 1B 5, 1C 5, 1D 4, from week 25. The subject total is unchanged, so nothing downstream moves."
+      "marksNote": "Mason's English 20 was re-split on 11 Oct 2026 to make room for writing: 1A 6, 1B 5, 1C 5, 1D 4, from week 25. The subject total is unchanged, so nothing downstream moves.",
+      "nswFamilies": [
+        "R-compare",
+        "R-poem",
+        "R-match"
+      ],
+      "nswFamiliesNote": "A slot may declare its families as one list for both children, or as an object keyed by child when they differ. slots_for and the gate both read either form."
     },
     "1B": {
       "subject": "english",
@@ -56,7 +62,10 @@
       "inferredRule": false,
       "marks": {
         "mason": 5
-      }
+      },
+      "nswFamilies": [
+        "R-missing"
+      ]
     },
     "1C": {
       "subject": "english",
@@ -66,7 +75,10 @@
       "inferredRule": false,
       "marks": {
         "mason": 5
-      }
+      },
+      "nswFamilies": [
+        "R-cloze"
+      ]
     },
     "1D": {
       "subject": "english",
@@ -81,28 +93,57 @@
       "why": "Writing is 25 percent of the selective mark and had no slot in the week. It sits inside English's 20 rather than inflating the week: 1A 6, 1B 5, 1C 5, 1D 4. Elysia's OC test has no writing paper, so she gets this slot when she turns to the 2031 selective test.",
       "marks": {
         "mason": 4
-      }
+      },
+      "nswFamilies": [
+        "W-brief",
+        "W-persuade",
+        "W-narrative",
+        "W-plan",
+        "W-type"
+      ]
     },
     "2A": {
       "subject": "maths",
       "purpose": "Arithmetic fluency drill, timed",
       "format": "A score banded drill. At least 30 problems. First third easy, middle moderate, last third harder. From week 24 Mason's 2A carries 6 of his 20 maths marks rather than 8, with the same 30 items and the bands rescaled.",
       "fixed": "Always scoreBand true with scoreBandRules. Always the child's current Kumon arithmetic operation.",
-      "inferredRule": false
+      "inferredRule": false,
+      "nswFamilies": [],
+      "nswRole": "Support, not an item family. 35 maths questions in 40 minutes with no calculator is out of reach without arithmetic fluency, so this slot buys the time the reasoning items need."
     },
     "2B": {
       "subject": "maths",
       "purpose": "The current Kumon procedure, worked carefully rather than fast",
       "format": "6 or fewer items on one written method, with a worked example box when the last score was under 95 percent.",
       "fixed": "Always the single operation the child is currently on in Kumon. Never a mixed bag.",
-      "inferredRule": false
+      "inferredRule": false,
+      "nswFamilies": {
+        "mason": [
+          "M-reverse",
+          "M-frac"
+        ],
+        "elysia": []
+      },
+      "nswRole": "For Mason this is the working backwards item type: short division with the check multiplied back is the same undoing step. For Elysia it is still procedure, like the drill, and becomes the fractions and equal groups item type when she reaches rung 2B.5."
     },
     "2C": {
       "subject": "maths",
       "purpose": "Applied reasoning on the school's current half term topic",
       "format": "Word problems. Mason keeps a couple of remainder or two step problems regardless of the school topic. From week 24 Mason's 2C carries 8 of his 20 maths marks, and 4 of those sit on two 2 mark problems where the answer earns one mark and the written method with its sense check earns the other, marked against a scheme. Nik asked for the working to be worth marks on 11 Oct 2026.",
       "fixed": "Always follows schoolSync for today's date. This is the only slot that tracks the school calendar.",
-      "inferredRule": false
+      "inferredRule": false,
+      "nswFamilies": [
+        "M-reverse",
+        "M-place",
+        "M-measure",
+        "M-time",
+        "M-area",
+        "M-geom",
+        "M-data",
+        "M-prob",
+        "M-value",
+        "T-spatial"
+      ]
     },
     "3A": {
       "subject": "thinking",
@@ -110,14 +151,26 @@
       "format": "A short argument in one or two sentences, then one of: which statement most strengthens it, which most weakens it, which sentence names the mistake made, or which fact would have to be known to test the claim.",
       "fixed": "Exactly one defensible answer. The wrong options must be plausible and on topic, not obviously irrelevant.",
       "inferredRule": false,
-      "replaced": "Analogies and odd one out on words, re-pointed 11 Oct 2026. Not on the NSW paper."
+      "replaced": "Analogies and odd one out on words, re-pointed 11 Oct 2026. Not on the NSW paper.",
+      "nswFamilies": [
+        "T-strengthen",
+        "T-weaken",
+        "T-flaw",
+        "T-sufficiency"
+      ]
     },
     "3B": {
       "subject": "thinking",
       "purpose": "Number, pattern and data reasoning",
       "format": "Sequences and their rules, two unknowns from two totals, a table or chart read for something it does not state, and best value across pack sizes.",
       "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails, and no number may be the only odd or the only even one in the set. Every data item must be answerable from the table alone.",
-      "inferredRule": true
+      "inferredRule": true,
+      "nswFamilies": [
+        "M-factors",
+        "M-pattern",
+        "T-tables",
+        "T-optimise"
+      ]
     },
     "3C": {
       "subject": "thinking",
@@ -125,13 +178,18 @@
       "format": "Conditional statements and what follows from them, two speakers of whom one reasons correctly, constraint puzzles from three or more clues, the minimum needed to guarantee an outcome, and counting events over a date range.",
       "fixed": "Every item must be solvable from the information given. No outside knowledge. Exactly one consistent solution.",
       "inferredRule": false,
-      "replaced": "Caesar ciphers and substitution codes, re-pointed 11 Oct 2026. Not on the NSW paper."
+      "replaced": "Caesar ciphers and substitution codes, re-pointed 11 Oct 2026. Not on the NSW paper.",
+      "nswFamilies": [
+        "T-conditional",
+        "T-deduce",
+        "T-calendar"
+      ]
     }
   },
   "ladders": {
     "mason": {
       "1A": {
-        "endGoal": "Answers an inference question on an unseen passage without re-reading, and quotes the text to support it.",
+        "endGoal": "Answers inference, comparison, poetry and multi extract matching on unseen texts, in four options, at about 70 seconds an answer.",
         "rungs": [
           {
             "id": "1A.1",
@@ -157,11 +215,26 @@
             "id": "1A.5",
             "skill": "Author purpose, tone, and why a detail was included",
             "advanceWhen": "sustained, this is the exam level"
+          },
+          {
+            "id": "1A.6",
+            "skill": "Two extracts on one theme, compared: which extract does which, and why a detail matters in one of them",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.7",
+            "skill": "A poem: what the title does, what is compared to what, and what the form reflects",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.8",
+            "skill": "Four extracts matched against statements, scanning all four against one claim",
+            "advanceWhen": "sustained, this is the exam level"
           }
         ]
       },
       "1B": {
-        "endGoal": "Identifies the exact element a 5W-1H question asks for, including when a plausible distractor sits nearby.",
+        "endGoal": "Fills a gap in a text with the one sentence that fits what comes before and after it.",
         "rungs": [
           {
             "id": "1B.1",
@@ -187,11 +260,16 @@
             "id": "1B.5",
             "skill": "Reported speech and relative clauses",
             "advanceWhen": "sustained"
+          },
+          {
+            "id": "1B.6",
+            "skill": "Missing sentence: choosing which sentence fills a gap by tracking reference words and the thread of the argument",
+            "advanceWhen": "sustained, this is the exam level"
           }
         ]
       },
       "1C": {
-        "endGoal": "Spells the week's list correctly under time, and builds related words from a root.",
+        "endGoal": "Picks the single word that fits a gap when all four options mean roughly the same thing.",
         "rungs": [
           {
             "id": "1C.1",
@@ -217,6 +295,11 @@
             "id": "1C.5",
             "skill": "Prefixes, suffixes and shades of meaning",
             "advanceWhen": "sustained"
+          },
+          {
+            "id": "1C.6",
+            "skill": "Vocabulary in context: choosing the one of four near synonyms that fits the register and the collocation",
+            "advanceWhen": "sustained, this is the exam level"
           }
         ]
       },
@@ -451,7 +534,7 @@
     },
     "elysia": {
       "1A": {
-        "endGoal": "Reads a short passage once and answers every part of each question asked.",
+        "endGoal": "Answers inference, comparison and poetry questions on unseen texts, in four options.",
         "rungs": [
           {
             "id": "1A.1",
@@ -477,11 +560,21 @@
             "id": "1A.5",
             "skill": "Simple inference: how a character felt and why",
             "advanceWhen": "sustained, this is the OC level"
+          },
+          {
+            "id": "1A.6",
+            "skill": "Two short extracts on one theme, compared",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1A.7",
+            "skill": "A poem: who is in it, what it compares, and what the title does",
+            "advanceWhen": "sustained"
           }
         ]
       },
       "1B": {
-        "endGoal": "Finds the subject and the predicate in a longer sentence and uses correct punctuation.",
+        "endGoal": "Fills a gap in a short text with the sentence that fits either side of it.",
         "rungs": [
           {
             "id": "1B.1",
@@ -507,11 +600,16 @@
             "id": "1B.5",
             "skill": "Past and present tense consistency across a sentence",
             "advanceWhen": "sustained"
+          },
+          {
+            "id": "1B.6",
+            "skill": "Missing sentence: choosing which sentence fills a gap in a short text",
+            "advanceWhen": "sustained"
           }
         ]
       },
       "1C": {
-        "endGoal": "Spells the week's list under time and chooses the adjective that fits the sentence.",
+        "endGoal": "Picks the word that fits a gap when the options are close in meaning.",
         "rungs": [
           {
             "id": "1C.1",
@@ -536,6 +634,11 @@
           {
             "id": "1C.5",
             "skill": "Synonyms and antonyms",
+            "advanceWhen": "sustained"
+          },
+          {
+            "id": "1C.6",
+            "skill": "Vocabulary in context: choosing which of four similar words fits the gap",
             "advanceWhen": "sustained"
           }
         ]

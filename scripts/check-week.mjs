@@ -25,7 +25,7 @@ import { join } from 'node:path';
 import { Jev, checkQuestion, checkSection } from '../worker/src/jev.js';
 import {
   ROOT, apiKey, loadSpine, loadWeek, pool, rungFor, questionsToCheck,
-  slotsMissingRung, costLine,
+  slotsMissingRung, costLine, loadRoadmap, nswFamiliesFor,
 } from './lib/gate.mjs';
 
 const BLOCK_AT = 0.90;   // a Jev flag this strong stops the week on its own
@@ -112,10 +112,12 @@ if (!noAi) {
           + 'so the level checks are skipped there');
       }
 
+      const roadmap = loadRoadmap();
       const secResults = await pool(set.sections, 4, async (section) => {
         try {
           return await checkSection(jev, {
             child: c, section, spineSlot: spine.slots[section.id], rung: rungFor(spine, c, section.id),
+            nswFamilies: nswFamiliesFor(spine, roadmap, section.id, c),
           });
         } catch (e) { return { sectionId: section.id, flags: [], clean: true, error: e.message }; }
       });

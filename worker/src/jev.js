@@ -29,6 +29,10 @@ export const THRESHOLDS = {
   scheme_unclear: 0.70,
   off_slot_section: 0.70,
   no_evidence: 0.70,
+  // The exam alignment question. Set at the same bar as the other section level
+  // judgments: it is a judgment, so it is raised for a human rather than
+  // blocking on its own.
+  off_target: 0.70,
   key_wrong: 0.60,
   parity_shortcut: 0.55,
   hinted: 0.60,
@@ -428,8 +432,13 @@ export async function checkQuestion(jev, { child, section, question, spineSlot, 
  * flags most of a sound paper. What matters is whether the section, taken
  * together, actually tests the rung the child is on.
  */
-export async function checkSection(jev, { child, section, spineSlot, rung }) {
+export async function checkSection(jev, { child, section, spineSlot, rung, nswFamilies }) {
   if (!rung) return { sectionId: section.id, flags: [], clean: true };
+
+  // The exam families this slot serves, if the caller resolved them. A slot with
+  // none, such as the arithmetic drill, is support rather than an item type, and
+  // the alignment question is skipped rather than answered against nothing.
+  const families = (nswFamilies || []).filter((f) => f && f.name);
 
   const answers = await jev.ask(
     {
@@ -439,12 +448,31 @@ export async function checkSection(jev, { child, section, spineSlot, rung }) {
       currentSkill: rung.skill,
       rungGoal: rung.advanceWhen,
       childAge: AGE[child] || 8,
+      ...(families.length ? {
+        examItemTypes: families.map((f) => `${f.name}: ${f.detail}`),
+      } : {}),
       questions: section.questions
         .filter((q) => q.inputType !== 'none')
         .slice(0, 12)
         .map((q) => q.text),
     },
     {
+      ...(families.length ? {
+        off_target: {
+          type: 'noul',
+          instructions:
+            'The child is being prepared for a placement test whose item types for this section '
+            + 'are listed in `examItemTypes`. Does this section build towards at least one of '
+            + 'them? Practice at an earlier step on the way to an item type counts as building '
+            + 'towards it: a nine year old learning to find the subject of a sentence is on the '
+            + 'road to filling a gap with the right sentence. Say true only if the section '
+            + 'practises something that leads to NONE of the listed item types.',
+          criteria: {
+            true: 'Nothing here is on the road to any of the listed exam item types',
+            false: 'The section practises one of them, or a genuine step towards one',
+          },
+        },
+      } : {}),
       off_slot: {
         type: 'noul',
         instructions:
@@ -473,11 +501,16 @@ export async function checkSection(jev, { child, section, spineSlot, rung }) {
   const LABELS = {
     off_slot: 'this section does not test the rung the child is on',
     no_evidence: 'nothing here is demanding enough to evidence the rung',
+    off_target: 'this section leads to none of the exam item types for its slot',
+  };
+  const KEY_TO_THRESHOLD = {
+    off_slot: 'off_slot_section', no_evidence: 'no_evidence', off_target: 'off_target',
   };
   const flags = [];
-  for (const key of ['off_slot', 'no_evidence']) {
+  const keys = ['off_slot', 'no_evidence', ...(families.length ? ['off_target'] : [])];
+  for (const key of keys) {
     const p = need(answers, key, 'noul');
-    const t = THRESHOLDS[key === 'off_slot' ? 'off_slot_section' : 'no_evidence'] ?? 0.70;
+    const t = THRESHOLDS[KEY_TO_THRESHOLD[key]] ?? 0.70;
     if (p >= t) flags.push({ key, label: LABELS[key], probability: p, threshold: t });
   }
   return { sectionId: section.id, flags, clean: flags.length === 0, raw: answers };

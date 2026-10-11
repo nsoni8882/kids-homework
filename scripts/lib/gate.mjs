@@ -72,6 +72,27 @@ export async function pool(items, limit, fn) {
  * hard" and "does this evidence the rung" against a level the child was never
  * on, and report the result with the same confidence as a real one.
  */
+/* The exam item families a slot serves, resolved from assets/roadmap.json so
+   the descriptions Jev judges against are the ones on the Roadmap tab rather
+   than a second copy written for the gate. */
+export const loadRoadmap = () => {
+  try {
+    return JSON.parse(readFileSync(join(ROOT, 'assets', 'roadmap.json'), 'utf8'));
+  } catch { return null; }
+};
+
+export function nswFamiliesFor(spine, roadmap, slot, child) {
+  // One list for both children, or an object keyed by child where they differ.
+  const declared = ((spine.slots[slot] || {}).nswFamilies) || [];
+  const ids = Array.isArray(declared) ? declared : (declared[child] || []);
+  if (!ids.length || !roadmap) return [];
+  const byId = new Map();
+  for (const sec of ((roadmap.tracks || {}).nsw || { sections: [] }).sections) {
+    for (const item of sec.items) byId.set(item.id, item);
+  }
+  return ids.map((id) => byId.get(id)).filter(Boolean);
+}
+
 export function rungFor(spine, child, slot) {
   const ladder = spine.ladders[child] && spine.ladders[child][slot];
   if (!ladder) return null;

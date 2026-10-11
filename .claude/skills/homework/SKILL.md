@@ -1,6 +1,6 @@
 ---
 name: homework
-description: Run the weekly homework cycle after one or both children submit. Marks the week properly, diagnoses gaps, updates the dashboard, and builds next week against the curriculum spine. Use when Nik says the kids have finished, or types /homework.
+description: Run the weekly homework cycle after one or both children submit. Marks the week properly, diagnoses gaps, updates the dashboard, and builds next week against the NSW placement test plan. Use when Nik says the kids have finished, or types /homework.
 trigger: /homework
 ---
 
@@ -14,6 +14,39 @@ One command for the whole weekly cycle. Run it when either child has submitted.
 /homework --dry           read and report, change nothing
 /homework --next          resume at step 8 after Nik has answered
 ```
+
+## What this is for
+
+**Every week built by this skill is preparation for an NSW placement test. That is the goal, and
+nothing else is.**
+
+- **Mason** sits the **Selective High School Placement Test** in NSW Year 6, May 2029, for
+  Normanhurst Boys. Reading, Mathematical Reasoning, Thinking Skills, Writing, 25 percent each.
+- **Elysia** sits the **Opportunity Class test** in NSW Year 4, 2029, for an OC place, then the
+  Selective test in Year 6, 2031, for Hornsby Girls. Three components, 33.3 percent each, no
+  writing paper yet.
+
+Kumon is the engine, not the target. A section that advances a Kumon level but leads to no exam
+item type is a week wasted, and from 11 Oct 2026 the gate says so out loud.
+
+**The item families are data, not memory.** `assets/roadmap.json` under `tracks.nsw` holds all 32,
+taken from the Department's own practice papers, each with what the child actually has to do.
+`curriculum/spine.json` says which families each slot serves, in `slots.<id>.nswFamilies`, as one
+list or as an object keyed by child where they differ. Read those two rather than recalling them.
+CLAUDE.md section 1b is the research behind both.
+
+Three consequences that bite every week:
+
+1. **Name the family.** Every section you build serves at least one family, or it is support and
+   says why. Step 7 reports which families the week covered.
+2. **Never generate a retired shape.** Analogies and ciphers are in `spine.retired` for both
+   children. They are not on the NSW paper and they are not coming back.
+3. **The real papers are multiple choice.** Reading and Thinking Skills offer four options,
+   Mathematical Reasoning five, and only the writing task is open. Free text is still the right
+   format while a rung is being learned, because it shows the method and feeds the gap log. Once a
+   rung is being consolidated, put it in the real format: no partial credit, no marks for working,
+   about one minute an item. Aim for at least one section a week in exam format, rising as 2029
+   gets closer, and say in step 7 which one it was.
 
 ## The one rule
 
@@ -59,6 +92,10 @@ scripts/kh.py curriculum <child>
 
 That is the brief: the rung each slot is on, the open gaps attached to it, the school term, and
 the hard limits. Use it. Do not re-derive the pathway from the history.
+
+Then read the target alongside it: `curriculum/spine.json` for each slot's `nswFamilies`, and
+`assets/roadmap.json` `tracks.nsw` for what each of those families actually asks the child to do.
+A rung is how far up a ladder they are. A family is what the ladder is leaning against.
 
 ## Step 2. Read what they actually did
 
@@ -182,11 +219,19 @@ the current week and gap counts.
 it marked the week, and the local copy is always the older story. If a mark genuinely needs
 changing by hand, that is `push --include-scores`, and it needs Nik's explicit yes.
 
-## Step 6. Advancement
+## Step 6. Advancement, and the roadmap
 
 Work slot by slot against `curriculum/spine.json`. For each: name the current rung id, say
 whether its `advanceWhen` condition is met, and state the rung it moves to or holds at. Write
 the result into `data/curriculum/position.json`.
+
+**Then update the exam roadmap in the same pass.** `assets/roadmap.json` holds, per child,
+`progress.nsw.cleared` and `progress.nsw.current`, keyed by family id with the reason each is
+current. When a slot's rung moves far enough to start or finish a family, move the id and rewrite
+its reason to name the new slot and rung. This is the one part of the roadmap that is hand kept,
+and `kh.py validate` now refuses a push where the roadmap claims a child is working on a family
+that no slot of theirs serves. It is the map saying the work is happening when it is not, which is
+worse than an out of date map.
 
 Be the devil's advocate. Flag weak evidence and recommend hold:
 - submitted within 48 hours of the previous week
@@ -203,8 +248,10 @@ Give Nik:
 3. Real errors.
 4. Gaps table: topic, status, note.
 5. Slots that trigger advancement, with the rung ids and your recommendation.
-6. What next week will contain per child.
-7. **Decisions he must make, numbered, each answerable yes or no.**
+6. **Exam coverage**: which NSW families this week exercised, which section was in exam format,
+   and the running count per child, x of 32. Name any family that has been at zero for a month.
+7. What next week will contain per child, each section against the family it serves.
+8. **Decisions he must make, numbered, each answerable yes or no.**
 
 **Wait for his reply.** Do not continue.
 
@@ -227,6 +274,16 @@ scripts/kh.py plan <child>
 That prints the spec: the rung to build each slot at, the evidence that rung needs, the gaps
 that must be re-tested, whether last week was hinted, the school topic for 2C, and the drill
 rules. **Build to that spec.** Do not design a week and check it afterwards.
+
+For each slot, before writing a single question, say to yourself: *which NSW family does this
+section serve, and would a child who aced it be better at that item type?* If the answer is no,
+the section is wrong however well it fits the rung. The families are in
+`spine.slots.<id>.nswFamilies` with their descriptions in `assets/roadmap.json`.
+
+Slot 1D, Mason only, is the writing task. It names an audience and a text type, as the real paper
+does: "write an advice sheet for three new students" rather than "write a story". It is always
+`autoMark: false` with a `markScheme`, and the rubric in `worker/src/jev.js` is what a parent mark
+should follow.
 
 **The worked example trap, which comes up nearly every week.** A slot under 95 percent gets
 "open with a worked example box", and that same slot usually has a gap that MUST be re-tested
@@ -316,6 +373,9 @@ Create a todo per line and tick them off.
 - [ ] `node scripts/test.mjs` passes
 - [ ] `kh.py push` succeeded and read back the expected current week and gap counts
 - [ ] advancement decided per slot, `position.json` updated
+- [ ] `assets/roadmap.json` `progress.nsw` updated for both children, and validate still clean
+- [ ] every built section names the NSW family it serves, and at least one is in exam format
+- [ ] no retired shape generated: no analogies, no ciphers
 - [ ] report delivered with numbered yes or no decisions
 - [ ] **STOPPED and waited**
 - [ ] (after reply) `kh.py plan`, questions built to spec

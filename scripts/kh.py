@@ -51,6 +51,7 @@ DATA = os.path.join(ROOT, "data")
 SCHEMA = os.path.join(ROOT, "schema")
 SPINE = os.path.join(ROOT, "curriculum", "spine.json")
 POSITION = os.path.join(DATA, "curriculum", "position.json")
+ROADMAP = os.path.join(ROOT, "assets", "roadmap.json")
 CLAUDE_MD = os.path.join(ROOT, "CLAUDE.md")
 
 CHILDREN = ("mason", "elysia")
@@ -482,6 +483,7 @@ def cmd_push(args):
         spine = load_spine()
         problems += check_curriculum(local, spine)
         problems += check_coverage(local, spine)
+        problems += check_nsw_alignment(spine)
     if problems:
         for p in problems:
             print(f"  {p}")
@@ -622,6 +624,18 @@ def slot_of(qid_or_section):
     """Section ids look like 1A or 1D and question ids like 1A-Q3, so the slot is
     the first two characters."""
     return str(qid_or_section)[:2]
+
+
+def nsw_families(slot, child):
+    """The exam item families a slot serves for this child.
+
+    Declared either as one list for both children, or as an object keyed by
+    child when they differ: Mason's 2B is the working backwards item type and
+    Elysia's is still column arithmetic, so one list could not describe both."""
+    ids = slot.get("nswFamilies")
+    if isinstance(ids, dict):
+        return list(ids.get(child) or [])
+    return list(ids or [])
 
 
 def slots_for(spine, child, week=None):
@@ -958,6 +972,50 @@ def cmd_plan(args):
         print()
 
 
+def check_nsw_alignment(spine):
+    """The spine and the roadmap must agree about the target.
+
+    Every slot declares the NSW item families it serves, by the ids in
+    assets/roadmap.json under tracks.nsw. Two things are checked:
+
+      * every id a slot names actually exists in the roadmap
+      * every family the roadmap claims a child is working on is named by one of
+        THAT child's slots
+
+    The second is one directional on purpose. A slot may name a family it has
+    not reached yet, which is how a destination gets on the ladder before the
+    child gets there. The roadmap claiming coverage that no slot delivers is the
+    error: that is the map saying the work is happening when it is not."""
+    problems = []
+    roadmap = read_json(ROADMAP)
+    if not roadmap or "tracks" not in roadmap:
+        return problems
+    nsw = (roadmap["tracks"] or {}).get("nsw")
+    if not nsw:
+        return problems
+
+    known = {i["id"] for sec in nsw["sections"] for i in sec["items"]}
+    for sid, slot in spine["slots"].items():
+        for child in CHILDREN:
+            for fid in nsw_families(slot, child):
+                if fid not in known:
+                    problems.append(f"spine slot {sid}: NSW family {fid!r} is not in "
+                                    f"assets/roadmap.json")
+
+    for child in CHILDREN:
+        entry = ((roadmap.get("children") or {}).get(child)) or {}
+        claimed = list((((entry.get("progress") or {}).get("nsw")) or {}).get("current") or {})
+        claimed += list((((entry.get("progress") or {}).get("nsw")) or {}).get("cleared") or [])
+        served = set()
+        for sid, slot in slots_for(spine, child).items():
+            served.update(nsw_families(slot, child))
+        for fid in claimed:
+            if fid not in served:
+                problems.append(f"{child}: the roadmap says {fid!r} is being worked on, but no "
+                                f"slot of theirs serves it")
+    return problems
+
+
 def check_coverage(local, spine):
     """Does the generated week actually test what the child is on?
 
@@ -1067,6 +1125,7 @@ def cmd_validate(args):
         spine = load_spine()
         problems += check_curriculum(local, spine)
         problems += check_coverage(local, spine)
+        problems += check_nsw_alignment(spine)
     if not problems:
         print("data/ is valid")
         return
