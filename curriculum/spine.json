@@ -21,19 +21,55 @@
         "english": 20,
         "maths": 20,
         "thinking": 15
-      }
+      },
+      "tests": [
+        {
+          "name": "Selective High School",
+          "when": "early May 2029, NSW Year 6",
+          "components": [
+            "Reading",
+            "Mathematical Reasoning",
+            "Thinking Skills",
+            "Writing"
+          ],
+          "weightEach": "25%"
+        }
+      ]
     },
     "elysia": {
-      "target": "NSW Opportunity Class (OC) placement test",
-      "testShape": "Reading, Mathematical Reasoning, Thinking Skills. Multiple choice.",
-      "endState": "Reads a short passage and answers literal and simple inference questions. Fluent mental addition and subtraction within 100. Recognises number and shape patterns and explains the rule.",
+      "target": "NSW Opportunity Class (OC) placement test in 2029, then the NSW Selective High School placement test in 2031",
+      "testShape": "OC 2029: Reading, Mathematical Reasoning, Thinking Skills, multiple choice, no writing paper. Selective 2031: the same three plus a 30 minute typed writing task worth a quarter of the mark.",
+      "endState": "By the OC test: reads a short passage once and answers literal and inference questions, fluent mental addition and subtraction within 100 and then the whole of NSW Year 4 arithmetic, and reasons through every Thinking Skills family under about a minute an item. By the selective test two years later: the same at Year 6 level, plus a planned typed response to a brief.",
       "currentPosture": "Accuracy is around 73 percent and the losses are mostly carelessness and incomplete answers rather than missing knowledge. Fluency and finishing the paper matter more than new topics.",
       "weeklyMarks": {
         "total": 40,
         "english": 15,
         "maths": 15,
         "thinking": 10
-      }
+      },
+      "tests": [
+        {
+          "name": "Opportunity Class",
+          "when": "2029, NSW Year 4",
+          "components": [
+            "Reading",
+            "Mathematical Reasoning",
+            "Thinking Skills"
+          ],
+          "weightEach": "33.3%"
+        },
+        {
+          "name": "Selective High School",
+          "when": "early May 2031, NSW Year 6",
+          "components": [
+            "Reading",
+            "Mathematical Reasoning",
+            "Thinking Skills",
+            "Writing"
+          ],
+          "weightEach": "25%"
+        }
+      ]
     }
   },
   "slots": {
@@ -87,10 +123,13 @@
       "fixed": "Always autoMark false with a markScheme. Never a one word answer. The brief always states who is reading it and what kind of text it must be.",
       "inferredRule": false,
       "children": [
-        "mason"
+        "mason",
+        "elysia"
       ],
-      "from": 25,
-      "why": "Writing is 25 percent of the selective mark and had no slot in the week. It sits inside English's 20 rather than inflating the week: 1A 6, 1B 5, 1C 5, 1D 4. Elysia's OC test has no writing paper, so she gets this slot when she turns to the 2031 selective test.",
+      "from": {
+        "mason": 25
+      },
+      "why": "Writing is 25 percent of the selective mark and had no slot in the week. It sits inside English's 20 rather than inflating the week: Mason 1A 6, 1B 5, 1C 5, 1D 4. Elysia's OC test in 2029 has no writing paper, so her 40 marks go to the three components she is actually sitting, and this slot opens for her from September 2029, once the OC test is behind her and the 2031 selective test is the target. The route exists and is dated rather than absent: all five writing families used to have no route on her ladders at all, which read as a plan that she would never write.",
       "marks": {
         "mason": 4
       },
@@ -100,7 +139,11 @@
         "W-narrative",
         "W-plan",
         "W-type"
-      ]
+      ],
+      "fromDate": {
+        "elysia": "2029-09-01"
+      },
+      "marksNote": "Mason's 4 marks come out of English's 20 from week 25. Elysia's split is not decided yet and must be before September 2029: her English 15 has to make room without the week leaving 40."
     },
     "2A": {
       "subject": "maths",
@@ -120,11 +163,15 @@
       "nswFamilies": {
         "mason": [
           "M-reverse",
-          "M-frac"
+          "M-frac",
+          "M-prob"
         ],
-        "elysia": []
+        "elysia": [
+          "M-reverse",
+          "M-prob"
+        ]
       },
-      "nswRole": "For Mason this is the working backwards item type: short division with the check multiplied back is the same undoing step. For Elysia it is still procedure, like the drill, and becomes the fractions and equal groups item type when she reaches rung 2B.5."
+      "nswRole": "For Mason this is the working backwards item type: short division with the check multiplied back is the same undoing step, and the ladder ends at fractions of a quantity and then probability. For Elysia it is written procedure first, then working backwards at 2B.6 and probability at 2B.7. Probability had no route at all on either ladder until 11 Oct 2026, which is why the roadmap filed it under this slot while the slot did not serve it."
     },
     "2C": {
       "subject": "maths",
@@ -394,6 +441,14 @@
             "advanceWhen": "Kumon Level D9 onward",
             "nswFamilies": [
               "M-frac"
+            ]
+          },
+          {
+            "id": "2B.7",
+            "skill": "Probability as a fraction and as a decimal, from a described set of outcomes",
+            "advanceWhen": "two clean weeks giving the decimal as well as the fraction",
+            "nswFamilies": [
+              "M-prob"
             ]
           }
         ]
@@ -667,6 +722,14 @@
             "nswFamilies": [
               "R-poem"
             ]
+          },
+          {
+            "id": "1A.8",
+            "skill": "Four short extracts matched against statements, scanning all four against one claim",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "R-match"
+            ]
           }
         ]
       },
@@ -810,6 +873,22 @@
             "id": "2B.5",
             "skill": "Equal groups and arrays as repeated addition",
             "advanceWhen": "Kumon Level C"
+          },
+          {
+            "id": "2B.6",
+            "skill": "Working backwards: undoing a one and then two step chain, and checking by going forwards",
+            "advanceWhen": "two clean weeks where the check is written out",
+            "nswFamilies": [
+              "M-reverse"
+            ]
+          },
+          {
+            "id": "2B.7",
+            "skill": "Probability as a fraction, from a described set of outcomes",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-prob"
+            ]
           }
         ]
       },
@@ -893,6 +972,14 @@
               "T-strengthen",
               "T-weaken"
             ]
+          },
+          {
+            "id": "3A.6",
+            "skill": "What would have to be known to test the claim, rather than what supports it",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-sufficiency"
+            ]
           }
         ]
       },
@@ -937,6 +1024,14 @@
             "advanceWhen": "sustained",
             "nswFamilies": [
               "M-pattern"
+            ]
+          },
+          {
+            "id": "3B.6",
+            "skill": "Multiples and factors with counting: how many numbers in a range are multiples of 3",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-factors"
             ]
           }
         ]
@@ -983,6 +1078,60 @@
             "nswFamilies": [
               "T-deduce"
             ]
+          },
+          {
+            "id": "3C.6",
+            "skill": "Counting events over a date range, including the extra weekday cases",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-calendar"
+            ]
+          }
+        ]
+      },
+      "1D": {
+        "endGoal": "One typed 30 minute response to a brief that names its audience and text type, planned in the first four minutes.",
+        "rungs": [
+          {
+            "id": "1D.1",
+            "skill": "One paragraph to a brief that names its audience and text type",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-brief",
+              "W-type"
+            ]
+          },
+          {
+            "id": "1D.2",
+            "skill": "Three or four paragraphs to a brief, with a clear opening and close",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-brief"
+            ]
+          },
+          {
+            "id": "1D.3",
+            "skill": "Persuasive: a position held throughout, reasons ordered, the obvious objection answered",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-persuade"
+            ]
+          },
+          {
+            "id": "1D.4",
+            "skill": "Imaginative: a narrative or description that is shaped, not merely started",
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-narrative"
+            ]
+          },
+          {
+            "id": "1D.5",
+            "skill": "A full 30 minute typed response under time, planned in the first four minutes",
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "W-plan"
+            ]
           }
         ]
       }
@@ -994,40 +1143,28 @@
         "id": "ely.tables",
         "rule": "Multiplication and division facts may only use the 2, 3, 4, 5, 6 and 10 times tables. Never the 7, 8, 9, 11 or 12 tables.",
         "why": "She practises those six daily at home. School only teaches 2, 5 and 10 from January 2027.",
-        "check": "automated"
+        "check": "automated",
+        "until": "2027-09-01",
+        "untilWhy": "Her UK Year 4 teaches the rest of the tables to 12 x 12 from September 2027, and the OC paper in 2029 assumes the whole of NSW Year 4. A ban with no expiry date is how a correct rule becomes the reason a child is not ready. Lift it then, do not wait for the test."
       },
       {
         "id": "ely.written-muldiv",
         "rule": "No written (column or long) multiplication or division.",
         "why": "Not taught yet.",
-        "check": "automated"
+        "check": "automated",
+        "until": "2027-09-01",
+        "untilWhy": "Formal written multiplication is UK Year 4, from September 2027. Same reasoning as ely.tables: the OC paper assumes it."
       },
       {
         "id": "ely.time-minutes",
         "rule": "Time to the minute is allowed: Nik confirmed on 4 Oct 2026 that she is already learning it at home. Keep the two times inside the same hour for now, and do not assume the school has taught it.",
         "why": "Ahead of the school sequence, which reaches it in Summer 2 2027, but practised at home.",
-        "check": "none"
+        "check": "none",
+        "until": "2027-05-29",
+        "untilWhy": "Summer 2 2027 is when the school reaches time to the minute. After that date there is nothing to hold back and two times may cross the hour."
       }
     ],
     "mason": [
-      {
-        "id": "mas.calculator",
-        "rule": "No question may require a calculator.",
-        "why": "The selective test is non calculator.",
-        "check": "manual"
-      },
-      {
-        "id": "mas.outside-knowledge",
-        "rule": "Thinking Skills items must be solvable from the information given. No general knowledge.",
-        "why": "Tests reasoning, not recall.",
-        "check": "manual"
-      },
-      {
-        "id": "mas.nsw-families",
-        "rule": "Every Thinking Skills item must be one of the NSW families: strengthen, weaken, name the flaw, what evidence would settle it, conditional reasoning, whose reasoning is correct, constraint puzzle, data deduction, best value, calendar count. No analogies, no letter codes, no ciphers.",
-        "why": "Counted across the Department's own practice paper. Analogies and ciphers appear nowhere on it.",
-        "check": "manual"
-      },
       {
         "id": "mas.writing-brief",
         "rule": "Slot 1D must name the audience and the text type, and must be autoMark false with a markScheme.",
@@ -1066,11 +1203,29 @@
         "id": "all.computed",
         "rule": "Every sum, key and cipher is computed by script, never written by hand.",
         "check": "automated via kh.py validate"
+      },
+      {
+        "id": "all.nsw-families",
+        "rule": "Every Thinking Skills item must be one of the NSW families: strengthen, weaken, name the flaw, what evidence would settle it, conditional reasoning, whose reasoning is correct, constraint puzzle, data deduction, best value, calendar count. No analogies, no letter codes, no ciphers.",
+        "why": "Counted across the Department's own practice paper. Analogies and ciphers appear nowhere on it. Elysia's 3A, 3B and 3C were re-pointed in the same change, so this applies to her week too: it was filed under Mason only, which left her side of it unstated.",
+        "check": "manual"
+      },
+      {
+        "id": "all.calculator",
+        "rule": "No question may require a calculator.",
+        "why": "The selective test is non calculator. The OC paper is non calculator and information only as well, so this is both children.",
+        "check": "manual"
+      },
+      {
+        "id": "all.outside-knowledge",
+        "rule": "Thinking Skills items must be solvable from the information given. No general knowledge.",
+        "why": "Tests reasoning, not recall. The OC paper is non calculator and information only as well, so this is both children.",
+        "check": "manual"
       }
     ]
   },
   "schoolSync": {
-    "note": "Only slot 2C follows this. Everything else follows the ladder. Full map in the Project doc curriculum-timeline.md.",
+    "note": "Only slot 2C follows this. Everything else follows the ladder. Full map in the Project doc curriculum-timeline.md. `source` is `uk-school` where the row is the school's real published topic and `planned` where it is not: from Autumn 2027 the UK table ran out, and the rows after it are ordered by what the NSW test needs rather than by a school. Replace them with the real topics as each school publishes them, and especially after the family lands in NSW in August 2028. `families[child]` is the list of exam item families this term's 2C actually serves, and it, not a rung, is what decides whether a 2C family is current. The table must always reach past today: it used to end at Summer 2 2027, and `current_term` falls back to the last row, so from 23 July 2027 the plan would have claimed statistics and properties of shape for ever without anything noticing.",
     "terms": [
       {
         "term": "Autumn 1",
@@ -1084,7 +1239,8 @@
           "elysia": [
             "M-place"
           ]
-        }
+        },
+        "source": "uk-school"
       },
       {
         "term": "Autumn 2",
@@ -1099,7 +1255,8 @@
           "elysia": [
             "M-value"
           ]
-        }
+        },
+        "source": "uk-school"
       },
       {
         "term": "Spring 1",
@@ -1113,7 +1270,8 @@
           "elysia": [
             "M-data"
           ]
-        }
+        },
+        "source": "uk-school"
       },
       {
         "term": "Spring 2",
@@ -1128,7 +1286,8 @@
             "M-geom",
             "M-frac"
           ]
-        }
+        },
+        "source": "uk-school"
       },
       {
         "term": "Summer 1",
@@ -1143,7 +1302,8 @@
           "elysia": [
             "M-measure"
           ]
-        }
+        },
+        "source": "uk-school"
       },
       {
         "term": "Summer 2",
@@ -1160,9 +1320,201 @@
             "M-time",
             "M-measure"
           ]
-        }
+        },
+        "source": "uk-school"
+      },
+      {
+        "term": "Autumn 1 2027",
+        "ends": "2027-10-22",
+        "mason": "composite area and perimeter, where the shape must be cut up first",
+        "elysia": "area and perimeter by counting and by multiplying",
+        "families": {
+          "mason": [
+            "M-area"
+          ],
+          "elysia": [
+            "M-area"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "Autumn 2 2027",
+        "ends": "2027-12-17",
+        "mason": "measurement and scale reading, including a mis-zeroed scale",
+        "elysia": "money in pounds and pence, and best value between two sizes",
+        "families": {
+          "mason": [
+            "M-measure"
+          ],
+          "elysia": [
+            "M-value"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "Spring 1 2028",
+        "ends": "2028-02-11",
+        "mason": "24 hour time, durations across midnight, and time zones",
+        "elysia": "graphs, tables and tally charts read for what they do not print",
+        "families": {
+          "mason": [
+            "M-time"
+          ],
+          "elysia": [
+            "M-data"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "Spring 2 2028",
+        "ends": "2028-03-31",
+        "mason": "rate and best value across pack sizes, offers and a quantity to hit exactly",
+        "elysia": "shape, angle and symmetry",
+        "families": {
+          "mason": [
+            "M-value"
+          ],
+          "elysia": [
+            "M-geom"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "Summer 1 2028",
+        "ends": "2028-05-26",
+        "mason": "graphs and tables, then shape, angle, symmetry and nets",
+        "elysia": "measurement: grams, millilitres, metres and centimetres inside one question",
+        "families": {
+          "mason": [
+            "M-data",
+            "M-geom"
+          ],
+          "elysia": [
+            "M-measure"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "Summer 2 2028",
+        "ends": "2028-07-21",
+        "mason": "spatial and visual reasoning: nets, rotation, faces plus edges plus vertices",
+        "elysia": "24 hour time and time zones, then spatial and visual reasoning",
+        "families": {
+          "mason": [
+            "T-spatial"
+          ],
+          "elysia": [
+            "M-time",
+            "T-spatial"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "NSW Term 3 and 4, 2028",
+        "ends": "2028-12-15",
+        "mason": "arrival term. Mixed revision across every maths family, in exam format",
+        "elysia": "arrival term. Mixed revision across every maths family, in exam format",
+        "families": {
+          "mason": [
+            "M-place",
+            "M-measure",
+            "M-time",
+            "M-area",
+            "M-geom",
+            "M-data",
+            "M-value",
+            "T-spatial"
+          ],
+          "elysia": [
+            "M-place",
+            "M-measure",
+            "M-time",
+            "M-area",
+            "M-geom",
+            "M-data",
+            "M-value",
+            "T-spatial"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "NSW 2029, to the tests",
+        "ends": "2029-08-31",
+        "mason": "full paper practice to the selective test in early May 2029",
+        "elysia": "full paper practice to the OC test in 2029",
+        "families": {
+          "mason": [
+            "M-place",
+            "M-measure",
+            "M-time",
+            "M-area",
+            "M-geom",
+            "M-data",
+            "M-value",
+            "T-spatial"
+          ],
+          "elysia": [
+            "M-place",
+            "M-measure",
+            "M-time",
+            "M-area",
+            "M-geom",
+            "M-data",
+            "M-value",
+            "T-spatial"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "NSW 2029-30",
+        "ends": "2030-12-15",
+        "mason": "test sat in May 2029. Slot 2C follows the NSW school from here",
+        "elysia": "OC test sat. Rebuilding towards the 2031 selective test, Years 5 and 6 maths",
+        "families": {
+          "mason": [],
+          "elysia": [
+            "M-place",
+            "M-measure",
+            "M-time",
+            "M-area",
+            "M-geom",
+            "M-data",
+            "M-value",
+            "T-spatial"
+          ]
+        },
+        "source": "planned"
+      },
+      {
+        "term": "NSW 2031, to the selective test",
+        "ends": "2031-05-31",
+        "mason": "not applicable, he is in Year 7",
+        "elysia": "full paper practice to the selective test in early May 2031",
+        "families": {
+          "mason": [],
+          "elysia": [
+            "M-place",
+            "M-measure",
+            "M-time",
+            "M-area",
+            "M-geom",
+            "M-data",
+            "M-value",
+            "T-spatial"
+          ]
+        },
+        "source": "planned"
       }
-    ]
+    ],
+    "endsAt": "2031-05-31"
   },
   "retired": {
     "note": "Item shapes Nik ruled ambiguous or unfair. Never generate these again, in any wording.",
@@ -1203,5 +1555,32 @@
       }
     ]
   },
-  "retargeted": "Slots 3A, 3B and 3C were re-pointed on 11 Oct 2026, and slot 1D added for Mason, after the NSW placement papers were read properly. The old 3A analogies and 3C ciphers were UK 11plus verbal reasoning shapes and appear nowhere in the NSW Thinking Skills paper, which is argument analysis, conditional logic, constraint puzzles, data deduction and best value. Writing is a quarter of the selective mark and had no slot at all. See CLAUDE.md section 1b for the research."
+  "retargeted": "Slots 3A, 3B and 3C were re-pointed on 11 Oct 2026, and slot 1D added for Mason, after the NSW placement papers were read properly. The old 3A analogies and 3C ciphers were UK 11plus verbal reasoning shapes and appear nowhere in the NSW Thinking Skills paper, which is argument analysis, conditional logic, constraint puzzles, data deduction and best value. Writing is a quarter of the selective mark and had no slot at all. See CLAUDE.md section 1b for the research.",
+  "hardLimitsNote": "A limit may carry `until`, an ISO date after which it stops applying. `kh.py validate` and `check-week.mjs` stop enforcing it on that date and `kh.py plan` counts down to it, so a protective rule cannot quietly become the reason a child is unprepared. Elysia's three bans are the ones that needed this: the OC paper in 2029 assumes the whole of NSW Year 4.",
+  "examFormat": {
+    "rule": "At least one section a week must be in exam format: four options for Reading and Thinking Skills, five for Mathematical Reasoning, one mark, no credit for working.",
+    "onWhichRung": "A rung being CONSOLIDATED, never one being learned. Free text is right while a rung is new, because it shows the method and is what feeds the gap log.",
+    "why": "The real papers are multiple choice and nearly every homework question is free text. Multiple choice is its own skill: elimination, no partial credit, about a minute an item. It rises as the test approaches.",
+    "ramp": [
+      {
+        "from": "2026-10-12",
+        "sections": 1,
+        "note": "The rule was agreed on 11 Oct 2026, the same day Mason's week 24 and Elysia's week 22 went to the children. Rebuilding a live section into multiple choice would throw away whatever they had already typed into it, for no gain, so the ramp starts the day after and bites on every week built from the next cycle onward. This date is the only reason those two weeks pass with none."
+      },
+      {
+        "from": "2027-09-01",
+        "sections": 2
+      },
+      {
+        "from": "2028-08-01",
+        "sections": 4
+      },
+      {
+        "from": "2028-12-16",
+        "sections": 6,
+        "note": "full paper practice in the run up to each test"
+      }
+    ],
+    "howMarked": "A section sets \"examFormat\": true and every question in it carries options[] with exactly one key. kh.py validate and check-week.mjs both count them."
+  }
 }

@@ -96,7 +96,8 @@
               "name": "Working backwards",
               "detail": "He gave half of what was left, then half of that, and the last person got $1.60. Undoing a chain of operations, and choosing the number sentence that models a situation.",
               "slots": [
-                "2B"
+                "2B",
+                "2C"
               ]
             },
             {
@@ -136,7 +137,8 @@
               "name": "Probability",
               "detail": "Probability as a decimal or fraction, the remaining probability when two are given, and judging three probability statements at once.",
               "slots": [
-                "2B"
+                "2B",
+                "2C"
               ]
             },
             {
@@ -173,52 +175,82 @@
             {
               "id": "T-strengthen",
               "name": "Strengthen an argument",
-              "detail": "Someone makes a case. Which statement, if true, most strengthens it. The commonest single item type on the paper."
+              "detail": "Someone makes a case. Which statement, if true, most strengthens it. The commonest single item type on the paper.",
+              "slots": [
+                "3A"
+              ]
             },
             {
               "id": "T-weaken",
               "name": "Weaken an argument",
-              "detail": "The same shape in reverse: which statement, if true, most weakens the argument."
+              "detail": "The same shape in reverse: which statement, if true, most weakens the argument.",
+              "slots": [
+                "3A"
+              ]
             },
             {
               "id": "T-flaw",
               "name": "Spot the mistake in reasoning",
-              "detail": "Two people talk and one draws a bad conclusion. Which sentence shows the mistake: usually a confusion of necessary with sufficient, or treating one case as all cases."
+              "detail": "Two people talk and one draws a bad conclusion. Which sentence shows the mistake: usually a confusion of necessary with sufficient, or treating one case as all cases.",
+              "slots": [
+                "3A"
+              ]
             },
             {
               "id": "T-conditional",
               "name": "Conditional reasoning",
-              "detail": "If only those at the meeting may go on the excursion, what follows and what does not. Must be true, cannot be true, whose reasoning is correct."
+              "detail": "If only those at the meeting may go on the excursion, what follows and what does not. Must be true, cannot be true, whose reasoning is correct.",
+              "slots": [
+                "3C"
+              ]
             },
             {
               "id": "T-deduce",
               "name": "Constraint puzzles",
-              "detail": "Five children's ages from four clues, who stands where in a row, the minimum final score that guarantees the prize."
+              "detail": "Five children's ages from four clues, who stands where in a row, the minimum final score that guarantees the prize.",
+              "slots": [
+                "3C"
+              ]
             },
             {
               "id": "T-spatial",
               "name": "Spatial and visual reasoning",
-              "detail": "Which piece completes the shape, which view is possible from the side, which arrangement cannot be made, and a seven segment display with two broken segments."
+              "detail": "Which piece completes the shape, which view is possible from the side, which arrangement cannot be made, and a seven segment display with two broken segments.",
+              "slots": [
+                "2C"
+              ]
             },
             {
               "id": "T-tables",
               "name": "Deduction from data",
-              "detail": "A table or chart that does not state the answer: how many goats had one kid only, how many owners had exactly one dog, which category was left out."
+              "detail": "A table or chart that does not state the answer: how many goats had one kid only, how many owners had exactly one dog, which category was left out.",
+              "slots": [
+                "3B"
+              ]
             },
             {
               "id": "T-optimise",
               "name": "Cost and optimisation",
-              "detail": "Several offers and a constraint, and the cheapest or best combination has to be found rather than calculated directly."
+              "detail": "Several offers and a constraint, and the cheapest or best combination has to be found rather than calculated directly.",
+              "slots": [
+                "3B"
+              ]
             },
             {
               "id": "T-calendar",
               "name": "Calendar and scheduling",
-              "detail": "A show runs from the 12th to the 29th with extra matinees on two weekdays. Counting events over a date range without slipping by one."
+              "detail": "A show runs from the 12th to the 29th with extra matinees on two weekdays. Counting events over a date range without slipping by one.",
+              "slots": [
+                "3C"
+              ]
             },
             {
               "id": "T-sufficiency",
               "name": "What evidence would settle it",
-              "detail": "Which two of the missing answers must be known in order to test whether the claim is true."
+              "detail": "Which two of the missing answers must be known in order to test whether the claim is true.",
+              "slots": [
+                "3A"
+              ]
             }
           ]
         },
@@ -230,31 +262,47 @@
             {
               "id": "W-brief",
               "name": "Writing to a brief",
-              "detail": "The task names an audience and a text type, such as an advice sheet for three new students, and the response has to actually be that text type."
+              "detail": "The task names an audience and a text type, such as an advice sheet for three new students, and the response has to actually be that text type.",
+              "slots": [
+                "1D"
+              ]
             },
             {
               "id": "W-persuade",
               "name": "Persuasive writing",
-              "detail": "A position held consistently, reasons ordered by strength, and the obvious objection answered."
+              "detail": "A position held consistently, reasons ordered by strength, and the obvious objection answered.",
+              "slots": [
+                "1D"
+              ]
             },
             {
               "id": "W-narrative",
               "name": "Imaginative writing",
-              "detail": "A narrative or descriptive response to a prompt, shaped rather than merely started."
+              "detail": "A narrative or descriptive response to a prompt, shaped rather than merely started.",
+              "slots": [
+                "1D"
+              ]
             },
             {
               "id": "W-plan",
               "name": "Planning under 30 minutes",
-              "detail": "Three or four minutes of planning, then a finished piece inside the remaining time. The paper gives space for notes and says to think about organisation first."
+              "detail": "Three or four minutes of planning, then a finished piece inside the remaining time. The paper gives space for notes and says to think about organisation first.",
+              "slots": [
+                "1D"
+              ]
             },
             {
               "id": "W-type",
               "name": "Typing the response",
-              "detail": "The writing test is typed on a department computer, so handwriting speed is irrelevant and typing speed and on screen editing are not."
+              "detail": "The writing test is typed on a department computer, so handwriting speed is irrelevant and typing speed and on screen editing are not.",
+              "slots": [
+                "1D"
+              ]
             }
           ]
         }
-      ]
+      ],
+      "slotsNote": "Each item's `slots` is every weekly slot that serves it for either child, taken from spine `slots.<id>.nswFamilies`. kh.py validate keeps the two in step: a family served by a slot the roadmap does not list, or listed against a slot that does not serve it, is a map that cannot be trusted about where the work happens."
     },
     "maths": {
       "track": "Maths",

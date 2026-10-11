@@ -44,7 +44,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
@@ -613,11 +613,49 @@ def load_spine():
 
 
 def current_term(spine, when=None):
+    """The school half term that today falls in, for slot 2C.
+
+    Falls back to the last row when the table has run out, which is why
+    `check_nsw_alignment` refuses a push once today is past it. The table used
+    to end at Summer 2 2027: from 23 July 2027 every plan would have claimed
+    statistics and properties of shape for ever, and nothing would have said so."""
     when = when or today()
     for t in spine["schoolSync"]["terms"]:
         if when <= t["ends"]:
             return t
     return spine["schoolSync"]["terms"][-1]
+
+
+def term_table_exhausted(spine, when=None):
+    when = when or today()
+    return when > spine["schoolSync"]["terms"][-1]["ends"]
+
+
+def nsw_routes(spine, child):
+    """Every exam item family this child has a route to, and where it is.
+
+    A route is a rung that declares the family, or a school term that does for
+    slot 2C. A family with NO route is the plan quietly saying the child will
+    never meet it: on 11 Oct 2026 Mason had one (probability) and Elysia had
+    thirteen, including all five writing families and four of the maths ones the
+    OC paper assumes. The ladders were extended at the top rather than reset."""
+    routes = {}
+    for sid, ladder in (spine["ladders"].get(child) or {}).items():
+        for rung in ladder["rungs"]:
+            for fid in rung.get("nswFamilies") or []:
+                routes.setdefault(fid, f"{sid} rung {rung['id']}")
+    for t in spine["schoolSync"]["terms"]:
+        for fid in (t.get("families") or {}).get(child) or []:
+            routes.setdefault(fid, f"2C in {t['term']}")
+    return routes
+
+
+def components_for(spine, child):
+    """The test components this child actually sits, across all their tests."""
+    out = set()
+    for t in spine["goals"][child].get("tests") or []:
+        out.update(t.get("components") or [])
+    return out
 
 
 def slot_of(qid_or_section):
@@ -653,7 +691,19 @@ def slots_for(spine, child, week=None):
         if only and child not in only:
             continue
         start = slot.get("from")
+        if isinstance(start, dict):
+            start = start.get(child)
         if start is not None and week is not None and week < start:
+            continue
+        # A slot may instead open on a DATE, which is the honest trigger when the
+        # week number it lands on cannot be known. Elysia's writing slot opens in
+        # September 2029, once the OC test is behind her: guessing a week number
+        # that far out would have been false precision, and leaving the slot off
+        # her ladders entirely read as a plan that she would never write.
+        on = slot.get("fromDate")
+        if isinstance(on, dict):
+            on = on.get(child)
+        if on is not None and today() < on:
             continue
         out[sid] = slot
     return out
@@ -814,6 +864,35 @@ def cmd_curriculum(args):
 ELYSIA_BANNED_TABLES = (7, 8, 9, 11, 12)
 
 
+def live_limits(spine, child, when=None):
+    """The hard limits that still apply to this child today.
+
+    A limit may carry `until`, an ISO date after which it stops applying, and
+    Elysia's three bans are the reason the field exists. The 7, 8, 9, 11 and 12
+    tables, written multiplication and division, and time to the minute are all
+    correct for her UK school year and all assumed by the OC paper in 2029. A
+    ban with no expiry date is how a protective rule becomes the reason a child
+    is not ready, so the dates are in the spine and enforcement stops on them."""
+    when = when or today()
+    out = []
+    for lim in list(spine["hardLimits"].get(child, [])) + list(spine["hardLimits"]["both"]):
+        if lim.get("until") and when >= lim["until"]:
+            continue
+        out.append(lim)
+    return out
+
+
+def expiring_limits(spine, child, when=None, within_days=120):
+    """Limits whose expiry date is close, so `plan` can count down to it."""
+    when = when or today()
+    soon = (date.fromisoformat(when) + timedelta(days=within_days)).isoformat()
+    out = []
+    for lim in list(spine["hardLimits"].get(child, [])) + list(spine["hardLimits"]["both"]):
+        if lim.get("until") and when < lim["until"] <= soon:
+            out.append(lim)
+    return out
+
+
 def check_curriculum(local, spine):
     """The hardLimits marked check: automated. These are the rules that have
     actually been broken in the past, so they are machine checked rather than
@@ -859,19 +938,24 @@ def check_curriculum(local, spine):
             if child != "elysia":
                 continue
 
-            # Elysia only: the three limits that have been broken before
+            live = {lim["id"] for lim in live_limits(spine, child)}
+
+            # Elysia only: the three limits that have been broken before. Each
+            # stops being enforced on its `until` date in the spine.
+            if "ely.tables" not in live and "ely.written-muldiv" not in live:
+                continue
             for a, b in re.findall(r"(\d{1,3})\s*(?:x|\u00d7|\*)\s*(\d{1,3})", texts):
                 for n in (int(a), int(b)):
-                    if n in ELYSIA_BANNED_TABLES:
+                    if n in ELYSIA_BANNED_TABLES and "ely.tables" in live:
                         problems.append(f"{child} W{week} {sid}: uses the {n} times table "
                                         f"({a} x {b}), which is banned until school teaches it")
-                if int(a) > 12 and int(b) > 12:
+                if int(a) > 12 and int(b) > 12 and "ely.written-muldiv" in live:
                     problems.append(f"{child} W{week} {sid}: {a} x {b} is written multiplication, "
                                     "which is not taught yet")
             for a, b in re.findall(r"(\d{1,4})\s*(?:\u00f7|/)\s*(\d{1,3})", texts):
-                if int(b) in ELYSIA_BANNED_TABLES:
+                if int(b) in ELYSIA_BANNED_TABLES and "ely.tables" in live:
                     problems.append(f"{child} W{week} {sid}: divides by {b}, a banned table")
-                if int(a) > 100:
+                if int(a) > 100 and "ely.written-muldiv" in live:
                     problems.append(f"{child} W{week} {sid}: {a} divided by {b} is written "
                                     "division, which is not taught yet")
 
@@ -1084,7 +1168,66 @@ def check_nsw_alignment(spine, local=None):
         for fid in missing:
             problems.append(f"{child}: {fid!r} IS in the weekly homework now, at {reachable.get(fid)}, "
                             f"and the roadmap lists it as neither current nor cleared")
+
+    # And the fourth: every family of every component the child SITS must have a
+    # route somewhere on their ladders or in the term table. Nothing in the week
+    # has to reach it yet, but the plan has to say where it will be reached.
+    comp_of = {sec["id"]: sec["label"] for sec in nsw["sections"]}
+    fam_comp = {i["id"]: comp_of[sec["id"]] for sec in nsw["sections"] for i in sec["items"]}
+    for child in CHILDREN:
+        sits = components_for(spine, child)
+        if not sits:
+            problems.append(f"{child}: spine goals name no tests, so nothing can be checked "
+                            f"against the components they sit")
+            continue
+        routes = nsw_routes(spine, child)
+        for fid, comp in sorted(fam_comp.items()):
+            if comp in sits and fid not in routes:
+                problems.append(f"{child}: {fid!r} is on the {comp} paper they sit and has no route "
+                                f"at all: no rung and no school term delivers it")
+
+    # Fifth: each roadmap item names the slots that serve it, and that list is
+    # what the dashboard shows as "where this happens". It must match the spine.
+    owner = {}
+    for sid, slot in spine["slots"].items():
+        for child in CHILDREN:
+            for fid in nsw_families(slot, child):
+                owner.setdefault(fid, set()).add(sid)
+    for sec in nsw["sections"]:
+        for item in sec["items"]:
+            want = sorted(owner.get(item["id"]) or [])
+            got = sorted(item.get("slots") or [])
+            if want != got:
+                problems.append(f"roadmap item {item['id']!r} lists slots {got} but the spine has "
+                                f"{want} serving it")
+
+    if term_table_exhausted(spine):
+        last = spine["schoolSync"]["terms"][-1]
+        problems.append(f"schoolSync ran out on {last['ends']}, so slot 2C is pinned to "
+                        f"{last['term']!r} for ever. Extend the table.")
     return problems
+
+
+def exam_format_quota(spine, when=None):
+    """How many sections must be in exam format this week.
+
+    The real papers are multiple choice and nearly every homework question is
+    free text, so multiple choice is an untested skill: elimination, no partial
+    credit, no marks for working, about a minute an item. The standing rule from
+    11 Oct 2026 was one section a week rising as 2029 approaches, and it was
+    written down and then never enforced, which is exactly how writing reached
+    zero coverage. The ramp lives in spine.examFormat.ramp."""
+    when = when or today()
+    policy = spine.get("examFormat") or {}
+    n = 0
+    for step in policy.get("ramp") or []:
+        if when >= step["from"]:
+            n = step["sections"]
+    return n
+
+
+def exam_format_sections(week):
+    return [s for s in (week.get("sections") or []) if s.get("examFormat")]
 
 
 def check_coverage(local, spine):
@@ -1176,6 +1319,31 @@ def check_coverage(local, spine):
             if n < 12:
                 problems.append(f"{child} W{week} 2A: only {n} drill items, the spine asks for at "
                                 "least 30 for maths and 12 for an English letter drill")
+
+        # at least N sections a week in exam format, N from the ramp
+        quota = exam_format_quota(spine)
+        got = exam_format_sections(cur)
+        if len(got) < quota:
+            problems.append(f"{child} W{week}: {len(got)} section(s) in exam format, the spine's ramp "
+                            f"asks for {quota} by today. Set examFormat true on a section built on a "
+                            f"rung being CONSOLIDATED, never one being learned.")
+        for sec in got:
+            qs = [q for q in sec.get("questions", []) if q.get("inputType") != "none"]
+            for q in qs:
+                opts = q.get("options")
+                if not opts:
+                    problems.append(f"{child} W{week} {sec['id']} {q['id']}: examFormat is set but the "
+                                    f"question has no options[]")
+                    continue
+                want = 5 if sec.get("subject") == "maths" else 4
+                if len(opts) != want:
+                    problems.append(f"{child} W{week} {sec['id']} {q['id']}: {len(opts)} options, the "
+                                    f"real paper gives {want} for {sec.get('subject')}")
+                keys = [o for o in opts if str(o).strip().lower() in
+                        [str(a).strip().lower() for a in (q.get("accepted") or [])]]
+                if len(keys) != 1:
+                    problems.append(f"{child} W{week} {sec['id']} {q['id']}: {len(keys)} of the options "
+                                    f"match accepted[], a multiple choice item needs exactly one")
 
         # a recorded rung must exist on the ladder
         for sid, here in slots.items():
