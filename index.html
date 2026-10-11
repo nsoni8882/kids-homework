@@ -45,18 +45,23 @@
   <div id="error" hidden></div>
 
   <div id="app" hidden>
-    <div class="tabs" role="tablist" aria-label="Choose a child">
-      <button class="tab" role="tab" type="button" data-kid="mason"
+    <div class="tabs" role="tablist" aria-label="Choose a view">
+      <button class="tab" role="tab" type="button" data-tab="mason" data-kid="mason"
               aria-selected="true" aria-controls="panel-mason" id="tab-mason">
         <span class="dot" aria-hidden="true"></span> Mason
       </button>
-      <button class="tab" role="tab" type="button" data-kid="elysia"
+      <button class="tab" role="tab" type="button" data-tab="elysia" data-kid="elysia"
               aria-selected="false" aria-controls="panel-elysia" id="tab-elysia" tabindex="-1">
         <span class="dot" aria-hidden="true"></span> Elysia
+      </button>
+      <button class="tab" role="tab" type="button" data-tab="roadmap"
+              aria-selected="false" aria-controls="panel-roadmap" id="tab-roadmap" tabindex="-1">
+        Roadmap
       </button>
     </div>
     <div id="panel-mason" role="tabpanel" aria-labelledby="tab-mason" tabindex="0"></div>
     <div id="panel-elysia" role="tabpanel" aria-labelledby="tab-elysia" tabindex="0" hidden></div>
+    <div id="panel-roadmap" role="tabpanel" aria-labelledby="tab-roadmap" tabindex="0" hidden></div>
   </div>
 </main>
 

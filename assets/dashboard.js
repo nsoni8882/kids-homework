@@ -134,6 +134,7 @@ async function init() {
     $('loading').hidden = true;
     $('app').hidden = false;
     KIDS.forEach(renderKid);
+    renderRoadmap();
     initTabs();
   } catch (err) {
     $('loading').hidden = true;
@@ -147,34 +148,40 @@ async function init() {
 
 /* ------------------------------------------------------------------- tabs */
 
+const VIEWS = [...KIDS, 'roadmap'];
+
 function initTabs() {
   const tabs = [...document.querySelectorAll('[role="tab"]')];
-  const show = (kid) => {
+  const show = (view) => {
     tabs.forEach((t) => {
-      const on = t.dataset.kid === kid;
+      const on = t.dataset.tab === view;
       t.setAttribute('aria-selected', String(on));
       t.tabIndex = on ? 0 : -1;
-      t.style.setProperty('--tab-ink', `var(--child-${t.dataset.kid})`);
+      if (t.dataset.kid) t.style.setProperty('--tab-ink', `var(--child-${t.dataset.kid})`);
     });
-    KIDS.forEach((k) => { $(`panel-${k}`).hidden = k !== kid; });
-    document.documentElement.dataset.child = kid;
-    drawCharts(kid);
+    VIEWS.forEach((v) => { $(`panel-${v}`).hidden = v !== view; });
+    // The roadmap shows both children, so it keeps whichever accent was last
+    // chosen rather than claiming one child's colour for a shared view.
+    if (KIDS.includes(view)) document.documentElement.dataset.child = view;
+    if (KIDS.includes(view)) drawCharts(view);
   };
   tabs.forEach((t, i) => {
-    t.addEventListener('click', () => show(t.dataset.kid));
+    t.addEventListener('click', () => show(t.dataset.tab));
     t.addEventListener('keydown', (e) => {
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!d) return;
       e.preventDefault();
       const n = tabs[(i + d + tabs.length) % tabs.length];
-      n.focus(); show(n.dataset.kid);
+      n.focus(); show(n.dataset.tab);
     });
   });
   show('mason');
 }
 
-const visibleKid = () => (KIDS.find((k) => !$(`panel-${k}`).hidden) || 'mason');
-function redrawAll() { if (live) drawCharts(visibleKid()); }
+// null while the roadmap tab is open: a chart drawn into a hidden panel has no
+// size to lay out against, so a theme change must not try to redraw one.
+const visibleKid = () => KIDS.find((k) => !$(`panel-${k}`).hidden) || null;
+function redrawAll() { const k = visibleKid(); if (live && k) drawCharts(k); }
 
 /* -------------------------------------------------------------- rendering */
 
@@ -252,14 +259,7 @@ function renderKid(kid) {
       <p class="card-note">The charts above show the last ${weeks.length} weeks. This is all of them.</p>
       ${historyHtml(kid)}
     </section>
-
-    <h2 class="section-label">Kumon curriculum</h2>
-    <section class="card">
-      <details class="disclose" style="border-top:0;margin-top:0;padding-top:0">
-        <summary>${icon('chevronRight', 'i i-sm chev')} Level roadmap</summary>
-        <div style="margin-top:var(--s4)">${roadmapHtml(kid)}</div>
-      </details>
-    </section>`;
+`;
 
   wireCard(`${kid}-trend`);
   wireCard(`${kid}-subject`);
@@ -674,36 +674,95 @@ function drawHistoryChart(kid) {
 /* ---------------------------------------------------------------- roadmap */
 
 const STATE_ICON = { cleared: 'checkCircle', current: 'target', future: 'square' };
+const STATE_LABEL = { cleared: 'Cleared', current: 'Working on this now', future: 'Not yet reached' };
 
-function roadmapHtml(kid) {
-  if (!roadmap || !roadmap.children[kid]) return '<p class="card-note">The roadmap did not load.</p>';
-  const legend = `<div class="roadmap-legend">${['cleared', 'current', 'future'].map((s) =>
-    `<span class="row" style="gap:var(--s1)"><span class="kl-${s}" style="display:inline-flex">
-      ${icon(STATE_ICON[s], 'i i-sm')}</span><span class="card-note">${
-      s === 'cleared' ? 'Cleared' : s === 'current' ? 'Current level' : 'Not yet reached'}</span></span>`).join('')}</div>`;
+/* A section's state is derived, never stored: current if any sub-section is
+ * current, cleared if every one is, future otherwise. More than one section can
+ * be current at once, because the nine homework slots advance independently. */
+function sectionState(sec) {
+  if (sec.items.some((i) => i.state === 'current')) return 'current';
+  if (sec.items.every((i) => i.state === 'cleared')) return 'cleared';
+  return 'future';
+}
 
-  const cols = roadmap.children[kid].tracks.map((t) => {
-    let html = `<div class="roadmap-col"><h3>${icon(t.icon)} ${esc(t.track)}</h3>`;
-    let inSub = false;
-    t.items.forEach((it) => {
-      if (it.type === 'group') {
-        if (inSub) { html += '</div>'; inSub = false; }
-        html += `<p class="kl-group">${esc(it.label)}</p><div class="kl-sub">`;
-        inSub = true;
-        return;
-      }
-      html += `<div class="kl kl-${it.state}">${iconLabelled(STATE_ICON[it.state], it.state, 'i i-sm')}
-        <div><div class="kl-name">${esc(it.name)}</div>
-        <div class="kl-desc">${esc(it.detail)}</div></div></div>`;
-    });
-    if (inSub) html += '</div>';
-    return `${html}</div>`;
+function renderRoadmap() {
+  const panel = $('panel-roadmap');
+  if (!roadmap || !roadmap.children) {
+    panel.innerHTML = '<div class="card"><p class="card-note">The roadmap did not load.</p></div>';
+    return;
+  }
+  const legend = `<div class="roadmap-legend">${['cleared', 'current', 'future'].map((st) =>
+    `<span class="row" style="gap:var(--s1)"><span class="kl-${st}" style="display:inline-flex">
+      ${icon(STATE_ICON[st], 'i i-sm')}</span>
+      <span class="card-note">${STATE_LABEL[st]}</span></span>`).join('')}</div>`;
+
+  panel.innerHTML = `
+    <h1 class="sr-only">The full Kumon roadmap for both children</h1>
+    <section class="card">
+      <div class="chart-head">${icon('layers')}<h2>The whole pathway, both children</h2></div>
+      <p class="card-note">Every Kumon level either child will pass through. The section they are
+        working towards is open, the rest are folded away. ${esc(roadmap.stateNote || '')}</p>
+      ${legend}
+    </section>
+    ${KIDS.map(childRoadmapHtml).join('')}
+    <section class="card">
+      <p class="card-note">${esc(roadmap.note)}</p>
+      <p class="card-note" style="margin-top:var(--s2);color:var(--warn)">
+        ${icon('alert', 'i i-sm')} ${esc(roadmap.warning)}</p>
+    </section>`;
+}
+
+function childRoadmapHtml(kid) {
+  const child = roadmap.children[kid];
+  if (!child) return '';
+  const cols = child.tracks.map((t) => {
+    const here = t.sections.filter((sec) => sectionState(sec) === 'current')
+      .flatMap((sec) => sec.items.filter((i) => i.state === 'current').map((i) => i.name));
+    return `<div class="roadmap-col">
+      <h3>${icon(t.icon)} ${esc(t.track)}</h3>
+      <p class="card-note rm-now">${here.length
+        ? `${icon('target', 'i i-sm')} Now on ${here.map(esc).join(', ')}`
+        : 'No current level recorded'}</p>
+      ${t.note ? `<p class="card-note rm-note">${icon('trend', 'i i-sm')} ${esc(t.note)}</p>` : ''}
+      ${t.sections.map(sectionHtml).join('')}
+    </div>`;
   }).join('');
 
-  return `${legend}<div class="roadmap-cols">${cols}</div>
-    <p class="card-note" style="margin-top:var(--s4)">${esc(roadmap.note)}</p>
-    <p class="card-note" style="margin-top:var(--s2);color:var(--warn)">
-      ${icon('alert', 'i i-sm')} ${esc(roadmap.warning)}</p>`;
+  // --accent-wash and --accent-edge are declared on :root, where their var()
+  // was already substituted against the root accent, so overriding --accent
+  // alone would leave every child's wash the same colour. They are restated.
+  return `<section class="card rm-child" style="--accent:var(--child-${kid});
+      --accent-ink:var(--child-${kid}-ink);
+      --accent-wash:color-mix(in srgb, var(--child-${kid}) 10%, transparent);
+      --accent-edge:color-mix(in srgb, var(--child-${kid}) 26%, transparent)">
+    <div class="chart-head"><span class="dot" style="background:var(--accent)" aria-hidden="true"></span>
+      <h2>${esc(CHILDREN[kid].name)}</h2></div>
+    <div class="roadmap-cols">${cols}</div>
+  </section>`;
+}
+
+function sectionHtml(sec) {
+  const st = sectionState(sec);
+  const done = sec.items.filter((i) => i.state === 'cleared').length;
+  const badge = st === 'current' ? '<span class="badge badge-info">Current</span>'
+    : st === 'cleared' ? '<span class="badge badge-ok">Cleared</span>'
+    : '<span class="badge badge-neutral">To come</span>';
+  const items = sec.items.map((it) => `
+    <div class="kl kl-${it.state}">${iconLabelled(STATE_ICON[it.state], STATE_LABEL[it.state], 'i i-sm')}
+      <div><div class="kl-name">${esc(it.name)}</div>
+        <div class="kl-desc">${esc(it.detail)}</div>
+        ${it.why ? `<div class="kl-why">${icon('target', 'i i-sm')} ${esc(it.why)}</div>` : ''}
+      </div></div>`).join('');
+
+  // Open on the section they are working towards, folded otherwise.
+  return `<details class="rm-sec"${st === 'current' ? ' open' : ''}>
+    <summary>${icon('chevronRight', 'i i-sm chev')}
+      <span class="rm-sec-label">${esc(sec.label)}</span>
+      ${badge}
+      <span class="rm-sec-count">${done} of ${sec.items.length} cleared</span></summary>
+    ${sec.sub ? `<p class="card-note rm-sec-sub">${esc(sec.sub)}</p>` : ''}
+    <div class="rm-sec-items">${items}</div>
+  </details>`;
 }
 
 initTheme();
