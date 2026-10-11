@@ -129,19 +129,27 @@ if (!patched) {
   }
   ok(html.indexOf('NSW placement test') < html.indexOf('Maths'),
     'the Kumon ladder is shown above the placement test it serves');
-  // the per component tally, and the warning styling on a component at zero
-  ok(html.includes('Thinking Skills\n      0 of 10') || /Thinking Skills\s+0 of 10/.test(html),
-    'the Thinking Skills component does not show 0 of 10');
-  ok((html.match(/rm-cover-none/g) || []).length >= 4,
+  // the per component tally. Thinking Skills and Writing were re-pointed into
+  // the week on 11 Oct 2026, so both are now fully covered for Mason; Reading
+  // is the component still mostly untouched, and Elysia has no writing paper.
+  // 9 of 10, not 10: spatial and visual reasoning is deliberately still out,
+  // waiting for slot 2C to reach properties of shape
+  ok(/Thinking Skills\s+9 of 10/.test(html),
+    "Mason's Thinking Skills component does not show 9 of 10");
+  ok(/Writing\s+5 of 5/.test(html), 'Mason\'s Writing component does not show 5 of 5');
+  ok(/Writing\s+0 of 5/.test(html), "Elysia's Writing component should still be at 0 of 5");
+  ok((html.match(/Reading\s+1 of 5/g) || []).length === 2,
+    'Reading should still be 1 of 5 for both children');
+  // a component with nothing in the week is flagged, and Elysia's Writing is one
+  ok((html.match(/rm-cover-none/g) || []).length >= 1,
     'a component with nothing in the week is not flagged');
-  // Thinking Skills and Writing have no coverage at all, which is the finding
-  ok((html.match(/Nothing in the week covers this yet/g) || []).length >= 4,
+  ok(html.includes('Nothing in the week covers this yet'),
     'a test component with no coverage is not called out');
-  ok((html.match(/>Not started</g) || []).length >= 4,
-    'the untouched test components are not badged "Not started"');
+  ok(html.includes('>Not started<'),
+    'an untouched test component is not badged "Not started"');
   ok(open === 13, `expected 5 Kumon levels and 8 test components open, got ${open}`);
   const current = (html.match(/kl kl-current/g) || []).length;
-  ok(current === 17, `expected 17 current sub-topics (7 Kumon, 10 test), got ${current}`);
+  ok(current === 38, `expected 38 current sub-topics (7 Kumon, 31 test), got ${current}`);
 } else {
   // a level part cleared with nothing current in it must not read "To come"
   const c = html.slice(html.indexOf('>Level C<'), html.indexOf('>Level D<'));

@@ -543,6 +543,9 @@ def cmd_push(args):
 def validate(local=None):
     local = local or load_local()
     problems = []
+    # validate runs with or without the spine present, so the gap slot check
+    # falls back to the old 1A..3C grid when there is none
+    spine_slots = load_spine()["slots"] if os.path.exists(SPINE) else {}
     for child in CHILDREN:
         d = local[child]
         seen = set()
@@ -572,8 +575,10 @@ def validate(local=None):
             if b != a + 1:
                 problems.append(f"{child}: gap in week numbers between {a} and {b}")
         for g in d["gaps"]:
-            if g.get("slot") and g["slot"] not in [f"{a}{b}" for a in "123" for b in "ABC"]:
-                problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': slot {g['slot']!r} is not 1A to 3C")
+            known = list(spine_slots) if spine_slots else [f"{a}{b}" for a in "123" for b in "ABC"]
+            if g.get("slot") and g["slot"] not in known:
+                problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': slot {g['slot']!r} is "
+                                f"not one of {', '.join(known)}")
             if g.get("status") not in ("new", "persists", "improving", "resolved", "parked"):
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': bad status {g.get('status')!r}")
             if not g.get("topic") or not isinstance(g.get("weeks"), list):
@@ -614,8 +619,30 @@ def current_term(spine, when=None):
 
 
 def slot_of(qid_or_section):
-    """Section ids are 1A..3C and question ids are 1A-Q3, so the slot is the first two."""
+    """Section ids look like 1A or 1D and question ids like 1A-Q3, so the slot is
+    the first two characters."""
     return str(qid_or_section)[:2]
+
+
+def slots_for(spine, child, week=None):
+    """The slots that apply to this child, in spine order.
+
+    A slot may carry `children`, naming the only children it applies to, and
+    `from`, the first week number it is expected in. Slot 1D, writing, is
+    Mason only and starts at week 25: without the week guard, adding it would
+    have made the already published week 24 fail validation, and `push` refuses
+    on a failed validation, so the whole CLI would have been stuck behind a
+    change to a future week."""
+    out = {}
+    for sid, slot in spine["slots"].items():
+        only = slot.get("children")
+        if only and child not in only:
+            continue
+        start = slot.get("from")
+        if start is not None and week is not None and week < start:
+            continue
+        out[sid] = slot
+    return out
 
 
 def cmd_curriculum(args):
@@ -653,8 +680,7 @@ def cmd_curriculum(args):
               f"2C topic is \"{term[child]}\"")
         print()
 
-        for slot_id in sorted(spine["slots"]):
-            slot = spine["slots"][slot_id]
+        for slot_id, slot in sorted(slots_for(spine, child).items()):
             ladder = spine["ladders"][child][slot_id]
             here = slots.get(slot_id, {})
             rungs = ladder["rungs"]
@@ -707,9 +733,17 @@ def cmd_curriculum(args):
             if lim.get("note"):
                 print(f"      NOTE: {lim['note']}")
         print()
+        # A retired entry is an object: {shape, example, why, retiredOn}. This
+        # printed it as if it were a string, so `curriculum <child>` crashed
+        # with a TypeError the moment the first shape was retired on 11 Oct.
         retired = spine["retired"].get(child) or []
-        print(f"  retired item shapes, never generate again: "
-              f"{len(retired) and chr(10) + chr(10).join('    - ' + r for r in retired) or 'none yet'}")
+        print(f"  retired item shapes, never generate again ({len(retired)}):")
+        if not retired:
+            print("    none yet")
+        for r in retired:
+            print(f"    - {r['shape']}")
+            if r.get("why"):
+                print(f"      why: {r['why']}")
         print()
 
 
@@ -829,8 +863,9 @@ def cmd_plan(args):
         print(f"  school term {term['term']} to {term['ends']}, 2C topic \"{term[child]}\"")
         print()
 
-        for sid in sorted(spine["slots"]):
-            slot = spine["slots"][sid]
+        # next_week, not this one: the spec is for the week being built, so a
+        # slot that starts at week 25 belongs in the week 25 spec
+        for sid, slot in sorted(slots_for(spine, child, next_week).items()):
             ladder = spine["ladders"][child][sid]
             rungs = ladder["rungs"]
             here = slots.get(sid, {})
@@ -854,7 +889,12 @@ def cmd_plan(args):
             # so a spec that reads only the flag asks for evidence that cannot exist.
             last_hinted_list = (weeks[-1].get("hintedSections") or []) if weeks else []
             was_hinted = bool(last_section and last_section.get("hinted")) or sid in last_hinted_list
-            out_of = last_section.get("totalMarks") if last_section else None
+            # the spine wins when it fixes a slot's marks for this child: that
+            # is how a re-split reaches the spec instead of last week's numbers
+            # being copied forward for ever
+            fixed = (slot.get("marks") or {}).get(child)
+            out_of = fixed if fixed is not None else (
+                last_section.get("totalMarks") if last_section else None)
             pct = round(last_marks / out_of * 100) if last_marks is not None and out_of else None
 
             print(f"  [{sid}] {slot['purpose']}")
@@ -940,8 +980,8 @@ def check_coverage(local, spine):
         # a parked gap names a skill the child has not been taught, so it is not
         # work that is owed and must not be forced into next week
 
-        # every slot present
-        for sid in spine["slots"]:
+        # every slot that applies to this child, this week
+        for sid in slots_for(spine, child, week):
             if sid not in sections:
                 problems.append(f"{child} W{week}: slot {sid} is missing from the week")
 

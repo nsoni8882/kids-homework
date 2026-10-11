@@ -968,7 +968,7 @@
       ],
       "notes": {
         "english": "Reading comprehension in slot 1A is at rung 1A.4, inference from an unseen passage, which is ahead of the Kumon sheet position below. The selective test drives that, not Kumon.",
-        "nsw": "Thinking Skills and Writing are at zero. Slots 3A, 3B and 3C currently set analogies, number sets and letter codes, which are UK 11plus verbal reasoning shapes and appear nowhere in the NSW paper. The real paper is argument analysis, conditional logic, constraint puzzles, spatial reasoning and data deduction. Writing has no slot in the weekly nine at all, and it is a quarter of his mark."
+        "nsw": "Re-pointed on 11 Oct 2026. Slots 3A and 3C were analogies and ciphers, neither of which is on the NSW paper, and now carry argument analysis and conditional logic. Slot 1D, writing, is new and takes 4 of English's 20 marks, so the week is still 55. Both take effect from week 25, and the three re-pointed Thinking rungs were reset to the bottom of their new ladders, so expect a dip before it reads as progress. Still untouched: spatial and visual reasoning, which waits for 2C to reach properties of shape, and four of the five Reading item types."
       },
       "progress": {
         "maths": {
@@ -1013,11 +1013,25 @@
           "current": {
             "R-compare": "Slot 1A is at rung 1A.4, inference from an unseen passage, which is the first 8 items of the real Reading paper",
             "M-place": "Slot 2C is on 4 digit place value this half term",
-            "M-factors": "Slot 3B works on number properties including square numbers and divisibility rules",
+            "M-factors": "Slot 3B rung 3B.2, multiples and factors with counting",
             "M-reverse": "Slot 2B is at rung 2B.2 and writes the check back, which is the same undoing step",
             "M-measure": "Slot 2C moves to length and perimeter in Autumn 2",
             "M-area": "Slot 2C covers perimeter this half term and area in Spring 1",
-            "M-pattern": "Slot 3B infers the rule behind a number set, which is the sequence half of this item type"
+            "M-pattern": "Slot 3B infers the rule behind a number set, which is the sequence half of this item type",
+            "T-strengthen": "Slot 3A is re-pointed to argument analysis from week 25 and starts at rung 3A.1, which is this item exactly",
+            "T-weaken": "Slot 3A rung 3A.2, the next rung up",
+            "T-flaw": "Slot 3A rung 3A.3, naming the mistake",
+            "T-sufficiency": "Slot 3A rung 3A.4, what would have to be known to test the claim",
+            "T-tables": "Slot 3B rung 3B.4, reading a table for what it does not print",
+            "T-optimise": "Slot 3B rung 3B.5, best value across pack sizes",
+            "T-conditional": "Slot 3C is re-pointed to conditional logic from week 25 and starts at rung 3C.1",
+            "T-deduce": "Slot 3C rung 3C.3, constraint puzzles, and 3C.4, the minimum that guarantees an outcome",
+            "T-calendar": "Slot 3C rung 3C.5, counting events over a date range",
+            "W-brief": "New slot 1D from week 25, 4 marks inside English's 20, starting at one paragraph to a brief that names its audience and text type",
+            "W-persuade": "Slot 1D rung 1D.3",
+            "W-narrative": "Slot 1D rung 1D.4",
+            "W-plan": "Slot 1D rung 1D.5, the full 30 minute typed response planned in the first four minutes",
+            "W-type": "Already true: the worksheet is typed in the browser, so the writing box is the same kind of input the real test uses"
           }
         }
       },
@@ -1049,7 +1063,7 @@
       "notes": {
         "maths": "School does not teach the 7, 8, 9, 11 or 12 times tables until later, so the homework stays off them even once Level C starts.",
         "english": "Reading comprehension in slot 1A is at rung 1A.3, joining two facts from different paragraphs, which runs ahead of the Kumon sheet position below.",
-        "nsw": "Same gap as Mason on Thinking Skills: none of the test's item families are in her week yet. Her OC test has no writing paper, but the selective test she sits in 2031 does, so the Writing section below is deferred rather than irrelevant. Her maths bans on the 7, 8, 9, 11 and 12 tables and on written multiplication and division are right for her UK school today, and must lift well before the OC paper, which assumes the whole of NSW Year 4."
+        "nsw": "Re-pointed on 11 Oct 2026 the same way as Mason's, from week 23, at OC level. Her OC test has no writing paper, so slot 1D is not hers yet: she gets it when she turns to the 2031 selective test. Her bans on the 7, 8, 9, 11 and 12 tables and on written multiplication and division are right for her UK school today and must lift during 2028, because the OC paper assumes the whole of NSW Year 4."
       },
       "progress": {
         "maths": {
@@ -1087,7 +1101,14 @@
           "current": {
             "R-compare": "Slot 1A is at rung 1A.3, joining two facts from different paragraphs",
             "M-place": "Slot 2C works on place value and addition and subtraction within 100",
-            "M-reverse": "Slot 2B is at rung 2B.2, vertical addition with carrying, and 2C sets two step problems"
+            "M-reverse": "Slot 2B is at rung 2B.2, vertical addition with carrying, and 2C sets two step problems",
+            "T-strengthen": "Slot 3A is re-pointed to argument analysis from week 23 and starts at rung 3A.1, which statement best supports a claim",
+            "T-weaken": "Slot 3A rung 3A.4",
+            "T-flaw": "Slot 3A rung 3A.3, spotting the mistake",
+            "T-conditional": "Slot 3C rung 3C.3, what follows from a condition",
+            "T-deduce": "Slot 3C rungs 3C.1 and 3C.2, two and three clue logic, and 3C.5 for order and position",
+            "T-tables": "Slot 3B rung 3B.3, reading a table or pictogram for what it does not state",
+            "T-optimise": "Slot 3B rung 3B.4, which of two sizes is better value"
           }
         }
       },

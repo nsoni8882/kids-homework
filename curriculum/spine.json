@@ -42,21 +42,46 @@
       "purpose": "Reading comprehension from a passage",
       "format": "One passage of 150 to 250 words, then literal and inference questions. At least one question must require joining two facts from different paragraphs.",
       "fixed": "Always a passage. Never a standalone question set.",
-      "inferredRule": false
+      "inferredRule": false,
+      "marks": {
+        "mason": 6
+      },
+      "marksNote": "Mason's English 20 was re-split on 11 Oct 2026 to make room for writing: 1A 6, 1B 5, 1C 5, 1D 4, from week 25. The subject total is unchanged, so nothing downstream moves."
     },
     "1B": {
       "subject": "english",
       "purpose": "Sentence level comprehension and grammar in context",
       "format": "A short passage or set of sentences, then questions about who, what, when, where, why, how, or about sentence structure.",
       "fixed": "Always tied to text the child can point at. Never abstract grammar labelling.",
-      "inferredRule": false
+      "inferredRule": false,
+      "marks": {
+        "mason": 5
+      }
     },
     "1C": {
       "subject": "english",
       "purpose": "Word level accuracy: spelling, word classes, word building",
       "format": "Short items. Use the school spelling list when Nik supplies it.",
       "fixed": "Always the week's spelling plus one word knowledge skill.",
-      "inferredRule": false
+      "inferredRule": false,
+      "marks": {
+        "mason": 5
+      }
+    },
+    "1D": {
+      "subject": "english",
+      "purpose": "Writing to a brief",
+      "format": "One task that names an audience and a text type, as the real paper does: an advice sheet, a letter, a speech, an article, or a narrative. Parent marked against a rubric.",
+      "fixed": "Always autoMark false with a markScheme. Never a one word answer. The brief always states who is reading it and what kind of text it must be.",
+      "inferredRule": false,
+      "children": [
+        "mason"
+      ],
+      "from": 25,
+      "why": "Writing is 25 percent of the selective mark and had no slot in the week. It sits inside English's 20 rather than inflating the week: 1A 6, 1B 5, 1C 5, 1D 4. Elysia's OC test has no writing paper, so she gets this slot when she turns to the 2031 selective test.",
+      "marks": {
+        "mason": 4
+      }
     },
     "2A": {
       "subject": "maths",
@@ -81,25 +106,26 @@
     },
     "3A": {
       "subject": "thinking",
-      "purpose": "Verbal reasoning",
-      "format": "Analogies, odd one out on words, or relationships between words.",
-      "fixed": "Exactly one defensible answer per item. No two valid splits.",
-      "inferredRule": true
+      "purpose": "Argument analysis",
+      "format": "A short argument in one or two sentences, then one of: which statement most strengthens it, which most weakens it, which sentence names the mistake made, or which fact would have to be known to test the claim.",
+      "fixed": "Exactly one defensible answer. The wrong options must be plausible and on topic, not obviously irrelevant.",
+      "inferredRule": false,
+      "replaced": "Analogies and odd one out on words, re-pointed 11 Oct 2026. Not on the NSW paper."
     },
     "3B": {
       "subject": "thinking",
-      "purpose": "Numerical and pattern reasoning",
-      "format": "Number patterns, sequences, odd one out on numbers.",
-      "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails, and no number may be the only odd or the only even one in the set. At least two of each.",
+      "purpose": "Number, pattern and data reasoning",
+      "format": "Sequences and their rules, two unknowns from two totals, a table or chart read for something it does not state, and best value across pack sizes.",
+      "fixed": "Number sets must mix odd and even inside the rule so the odd or even shortcut fails, and no number may be the only odd or the only even one in the set. Every data item must be answerable from the table alone.",
       "inferredRule": true
     },
     "3C": {
       "subject": "thinking",
-      "purpose": "Logic and coded reasoning",
-      "format": "Logic puzzles, ciphers, deduction grids.",
-      "fixed": "Every item must be solvable from the information given. No outside knowledge.",
+      "purpose": "Conditional logic and deduction",
+      "format": "Conditional statements and what follows from them, two speakers of whom one reasons correctly, constraint puzzles from three or more clues, the minimum needed to guarantee an outcome, and counting events over a date range.",
+      "fixed": "Every item must be solvable from the information given. No outside knowledge. Exactly one consistent solution.",
       "inferredRule": false,
-      "note": "The method, such as the cipher shift, is deliberately given. That is the task, not a hint."
+      "replaced": "Caesar ciphers and substitution codes, re-pointed 11 Oct 2026. Not on the NSW paper."
     }
   },
   "ladders": {
@@ -298,92 +324,127 @@
         ]
       },
       "3A": {
-        "endGoal": "Names the relationship in an analogy before choosing, and rejects an indirect match.",
+        "endGoal": "Judges what strengthens or weakens a claim, and names the flaw in a bad inference.",
         "rungs": [
           {
             "id": "3A.1",
-            "skill": "Synonym and antonym analogies",
-            "advanceWhen": "cleared"
-          },
-          {
-            "id": "3A.2",
-            "skill": "Part to whole analogies",
-            "advanceWhen": "two clean weeks picking the direct whole, not an indirect one"
-          },
-          {
-            "id": "3A.3",
-            "skill": "Function, category and degree analogies",
+            "skill": "Which statement, if true, most strengthens a short argument",
             "advanceWhen": "two clean weeks"
           },
           {
+            "id": "3A.2",
+            "skill": "Which statement most weakens it, with a plausible on topic distractor present",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3A.3",
+            "skill": "Naming the mistake: necessary confused with sufficient, or one case treated as all cases",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
             "id": "3A.4",
-            "skill": "Odd one out on words, where two plausible groupings exist and only one is defensible",
+            "skill": "What would have to be known to test the claim, rather than what supports it",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3A.5",
-            "skill": "Mixed verbal reasoning under one minute per item",
-            "advanceWhen": "sustained"
+            "skill": "Mixed argument items at about one minute each",
+            "advanceWhen": "sustained, this is the exam level"
           }
         ]
       },
       "3B": {
-        "endGoal": "States the rule of a number pattern, then applies it forwards and backwards.",
+        "endGoal": "Reads a rule out of numbers or a table and applies it, including backwards.",
         "rungs": [
           {
             "id": "3B.1",
-            "skill": "Odd one out on numbers by a single property",
-            "advanceWhen": "cleared"
+            "skill": "Number sequences with a changing step, forwards and backwards",
+            "advanceWhen": "two clean weeks"
           },
           {
             "id": "3B.2",
-            "skill": "Odd one out on numbers by a multiplication or factor rule, with odd and even mixed inside the rule",
+            "skill": "Multiples and factors with counting: how many numbers in a range are multiples of 3 but not of 8",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3B.3",
-            "skill": "Number sequences with a changing step",
+            "skill": "Two unknowns from two totals, such as 3 stars and 5 hearts making 27 points",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3B.4",
-            "skill": "Two rule sequences, and continuing a sequence backwards",
-            "advanceWhen": "two clean weeks"
+            "skill": "Deduction from a table or chart where the answer is not printed in it",
+            "advanceWhen": "two clean weeks on unhinted items"
           },
           {
             "id": "3B.5",
-            "skill": "Matrix and grid number reasoning",
-            "advanceWhen": "sustained"
+            "skill": "Best value across pack sizes, offers and a quantity to hit exactly",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3B.6",
+            "skill": "Magic squares and grid number reasoning",
+            "advanceWhen": "sustained, this is the exam level"
           }
         ]
       },
       "3C": {
-        "endGoal": "Works a coded or logical system out from the examples given, with no outside knowledge.",
+        "endGoal": "Holds several conditions at once and separates what must, might and cannot be true.",
         "rungs": [
           {
             "id": "3C.1",
-            "skill": "Caesar cipher, fixed shift, given",
-            "advanceWhen": "cleared"
-          },
-          {
-            "id": "3C.2",
-            "skill": "Caesar cipher, mixed encode and decode",
+            "skill": "What follows from a conditional such as only those who attend may go",
             "advanceWhen": "two clean weeks"
           },
           {
+            "id": "3C.2",
+            "skill": "Two speakers, one of whom reasons correctly: deciding which",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
             "id": "3C.3",
-            "skill": "Caesar cipher where the shift must be worked out from one example",
+            "skill": "Constraint puzzles: order, ages or seats from three or more clues",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3C.4",
-            "skill": "Substitution codes and simple symbol systems",
+            "skill": "The minimum score or number that guarantees an outcome",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3C.5",
-            "skill": "Deduction grids: three or more clues, one consistent solution",
-            "advanceWhen": "sustained"
+            "skill": "Counting events over a date range, including the extra weekday cases",
+            "advanceWhen": "sustained, this is the exam level"
+          }
+        ]
+      },
+      "1D": {
+        "endGoal": "Writes a finished, organised response to a brief in 30 minutes, typed, planned in the first four.",
+        "rungs": [
+          {
+            "id": "1D.1",
+            "skill": "One paragraph to a brief that names its audience and text type",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1D.2",
+            "skill": "Three or four paragraphs to a brief, with a clear opening and close",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1D.3",
+            "skill": "Persuasive: a position held throughout, reasons ordered, the obvious objection answered",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1D.4",
+            "skill": "Imaginative: a narrative or description that is shaped, not merely started",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "1D.5",
+            "skill": "A full 30 minute typed response under time, planned in the first four minutes",
+            "advanceWhen": "sustained, this is the exam level"
           }
         ]
       }
@@ -584,56 +645,56 @@
         ]
       },
       "3A": {
-        "endGoal": "Explains the rule a group shares before choosing the odd one out.",
+        "endGoal": "Says which fact would help a claim and which has nothing to do with it.",
         "rungs": [
           {
             "id": "3A.1",
-            "skill": "Odd one out by an obvious category",
-            "advanceWhen": "cleared"
-          },
-          {
-            "id": "3A.2",
-            "skill": "Odd one out where surface similarity points the wrong way",
-            "advanceWhen": "two clean weeks choosing by the rule, not by looks"
-          },
-          {
-            "id": "3A.3",
-            "skill": "Simple word analogies",
+            "skill": "Which statement best supports a claim, among options that are clearly off topic",
             "advanceWhen": "two clean weeks"
           },
           {
+            "id": "3A.2",
+            "skill": "Which statement best supports it, with one tempting but irrelevant option present",
+            "advanceWhen": "two clean weeks"
+          },
+          {
+            "id": "3A.3",
+            "skill": "Spotting the mistake: it is blue with a hood, so it must be hers",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
             "id": "3A.4",
-            "skill": "Grouping: which two belong together and why",
+            "skill": "Which statement most weakens a claim",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3A.5",
-            "skill": "Mixed verbal reasoning",
+            "skill": "Mixed support and weaken items",
             "advanceWhen": "sustained"
           }
         ]
       },
       "3B": {
-        "endGoal": "Continues a number pattern and says what the rule is.",
+        "endGoal": "Continues a pattern, says its rule, and reads a table for what it does not state.",
         "rungs": [
           {
             "id": "3B.1",
-            "skill": "Counting patterns in 2s, 5s and 10s",
-            "advanceWhen": "cleared"
-          },
-          {
-            "id": "3B.2",
             "skill": "Patterns with a constant step that is not 2, 5 or 10",
             "advanceWhen": "two clean weeks"
           },
           {
-            "id": "3B.3",
+            "id": "3B.2",
             "skill": "Patterns continued backwards",
             "advanceWhen": "two clean weeks"
           },
           {
+            "id": "3B.3",
+            "skill": "Reading a table or pictogram for something it does not state outright",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
             "id": "3B.4",
-            "skill": "Shape and position patterns",
+            "skill": "Which of two sizes is better value",
             "advanceWhen": "two clean weeks"
           },
           {
@@ -644,31 +705,31 @@
         ]
       },
       "3C": {
-        "endGoal": "Uses two or three clues together to reach one answer.",
+        "endGoal": "Uses several clues together, and knows what a condition does and does not allow.",
         "rungs": [
           {
             "id": "3C.1",
-            "skill": "One clue logic: who has what",
-            "advanceWhen": "cleared"
-          },
-          {
-            "id": "3C.2",
             "skill": "Two clue logic needing both clues",
             "advanceWhen": "two clean weeks"
           },
           {
-            "id": "3C.3",
+            "id": "3C.2",
             "skill": "Three clue logic with one elimination",
             "advanceWhen": "two clean weeks"
           },
           {
+            "id": "3C.3",
+            "skill": "What follows from a condition such as only those who X may Y",
+            "advanceWhen": "two clean weeks on unhinted items"
+          },
+          {
             "id": "3C.4",
-            "skill": "Simple picture or symbol codes",
+            "skill": "Which option cannot be chosen, given the lists and the choices already made",
             "advanceWhen": "two clean weeks"
           },
           {
             "id": "3C.5",
-            "skill": "Small deduction grids",
+            "skill": "Order and position from clues",
             "advanceWhen": "sustained"
           }
         ]
@@ -707,6 +768,18 @@
         "id": "mas.outside-knowledge",
         "rule": "Thinking Skills items must be solvable from the information given. No general knowledge.",
         "why": "Tests reasoning, not recall.",
+        "check": "manual"
+      },
+      {
+        "id": "mas.nsw-families",
+        "rule": "Every Thinking Skills item must be one of the NSW families: strengthen, weaken, name the flaw, what evidence would settle it, conditional reasoning, whose reasoning is correct, constraint puzzle, data deduction, best value, calendar count. No analogies, no letter codes, no ciphers.",
+        "why": "Counted across the Department's own practice paper. Analogies and ciphers appear nowhere on it.",
+        "check": "manual"
+      },
+      {
+        "id": "mas.writing-brief",
+        "rule": "Slot 1D must name the audience and the text type, and must be autoMark false with a markScheme.",
+        "why": "The real task is of the form write an advice sheet for three new students, not write a story.",
         "check": "manual"
       }
     ],
@@ -793,6 +866,16 @@
         "example": "9, 12, 15, 18, where multiples of 3 that are not multiples of 5 names 15 and multiples of 3 that are not multiples of 4 names 12",
         "why": "Two defensible answers. Jev flagged it at 76 percent, Nik accepted the child's 12 and retired the shape on 11 Oct 2026.",
         "retiredOn": "2026-10-11"
+      },
+      {
+        "shape": "Analogies, and odd one out on words",
+        "why": "Not an NSW Thinking Skills item family. Slot 3A re-pointed to argument analysis on 11 Oct 2026.",
+        "retiredOn": "2026-10-11"
+      },
+      {
+        "shape": "Caesar ciphers, substitution codes and symbol codes",
+        "why": "Not an NSW Thinking Skills item family. Slot 3C re-pointed to conditional logic and deduction on 11 Oct 2026.",
+        "retiredOn": "2026-10-11"
       }
     ],
     "elysia": [
@@ -801,7 +884,18 @@
         "example": "wasp, bee, butterfly, bat, where butterfly is the only one of the four that cannot sting or bite",
         "why": "Two defensible answers. Jev flagged it at 51 percent, Nik accepted the child's butterfly and retired the shape on 11 Oct 2026.",
         "retiredOn": "2026-10-11"
+      },
+      {
+        "shape": "Analogies, and odd one out on words",
+        "why": "Not an NSW Thinking Skills item family. Slot 3A re-pointed to argument analysis on 11 Oct 2026.",
+        "retiredOn": "2026-10-11"
+      },
+      {
+        "shape": "Caesar ciphers, substitution codes and symbol codes",
+        "why": "Not an NSW Thinking Skills item family. Slot 3C re-pointed to conditional logic and deduction on 11 Oct 2026.",
+        "retiredOn": "2026-10-11"
       }
     ]
-  }
+  },
+  "retargeted": "Slots 3A, 3B and 3C were re-pointed on 11 Oct 2026, and slot 1D added for Mason, after the NSW placement papers were read properly. The old 3A analogies and 3C ciphers were UK 11plus verbal reasoning shapes and appear nowhere in the NSW Thinking Skills paper, which is argument analysis, conditional logic, constraint puzzles, data deduction and best value. Writing is a quarter of the selective mark and had no slot at all. See CLAUDE.md section 1b for the research."
 }
