@@ -1,0 +1,48 @@
+{
+  "note": "A deliberately advanced, deliberately broken roadmap position for Mason, used by dashboard-check.mjs through ROADMAP_PATCH. Level C is part cleared with nothing current in it, Level E has a prose named sub-topic current, and 'nosuchtrack' is a mistyped track id that must be reported rather than dropped.",
+  "tracks": [
+    "maths",
+    "english",
+    "nosuchtrack"
+  ],
+  "progress": {
+    "maths": {
+      "cleared": [
+        "7A",
+        "6A",
+        "5A",
+        "4A",
+        "3A",
+        "2A",
+        "A1-8",
+        "A9-12",
+        "A13-20",
+        "B1-10",
+        "B11-20",
+        "C1-4",
+        "C5-10",
+        "C11",
+        "C12-15"
+      ],
+      "current": {
+        "D5-8": "simulated",
+        "E-equiv": "simulated"
+      }
+    },
+    "english": {
+      "cleared": [
+        "7A",
+        "6A",
+        "5A",
+        "4A",
+        "3A",
+        "2A",
+        "AI",
+        "AII"
+      ],
+      "current": {
+        "BI": "simulated"
+      }
+    }
+  }
+}

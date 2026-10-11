@@ -697,13 +697,29 @@ function resolveTrack(trackId, progress) {
   return { ...track, sections };
 }
 
-/* A level's state is derived, never stored: current if any sub-topic inside it
- * is, cleared if every one is, still ahead otherwise. More than one level can
- * be current at once, because the nine homework slots advance independently. */
+/* A level's state is derived, never stored. More than one level can be current
+ * at once, because the nine homework slots advance independently.
+ *
+ * `started` exists because a level can be part finished with nothing current in
+ * it: Mason's Level C will land there the week slot 2A moves up to D. Without
+ * it the badge said "To come" beside a count of "4 of 6 cleared", which is the
+ * card contradicting itself. An empty item list is `future`, not `cleared`:
+ * every() is true of nothing, so the level with no sub-topics yet would
+ * otherwise claim to be finished. */
 function sectionState(sec) {
+  if (!sec.items.length) return 'future';
   if (sec.items.some((i) => i.state === 'current')) return 'current';
   if (sec.items.every((i) => i.state === 'cleared')) return 'cleared';
+  if (sec.items.some((i) => i.state === 'cleared')) return 'started';
   return 'future';
+}
+
+/* True when the sub-topic's own name already names its level, so putting the
+ * level in front would read "C C5-10". A code name continues with a digit or an
+ * upper case roman numeral (C5-10, A1-8, AI, XV); a prose name continues in
+ * lower case (E "Equivalent fractions"), and that one needs the level. */
+function carriesLevel(name, sectionId) {
+  return name.startsWith(sectionId) && !/^[a-z]/.test(name.slice(sectionId.length));
 }
 
 function renderRoadmap() {
@@ -736,18 +752,24 @@ function renderRoadmap() {
     </section>`;
 }
 
+const rmMissing = (what) => `<div class="roadmap-col"><p class="card-note" style="color:var(--warn)">
+  ${icon('alert', 'i i-sm')} ${esc(what)} is missing from roadmap.json.</p></div>`;
+
 function childRoadmapHtml(kid) {
   const child = roadmap.children[kid];
-  if (!child) return '';
+  // A hand edit to roadmap.json that mistypes a name used to render an empty
+  // column and say nothing, which is the failure mode CLAUDE.md section 13 is
+  // about. Name what is missing instead.
+  if (!child) return `<section class="card rm-child">
+    <div class="chart-head"><h2>${esc(CHILDREN[kid].name)}</h2></div>
+    ${rmMissing(`${CHILDREN[kid].name}'s roadmap position`)}</section>`;
   const cols = (child.tracks || []).map((trackId) => {
     const t = resolveTrack(trackId, (child.progress || {})[trackId] || {});
-    if (!t) return '';
+    if (!t) return rmMissing(`The "${trackId}" track`);
     const note = (child.notes || {})[trackId];
-    // A sub-topic named C5-10 or AI already carries its level; one named
-    // "Equivalent fractions" does not, so it gets the level id in front.
     const here = t.sections.flatMap((sec) => sec.items
       .filter((i) => i.state === 'current')
-      .map((i) => (i.name.startsWith(sec.id) ? i.name : `${sec.id} ${i.name}`)));
+      .map((i) => (carriesLevel(i.name, sec.id) ? i.name : `${sec.id} ${i.name}`)));
     const done = t.sections.filter((sec) => sectionState(sec) === 'cleared').length;
     return `<div class="roadmap-col">
       <h3>${icon(t.icon)} ${esc(t.track)}</h3>
@@ -760,13 +782,14 @@ function childRoadmapHtml(kid) {
     </div>`;
   }).join('');
 
-  // --accent-wash and --accent-edge are declared on :root, where their var()
-  // was already substituted against the root accent, so overriding --accent
-  // alone would leave every child's wash the same colour. They are restated.
-  return `<section class="card rm-child" style="--accent:var(--child-${kid});
-      --accent-ink:var(--child-${kid}-ink);
-      --accent-wash:color-mix(in srgb, var(--child-${kid}) 10%, transparent);
-      --accent-edge:color-mix(in srgb, var(--child-${kid}) 26%, transparent)">
+  // Only --accent and --accent-ink are set here. --accent-wash and
+  // --accent-edge are declared on :root, where their var() was already
+  // substituted against the root accent, so they would otherwise stay one
+  // child's colour for both: theme.css restates them on .rm-child instead, at
+  // the mix strength each mode was tuned for. Doing it inline here baked the
+  // light mode percentages into dark mode too.
+  return `<section class="card rm-child"
+      style="--accent:var(--child-${kid});--accent-ink:var(--child-${kid}-ink)">
     <div class="chart-head"><span class="dot" style="background:var(--accent)" aria-hidden="true"></span>
       <h2>${esc(CHILDREN[kid].name)}</h2></div>
     <div class="roadmap-cols">${cols}</div>
@@ -778,6 +801,7 @@ function sectionHtml(sec) {
   const done = sec.items.filter((i) => i.state === 'cleared').length;
   const badge = st === 'current' ? '<span class="badge badge-info">Current</span>'
     : st === 'cleared' ? '<span class="badge badge-ok">Cleared</span>'
+    : st === 'started' ? '<span class="badge badge-warn">Part cleared</span>'
     : '<span class="badge badge-neutral">To come</span>';
   const items = sec.items.map((it) => `
     <div class="kl kl-${it.state}">${iconLabelled(STATE_ICON[it.state], STATE_LABEL[it.state], 'i i-sm')}

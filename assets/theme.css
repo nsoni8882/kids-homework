@@ -537,7 +537,27 @@ details.disclose[open] > summary svg.chev { transform: rotate(90deg); }
 .roadmap-cols { display: grid; gap: var(--s6); }
 @media (min-width: 900px) { .roadmap-cols { grid-template-columns: 1fr 1fr; } }
 .roadmap-col h3 { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); color: var(--accent-ink); }
-.rm-child { margin-bottom: var(--s5); }
+/* The roadmap shows both children at once, so each card re-points --accent at
+   that child. --accent-wash and --accent-edge are declared on :root, where
+   their var() was already resolved against the root accent, so they have to be
+   restated here or both children would share one child's wash. The mix
+   strengths match :root in each mode: dark needs the stronger tint, and setting
+   these inline from the script baked the light values into dark mode. */
+.rm-child {
+  margin-bottom: var(--s5);
+  --accent-wash: color-mix(in srgb, var(--accent) 8%, transparent);
+  --accent-edge: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .rm-child {
+    --accent-wash: color-mix(in srgb, var(--accent) 14%, transparent);
+    --accent-edge: color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+}
+:root[data-theme="dark"] .rm-child {
+  --accent-wash: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-edge: color-mix(in srgb, var(--accent) 34%, transparent);
+}
 .rm-now { display: flex; align-items: center; gap: var(--s1); font-weight: 700; color: var(--accent-ink); }
 .rm-note { display: flex; gap: var(--s2); margin: var(--s2) 0 var(--s3); }
 .rm-note svg, .rm-now svg { flex: none; margin-top: 2px; }
