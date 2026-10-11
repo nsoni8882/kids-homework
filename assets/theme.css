@@ -564,6 +564,43 @@ details.disclose[open] > summary svg.chev { transform: rotate(90deg); }
 
 /* One fold per Kumon level. The level they are working towards ships open, the
    rest closed, so the whole ladder is visible without being a wall of text. */
+/* The placement test ladder runs full width above the two Kumon columns,
+   because it is the target and they are the engine. Its sections stay open:
+   a component with nothing started is the news, not something to fold away. */
+.rm-wide { margin-bottom: var(--s6); }
+.rm-covers { display: flex; flex-wrap: wrap; gap: var(--s2); margin-bottom: var(--s2); }
+.rm-cover {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 3px var(--s2); border-radius: var(--r-full);
+  background: var(--accent-wash); color: var(--accent-ink);
+  border: 1px solid var(--accent-edge);
+}
+/* a component with nothing in the week reads as a warning, not as a tally */
+.rm-cover-none {
+  background: var(--warn-wash); color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 28%, transparent);
+}
+.rm-wide-secs { display: grid; gap: var(--s2); }
+@media (min-width: 900px) { .rm-wide-secs { grid-template-columns: 1fr 1fr; align-items: start; } }
+
+.rm-exam {
+  border: 1px solid var(--accent-edge); background: var(--accent-wash);
+  border-radius: var(--r-lg); padding: var(--s4); margin-bottom: var(--s5);
+}
+.rm-exam h3 {
+  display: flex; align-items: center; gap: var(--s2);
+  color: var(--accent-ink); margin-bottom: var(--s3);
+}
+.rm-exam-grid { display: grid; gap: var(--s2); margin-bottom: var(--s3); }
+@media (min-width: 680px) { .rm-exam-grid { grid-template-columns: repeat(3, 1fr); } }
+.rm-exam-row dt { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); }
+.rm-exam-row dd { font-size: .9rem; font-weight: 600; margin: 2px 0 0; }
+.rm-exam-head { font-weight: 700; color: var(--text-2); margin-top: var(--s3); }
+.rm-exam-list { margin: var(--s1) 0 0; padding-left: var(--s4); }
+.rm-exam-list li { font-size: .84rem; color: var(--text-2); line-height: 1.6; margin-bottom: 2px; }
+.rm-exam .card-note { margin-top: var(--s3); }
+
 details.rm-sec { border: 1px solid var(--border); border-radius: var(--r-md); margin-top: var(--s2); background: var(--surface-2); }
 details.rm-sec[open] { background: var(--surface); }
 details.rm-sec > summary {

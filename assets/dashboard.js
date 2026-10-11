@@ -675,6 +675,10 @@ function drawHistoryChart(kid) {
 
 const STATE_ICON = { cleared: 'checkCircle', current: 'target', future: 'square' };
 const STATE_LABEL = { cleared: 'Cleared', current: 'Working on this now', future: 'Not yet reached' };
+/* The exam ladder is not a ladder of levels passed, so it says so in its own
+ * words. A track may override any of the three, and roadmap.json carries the
+ * wording rather than this file. */
+const stateLabel = (track, st) => (track.stateLabels || {})[st] || STATE_LABEL[st];
 
 /* The two Kumon ladders are the programme itself, so roadmap.json holds one
  * copy of each and a child record says only where that child stands: the ids
@@ -731,15 +735,16 @@ function renderRoadmap() {
   const legend = `<div class="roadmap-legend">${['cleared', 'current', 'future'].map((st) =>
     `<span class="row" style="gap:var(--s1)"><span class="kl-${st}" style="display:inline-flex">
       ${icon(STATE_ICON[st], 'i i-sm')}</span>
-      <span class="card-note">${STATE_LABEL[st]}</span></span>`).join('')}</div>`;
+      <span class="card-note">${STATE_LABEL[st]}</span></span>`).join('')}
+    <span class="card-note">On the placement test ladder those read
+      ${esc(Object.values((roadmap.tracks.nsw || {}).stateLabels || {}).join(', '))}.</span></div>`;
 
   panel.innerHTML = `
     <h1 class="sr-only">The full Kumon roadmap for both children</h1>
     <section class="card">
-      <div class="chart-head">${icon('layers')}<h2>The whole pathway, both children</h2></div>
-      <p class="card-note">Every Kumon level either child will pass through, one fold per level.
-        The levels they are working on are open, the rest are folded away.
-        ${esc(roadmap.stateNote || '')}</p>
+      <div class="chart-head">${icon('target')}<h2>The target, and the pathway to it</h2></div>
+      ${roadmap.target ? `<p class="card-note">${esc(roadmap.target)}</p>` : ''}
+      <p class="card-note" style="margin-top:var(--s2)">${esc(roadmap.stateNote || '')}</p>
       ${legend}
     </section>
     ${KIDS.map(childRoadmapHtml).join('')}
@@ -763,23 +768,14 @@ function childRoadmapHtml(kid) {
   if (!child) return `<section class="card rm-child">
     <div class="chart-head"><h2>${esc(CHILDREN[kid].name)}</h2></div>
     ${rmMissing(`${CHILDREN[kid].name}'s roadmap position`)}</section>`;
-  const cols = (child.tracks || []).map((trackId) => {
-    const t = resolveTrack(trackId, (child.progress || {})[trackId] || {});
+  const resolved = (child.tracks || []).map((trackId) => ({
+    trackId, t: resolveTrack(trackId, (child.progress || {})[trackId] || {}),
+  }));
+  const wide = resolved.filter((x) => x.t && x.t.wide)
+    .map((x) => trackHtml(kid, child, x.t, x.trackId, true)).join('');
+  const cols = resolved.filter((x) => !x.t || !x.t.wide).map(({ trackId, t }) => {
     if (!t) return rmMissing(`The "${trackId}" track`);
-    const note = (child.notes || {})[trackId];
-    const here = t.sections.flatMap((sec) => sec.items
-      .filter((i) => i.state === 'current')
-      .map((i) => (carriesLevel(i.name, sec.id) ? i.name : `${sec.id} ${i.name}`)));
-    const done = t.sections.filter((sec) => sectionState(sec) === 'cleared').length;
-    return `<div class="roadmap-col">
-      <h3>${icon(t.icon)} ${esc(t.track)}</h3>
-      <p class="card-note rm-now">${here.length
-        ? `${icon('target', 'i i-sm')} Now on ${esc(here.join(', '))}`
-        : 'No current level recorded'}</p>
-      <p class="card-note">${done} of ${t.sections.length} levels cleared outright.</p>
-      ${note ? `<p class="card-note rm-note">${icon('trend', 'i i-sm')} ${esc(note)}</p>` : ''}
-      ${t.sections.map(sectionHtml).join('')}
-    </div>`;
+    return trackHtml(kid, child, t, trackId, false);
   }).join('');
 
   // Only --accent and --accent-ink are set here. --accent-wash and
@@ -792,19 +788,79 @@ function childRoadmapHtml(kid) {
       style="--accent:var(--child-${kid});--accent-ink:var(--child-${kid}-ink)">
     <div class="chart-head"><span class="dot" style="background:var(--accent)" aria-hidden="true"></span>
       <h2>${esc(CHILDREN[kid].name)}</h2></div>
+    ${examHtml(child.exam)}
+    ${wide}
     <div class="roadmap-cols">${cols}</div>
   </section>`;
 }
 
-function sectionHtml(sec) {
+/* What the child is actually aiming at, above the ladders rather than below
+ * them. Every figure here comes from the Department's own pages and practice
+ * papers, so it is data in roadmap.json, not prose in this file. */
+function examHtml(exam) {
+  if (!exam) return '';
+  const row = (label, value) => `<div class="rm-exam-row">
+    <dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`;
+  return `<div class="rm-exam">
+    <h3>${icon('award')} ${esc(exam.test)}</h3>
+    <dl class="rm-exam-grid">
+      ${row('Sits it', exam.sits)}
+      ${row('Entry', exam.entry)}
+      ${row('Weighting', exam.weighting)}
+    </dl>
+    <p class="card-note rm-exam-head">The paper</p>
+    <ul class="rm-exam-list">${(exam.sections || [])
+      .map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+    <p class="card-note rm-exam-head">Schools in range</p>
+    <ul class="rm-exam-list">${(exam.schools || [])
+      .map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+    ${exam.timeline ? `<p class="card-note">${esc(exam.timeline)}</p>` : ''}
+    ${exam.selection ? `<p class="card-note">${esc(exam.selection)}</p>` : ''}
+  </div>`;
+}
+
+function trackHtml(kid, child, t, trackId, isWide) {
+  const note = (child.notes || {})[trackId];
+  const here = t.sections.flatMap((sec) => sec.items
+    .filter((i) => i.state === 'current')
+    .map((i) => (carriesLevel(i.name, sec.id) ? i.name : `${sec.id} ${i.name}`)));
+  const items = t.sections.flatMap((sec) => sec.items);
+  const covered = items.filter((i) => i.state !== 'future').length;
+  const tally = isWide
+    ? `${covered} of ${items.length} skills in the week, ${items.length - covered} not started`
+    : `${t.sections.filter((sec) => sectionState(sec) === 'cleared').length} of
+       ${t.sections.length} levels cleared outright.`;
+  /* Naming seven skills in one line reads worse than naming the components and
+     how much of each is covered, and a component on zero is the thing to see. */
+  const byComponent = t.sections.map((sec) => {
+    const n = sec.items.filter((i) => i.state !== 'future').length;
+    return `<span class="rm-cover${n ? '' : ' rm-cover-none'}">${esc(sec.label)}
+      ${n} of ${sec.items.length}</span>`;
+  }).join('');
+  return `<div class="${isWide ? 'rm-wide' : 'roadmap-col'}">
+    <h3>${icon(t.icon)} ${esc(t.track)}</h3>
+    ${isWide ? `<div class="rm-covers">${byComponent}</div>`
+      : `<p class="card-note rm-now">${here.length
+        ? `${icon('target', 'i i-sm')} Now on ${esc(here.join(' · '))}`
+        : `${icon('alert', 'i i-sm')} Nothing in the week covers this yet`}</p>`}
+    <p class="card-note">${tally}</p>
+    ${note ? `<p class="card-note rm-note">${icon('alert', 'i i-sm')} ${esc(note)}</p>` : ''}
+    <div class="${isWide ? 'rm-wide-secs' : ''}">
+      ${t.sections.map((sec) => sectionHtml(sec, t)).join('')}
+    </div>
+  </div>`;
+}
+
+function sectionHtml(sec, track = {}) {
   const st = sectionState(sec);
   const done = sec.items.filter((i) => i.state === 'cleared').length;
   const badge = st === 'current' ? '<span class="badge badge-info">Current</span>'
     : st === 'cleared' ? '<span class="badge badge-ok">Cleared</span>'
     : st === 'started' ? '<span class="badge badge-warn">Part cleared</span>'
-    : '<span class="badge badge-neutral">To come</span>';
+    : `<span class="badge badge-neutral">${track.wide ? 'Not started' : 'To come'}</span>`;
   const items = sec.items.map((it) => `
-    <div class="kl kl-${it.state}">${iconLabelled(STATE_ICON[it.state], STATE_LABEL[it.state], 'i i-sm')}
+    <div class="kl kl-${it.state}">${iconLabelled(STATE_ICON[it.state],
+      stateLabel(track, it.state), 'i i-sm')}
       <div><div class="kl-name">${esc(it.name)}</div>
         <div class="kl-desc">${esc(it.detail)}</div>
         ${it.why ? `<div class="kl-why">${icon('target', 'i i-sm')} ${esc(it.why)}</div>` : ''}
@@ -812,13 +868,16 @@ function sectionHtml(sec) {
 
   // Open on the level they are working on, folded otherwise. A level with one
   // sub-topic says nothing useful in the "n of m" count, so it is left off.
-  return `<details class="rm-sec"${st === 'current' ? ' open' : ''}>
+  return `<details class="rm-sec"${st === 'current' || track.wide ? ' open' : ''}>
     <summary>${icon('chevronRight', 'i i-sm chev')}
       <span class="rm-sec-label">${esc(sec.label)}</span>
       ${badge}
-      ${sec.items.length > 1
-        ? `<span class="rm-sec-count">${done} of ${sec.items.length} cleared</span>` : ''}</summary>
+      ${sec.items.length > 1 ? `<span class="rm-sec-count">${track.wide
+        ? `${sec.items.filter((i) => i.state !== 'future').length} of ${sec.items.length} in the week`
+        : `${done} of ${sec.items.length} cleared`}</span>` : ''}</summary>
     ${sec.sub ? `<p class="card-note rm-sec-sub">${esc(sec.sub)}</p>` : ''}
+    ${track.wide && st === 'future' ? `<p class="card-note rm-sec-sub" style="color:var(--warn)">
+      ${icon('alert', 'i i-sm')} Nothing in the week covers this yet.</p>` : ''}
     <div class="rm-sec-items">${items}</div>
   </details>`;
 }

@@ -15,7 +15,7 @@
  * the committed file cannot show are still covered: a level part cleared with
  * nothing current in it, and a mistyped track id.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -103,9 +103,13 @@ for (const name of ['Mason', 'Elysia', 'Maths', 'English', 'Level 7A', 'Level A'
   ok(html.includes(name), `the roadmap panel is missing "${name}"`);
 }
 
-// one fold per Kumon level, for both children: 22 maths + 18 English, twice
+// one fold per Kumon level plus one per test component, for both children:
+// (22 maths + 18 English + 4 NSW components) x 2
 const folds = (html.match(/<details class="rm-sec"/g) || []).length;
-ok(folds === 80, `expected 80 level folds (22 maths + 18 English per child), got ${folds}`);
+ok(folds === (patched ? 84 : 88),
+  `expected ${patched ? 84 : 88} folds, got ${folds}`);
+// a child record with no exam block, as the fixture has, must still render
+ok(!html.includes('undefined'), 'something rendered as "undefined"');
 const open = (html.match(/<details class="rm-sec" open>/g) || []).length;
 const shut = (html.match(/<details class="rm-sec">/g) || []).length;
 ok(shut > open, `expected most levels folded, got ${shut} shut against ${open} open`);
@@ -115,9 +119,29 @@ ok(html.includes('kl-why'), 'no evidence line on a current sub-topic');
 ok(!html.includes('--accent-wash'), 'the accent wash is inlined, so dark mode loses its tint');
 
 if (!patched) {
-  ok(open === 5, `expected the 5 levels in progress to be open, got ${open}`);
+  // the placement test is the target, so it leads and its components stay open
+  for (const name of ['NSW placement test', 'Selective High School Placement Test',
+    'Opportunity Class Placement Test', 'Mathematical Reasoning', 'Thinking Skills',
+    'Normanhurst Boys', 'Hornsby Girls', 'Vocabulary in context', 'Missing sentences',
+    'Strengthen an argument', 'Spot the mistake in reasoning', 'Writing to a brief',
+    'Covered and evidenced', 'Not started yet']) {
+    ok(html.includes(name), `the roadmap panel is missing "${name}"`);
+  }
+  ok(html.indexOf('NSW placement test') < html.indexOf('Maths'),
+    'the Kumon ladder is shown above the placement test it serves');
+  // the per component tally, and the warning styling on a component at zero
+  ok(html.includes('Thinking Skills\n      0 of 10') || /Thinking Skills\s+0 of 10/.test(html),
+    'the Thinking Skills component does not show 0 of 10');
+  ok((html.match(/rm-cover-none/g) || []).length >= 4,
+    'a component with nothing in the week is not flagged');
+  // Thinking Skills and Writing have no coverage at all, which is the finding
+  ok((html.match(/Nothing in the week covers this yet/g) || []).length >= 4,
+    'a test component with no coverage is not called out');
+  ok((html.match(/>Not started</g) || []).length >= 4,
+    'the untouched test components are not badged "Not started"');
+  ok(open === 13, `expected 5 Kumon levels and 8 test components open, got ${open}`);
   const current = (html.match(/kl kl-current/g) || []).length;
-  ok(current === 7, `expected 7 current sub-topics, got ${current}`);
+  ok(current === 17, `expected 17 current sub-topics (7 Kumon, 10 test), got ${current}`);
 } else {
   // a level part cleared with nothing current in it must not read "To come"
   const c = html.slice(html.indexOf('>Level C<'), html.indexOf('>Level D<'));
@@ -128,12 +152,14 @@ if (!patched) {
     'a prose sub-topic lost its level in the "Now on" line');
   // a mistyped track id must say so rather than drop a column silently
   ok(html.includes('is missing from roadmap.json'), 'a bad track id renders silently');
+  ok(open === 9, `expected 4 Kumon levels and 4 test components open, got ${open}`);
 }
 
 // the child tabs keep the mastery ladder and no longer carry the Kumon card
 ok(mason.includes('Where they are on the pathway'), "a child panel lost its ladder");
 ok(!mason.includes('Level roadmap'), 'the old Kumon card is still in a child panel');
 
+if (process.env.DUMP_HTML) writeFileSync(process.env.DUMP_HTML, html);
 console.log(`roadmap panel ${html.length} chars, ${folds} level folds, ${open} open`);
 if (fail.length) {
   console.error(`FAIL\n${fail.map((f) => ` - ${f}`).join('\n')}`);
