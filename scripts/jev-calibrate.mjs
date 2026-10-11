@@ -26,6 +26,13 @@ const CASES = [
   // ---- should be CLEAN -------------------------------------------------
   {
     name: 'analogy, both completions accepted',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Verbal reasoning',
+      format: 'Analogies, odd one out on words, or relationships between words.',
+      fixed: 'Exactly one defensible answer per item. No two valid splits.',
+      inferredRule: true,
+    },
+    rungDef: { id: '3A.2', skill: 'Part to whole analogies', advanceWhen: 'two clean weeks picking the direct whole, not an indirect one' },
     expect: null,
     why: 'butterfly and moth are both in the key, so there is nothing a child could be marked wrong for',
     slot: '3A',
@@ -34,6 +41,14 @@ const CASES = [
   },
   {
     name: 'cipher, shift deliberately given',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Logic and coded reasoning',
+      format: 'Logic puzzles, ciphers, deduction grids.',
+      fixed: 'Every item must be solvable from the information given. No outside knowledge.',
+      inferredRule: false,
+      note: 'The method, such as the cipher shift, is deliberately given. That is the task, not a hint.',
+    },
+    rungDef: { id: '3C.2', skill: 'Caesar cipher, mixed encode and decode', advanceWhen: 'two clean weeks' },
     expect: null,
     why: 'stating the shift IS the task. It must not be read as a hint',
     slot: '3C',
@@ -42,6 +57,13 @@ const CASES = [
   },
   {
     name: 'odd one out on words, one clean rule',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Verbal reasoning',
+      format: 'Analogies, odd one out on words, or relationships between words.',
+      fixed: 'Exactly one defensible answer per item. No two valid splits.',
+      inferredRule: true,
+    },
+    rungDef: { id: '3A.2', skill: 'Part to whole analogies', advanceWhen: 'two clean weeks picking the direct whole, not an indirect one' },
     expect: null,
     why: 'rose is the only non tree. That is the intended rule, not a shortcut past it',
     slot: '3A',
@@ -51,6 +73,14 @@ const CASES = [
   },
   {
     name: 'number set, parity does not single one out',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Numerical and pattern reasoning',
+      format: 'Number patterns, sequences, odd one out on numbers.',
+      fixed: 'Number sets must mix odd and even inside the rule so the odd or even shortcut fails, '
+        + 'and no number may be the only odd or the only even one in the set. At least two of each.',
+      inferredRule: true,
+    },
+    rungDef: { id: '3B.2', skill: 'Odd one out on numbers by a multiplication or factor rule, with odd and even mixed inside the rule', advanceWhen: 'two clean weeks' },
     expect: null,
     why: '24, 36, 60 are multiples of 12 and 40 is not. All four are even, so parity gives nothing',
     slot: '3B',
@@ -69,6 +99,14 @@ const CASES = [
   // ---- should be FLAGGED -----------------------------------------------
   {
     name: 'number set where parity gives a rival answer',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Numerical and pattern reasoning',
+      format: 'Number patterns, sequences, odd one out on numbers.',
+      fixed: 'Number sets must mix odd and even inside the rule so the odd or even shortcut fails, '
+        + 'and no number may be the only odd or the only even one in the set. At least two of each.',
+      inferredRule: true,
+    },
+    rungDef: { id: '3B.2', skill: 'Odd one out on numbers by a multiplication or factor rule, with odd and even mixed inside the rule', advanceWhen: 'two clean weeks' },
     expect: 'parity_shortcut',
     why: '28, 42, 50 are even and 35 is the only odd, so 35 is defensible, but the key says 50',
     slot: '3B',
@@ -77,6 +115,14 @@ const CASES = [
   },
   {
     name: 'two rival rules, neither in the key',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Numerical and pattern reasoning',
+      format: 'Number patterns, sequences, odd one out on numbers.',
+      fixed: 'Number sets must mix odd and even inside the rule so the odd or even shortcut fails, '
+        + 'and no number may be the only odd or the only even one in the set. At least two of each.',
+      inferredRule: true,
+    },
+    rungDef: { id: '3B.2', skill: 'Odd one out on numbers by a multiplication or factor rule, with odd and even mixed inside the rule', advanceWhen: 'two clean weeks' },
     expect: 'parity_shortcut',
     why: '2 is the only even number and 9 is the only non prime, so two answers are defensible',
     slot: '3B',
@@ -101,6 +147,13 @@ const CASES = [
   },
   {
     name: 'passage states the rule the question tests',
+    spineSlot: {
+      subject: 'thinking', purpose: 'Verbal reasoning',
+      format: 'Analogies, odd one out on words, or relationships between words.',
+      fixed: 'Exactly one defensible answer per item. No two valid splits.',
+      inferredRule: true,
+    },
+    rungDef: { id: '3A.2', skill: 'Part to whole analogies', advanceWhen: 'two clean weeks picking the direct whole, not an indirect one' },
     expect: 'hinted',
     why: 'the passage defines a simile, so naming one proves only that the child can copy',
     slot: '3A',
@@ -127,20 +180,32 @@ const CASES = [
   },
 ];
 
-const jev = new Jev(key);
+// JEV_MODEL lets this suite measure one published model against the other
+const jev = new Jev(key, { model: process.env.JEV_MODEL });
 const rows = [];
 
 for (const c of CASES) {
   let res;
   try {
     const child = c.child || 'mason';
+    // A case carries its own slot contract and rung where it has one, and only
+    // falls back to the live spine where it does not.
+    //
+    // This is not a nicety. Every case used to read `spine.slots[c.slot]`, so
+    // when slots 3A, 3B and 3C were re-pointed at the NSW item families on
+    // 11 Oct 2026 the suite's own fixtures changed underneath it and the score
+    // fell from 11 of 12 to between 8 and 10. The hinted case failed outright,
+    // because the re-point set 3A's `inferredRule` to false and the hinted
+    // question is only asked when a slot says the rule must be inferred. That
+    // looked exactly like the model drifting, and it was not. A gate whose
+    // calibration moves whenever the curriculum moves cannot tell you anything
+    // about the gate.
     const ladder = spine.ladders[child][c.slot];
+    const spineSlot = c.spineSlot || spine.slots[c.slot];
+    const rung = c.rungDef
+      || (c.rung ? ladder.rungs.find((r) => r.id === c.rung) : ladder.rungs[1]);
     res = await checkQuestion(jev, {
-      child,
-      section: c.section,
-      question: c.question,
-      spineSlot: spine.slots[c.slot],
-      rung: c.rung ? ladder.rungs.find((r) => r.id === c.rung) : ladder.rungs[1],
+      child, section: c.section, question: c.question, spineSlot, rung,
     });
   } catch (err) {
     rows.push({ c, pass: false, detail: `error: ${err.message}` });

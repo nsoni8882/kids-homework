@@ -9,7 +9,14 @@
  */
 
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
-const MODEL = 'jev-latest';
+
+/* The provider publishes exactly two names, `jev-latest` and `jev-preview`, and
+   no dated ones, so this cannot be pinned to a frozen version: the model under
+   the name moves and the thresholds tuned against it drift with it. That is a
+   known limitation, recorded in CLAUDE.md open item 8. The override exists so
+   the calibration suite can measure one model against the other without an
+   edit here. */
+const DEFAULT_MODEL = 'jev-latest';
 
 /* Policy, tuned against the labelled cases in scripts/jev-calibrate.mjs.
    The middle band is deliberately wide: an uncertain answer is worth a parent's
@@ -42,9 +49,10 @@ export const THRESHOLDS = {
 };
 
 export class Jev {
-  constructor(apiKey, { fetchImpl = fetch } = {}) {
+  constructor(apiKey, { fetchImpl = fetch, model } = {}) {
     if (!apiKey) throw new Error('Jev needs an API key');
     this.apiKey = apiKey;
+    this.model = model || DEFAULT_MODEL;
     // Bound to the global. Calling this.fetch(...) would pass the Jev instance
     // as `this`, which a Worker rejects with "Illegal invocation". Node is
     // lenient about it, so this only shows up once it is deployed.
@@ -66,7 +74,7 @@ export class Jev {
             Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ model: MODEL, state, questions }),
+          body: JSON.stringify({ model: this.model, state, questions }),
           signal: ctrl.signal,
         });
         clearTimeout(timer);

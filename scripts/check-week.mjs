@@ -97,7 +97,7 @@ if (!noAi) {
   if (!key) {
     console.log('\x1b[1m3. Question quality\x1b[0m\n   skipped, no Jev key in CLAUDE.md\n');
   } else {
-    const jev = new Jev(key);
+    const jev = new Jev(key, { model: process.env.JEV_MODEL });
     console.log('\x1b[1m3. Question quality, judged by Jev\x1b[0m');
 
     for (const c of children) {
