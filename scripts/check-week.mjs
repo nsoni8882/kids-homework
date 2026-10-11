@@ -39,6 +39,10 @@ const spine = loadSpine();
 
 const blocks = [];
 const reviews = [];
+/* Jev calls that threw. These used to be swallowed into `clean: true`, so a bad
+ * JEV_MODEL or a rejected key turned the whole gate into "nothing raised" and
+ * exit 0: a release gate that passes precisely when it cannot judge anything. */
+const jevErrors = [];
 
 /* ---------------------------------------------- 1. deterministic, blocking */
 
@@ -98,7 +102,7 @@ if (!noAi) {
     console.log('\x1b[1m3. Question quality\x1b[0m\n   skipped, no Jev key in CLAUDE.md\n');
   } else {
     const jev = new Jev(key, { model: process.env.JEV_MODEL });
-    console.log('\x1b[1m3. Question quality, judged by Jev\x1b[0m');
+    console.log(`\x1b[1m3. Question quality, judged by Jev (${jev.model})\x1b[0m`);
 
     for (const c of children) {
       const set = loadWeek(c, null);
@@ -135,6 +139,10 @@ if (!noAi) {
         } catch (e) { return { section, question, flags: [], clean: true, error: e.message }; }
       });
 
+      for (const r of [...secResults, ...qResults]) {
+        if (r.error) jevErrors.push(`${c} ${r.sectionId || r.question.id}: ${r.error}`);
+      }
+
       const all = [
         ...secResults.filter((r) => !r.clean).map((r) => ({
           where: `${c} section ${r.sectionId}`, flags: r.flags,
@@ -148,6 +156,7 @@ if (!noAi) {
         console.log(`   ${c} week ${set.weekNum}: nothing raised across ${jobs.length} questions`);
         continue;
       }
+
       console.log(`   ${c} week ${set.weekNum}:`);
       for (const item of all) {
         for (const f of item.flags) {
@@ -166,6 +175,13 @@ if (!noAi) {
 /* ------------------------------------------------------------- verdict */
 
 console.log('\x1b[1m' + '='.repeat(72) + '\x1b[0m');
+if (jevErrors.length) {
+  console.log(`\x1b[31mBLOCKED: ${jevErrors.length} Jev check(s) failed to run, so the week is unjudged.\x1b[0m`);
+  for (const e of jevErrors.slice(0, 8)) console.log(`  - ${e}`);
+  if (jevErrors.length > 8) console.log(`  - and ${jevErrors.length - 8} more`);
+  console.log('\nFix the cause or run with --no-ai deliberately. Do not read this as a pass.');
+  process.exit(1);
+}
 if (blocks.length) {
   console.log(`\x1b[31mBLOCKED: ${blocks.length} problem(s) must be fixed before this week goes out.\x1b[0m`);
   for (const b of blocks) console.log(`  - ${b}`);

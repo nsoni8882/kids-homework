@@ -143,7 +143,9 @@
         "M-prob",
         "M-value",
         "T-spatial"
-      ]
+      ],
+      "familiesFrom": "schoolSync",
+      "nswRole": "2C tracks the school's half term topic, so which exam family it serves changes with the term, not with a rung. schoolSync.terms[].families is the per term list, and that is what decides whether a family is current. Claiming a family a term has not reached yet is how the roadmap came to say measurement and area were in the weekly homework in Autumn 1."
     },
     "3A": {
       "subject": "thinking",
@@ -219,17 +221,26 @@
           {
             "id": "1A.6",
             "skill": "Two extracts on one theme, compared: which extract does which, and why a detail matters in one of them",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "R-compare"
+            ]
           },
           {
             "id": "1A.7",
             "skill": "A poem: what the title does, what is compared to what, and what the form reflects",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "R-poem"
+            ]
           },
           {
             "id": "1A.8",
             "skill": "Four extracts matched against statements, scanning all four against one claim",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "R-match"
+            ]
           }
         ]
       },
@@ -264,7 +275,10 @@
           {
             "id": "1B.6",
             "skill": "Missing sentence: choosing which sentence fills a gap by tracking reference words and the thread of the argument",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "R-missing"
+            ]
           }
         ]
       },
@@ -299,7 +313,10 @@
           {
             "id": "1C.6",
             "skill": "Vocabulary in context: choosing the one of four near synonyms that fits the register and the collocation",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "R-cloze"
+            ]
           }
         ]
       },
@@ -351,7 +368,10 @@
           {
             "id": "2B.2",
             "skill": "Short division with remainders, remainder always smaller than the divisor",
-            "advanceWhen": "two clean weeks INCLUDING the check step shown"
+            "advanceWhen": "two clean weeks INCLUDING the check step shown",
+            "nswFamilies": [
+              "M-reverse"
+            ]
           },
           {
             "id": "2B.3",
@@ -371,7 +391,10 @@
           {
             "id": "2B.6",
             "skill": "Fractions: reduction and equivalence",
-            "advanceWhen": "Kumon Level D9 onward"
+            "advanceWhen": "Kumon Level D9 onward",
+            "nswFamilies": [
+              "M-frac"
+            ]
           }
         ]
       },
@@ -412,27 +435,45 @@
           {
             "id": "3A.1",
             "skill": "Which statement, if true, most strengthens a short argument",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-strengthen"
+            ]
           },
           {
             "id": "3A.2",
             "skill": "Which statement most weakens it, with a plausible on topic distractor present",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-weaken"
+            ]
           },
           {
             "id": "3A.3",
             "skill": "Naming the mistake: necessary confused with sufficient, or one case treated as all cases",
-            "advanceWhen": "two clean weeks on unhinted items"
+            "advanceWhen": "two clean weeks on unhinted items",
+            "nswFamilies": [
+              "T-flaw"
+            ]
           },
           {
             "id": "3A.4",
             "skill": "What would have to be known to test the claim, rather than what supports it",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-sufficiency"
+            ]
           },
           {
             "id": "3A.5",
             "skill": "Mixed argument items at about one minute each",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "T-strengthen",
+              "T-weaken",
+              "T-flaw",
+              "T-sufficiency"
+            ]
           }
         ]
       },
@@ -442,32 +483,50 @@
           {
             "id": "3B.1",
             "skill": "Number sequences with a changing step, forwards and backwards",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-pattern"
+            ]
           },
           {
             "id": "3B.2",
             "skill": "Multiples and factors with counting: how many numbers in a range are multiples of 3 but not of 8",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-factors"
+            ]
           },
           {
             "id": "3B.3",
             "skill": "Two unknowns from two totals, such as 3 stars and 5 hearts making 27 points",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-pattern"
+            ]
           },
           {
             "id": "3B.4",
             "skill": "Deduction from a table or chart where the answer is not printed in it",
-            "advanceWhen": "two clean weeks on unhinted items"
+            "advanceWhen": "two clean weeks on unhinted items",
+            "nswFamilies": [
+              "T-tables"
+            ]
           },
           {
             "id": "3B.5",
             "skill": "Best value across pack sizes, offers and a quantity to hit exactly",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-optimise"
+            ]
           },
           {
             "id": "3B.6",
             "skill": "Magic squares and grid number reasoning",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "M-pattern"
+            ]
           }
         ]
       },
@@ -477,27 +536,42 @@
           {
             "id": "3C.1",
             "skill": "What follows from a conditional such as only those who attend may go",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-conditional"
+            ]
           },
           {
             "id": "3C.2",
             "skill": "Two speakers, one of whom reasons correctly: deciding which",
-            "advanceWhen": "two clean weeks on unhinted items"
+            "advanceWhen": "two clean weeks on unhinted items",
+            "nswFamilies": [
+              "T-conditional"
+            ]
           },
           {
             "id": "3C.3",
             "skill": "Constraint puzzles: order, ages or seats from three or more clues",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-deduce"
+            ]
           },
           {
             "id": "3C.4",
             "skill": "The minimum score or number that guarantees an outcome",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-deduce"
+            ]
           },
           {
             "id": "3C.5",
             "skill": "Counting events over a date range, including the extra weekday cases",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "T-calendar"
+            ]
           }
         ]
       },
@@ -507,27 +581,44 @@
           {
             "id": "1D.1",
             "skill": "One paragraph to a brief that names its audience and text type",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-brief",
+              "W-type"
+            ]
           },
           {
             "id": "1D.2",
             "skill": "Three or four paragraphs to a brief, with a clear opening and close",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-brief",
+              "W-type"
+            ]
           },
           {
             "id": "1D.3",
             "skill": "Persuasive: a position held throughout, reasons ordered, the obvious objection answered",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-persuade"
+            ]
           },
           {
             "id": "1D.4",
             "skill": "Imaginative: a narrative or description that is shaped, not merely started",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "W-narrative"
+            ]
           },
           {
             "id": "1D.5",
             "skill": "A full 30 minute typed response under time, planned in the first four minutes",
-            "advanceWhen": "sustained, this is the exam level"
+            "advanceWhen": "sustained, this is the exam level",
+            "nswFamilies": [
+              "W-plan"
+            ]
           }
         ]
       }
@@ -564,12 +655,18 @@
           {
             "id": "1A.6",
             "skill": "Two short extracts on one theme, compared",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "R-compare"
+            ]
           },
           {
             "id": "1A.7",
             "skill": "A poem: who is in it, what it compares, and what the title does",
-            "advanceWhen": "sustained"
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "R-poem"
+            ]
           }
         ]
       },
@@ -604,7 +701,10 @@
           {
             "id": "1B.6",
             "skill": "Missing sentence: choosing which sentence fills a gap in a short text",
-            "advanceWhen": "sustained"
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "R-missing"
+            ]
           }
         ]
       },
@@ -639,7 +739,10 @@
           {
             "id": "1C.6",
             "skill": "Vocabulary in context: choosing which of four similar words fits the gap",
-            "advanceWhen": "sustained"
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "R-cloze"
+            ]
           }
         ]
       },
@@ -753,27 +856,43 @@
           {
             "id": "3A.1",
             "skill": "Which statement best supports a claim, among options that are clearly off topic",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-strengthen"
+            ]
           },
           {
             "id": "3A.2",
             "skill": "Which statement best supports it, with one tempting but irrelevant option present",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-strengthen"
+            ]
           },
           {
             "id": "3A.3",
             "skill": "Spotting the mistake: it is blue with a hood, so it must be hers",
-            "advanceWhen": "two clean weeks on unhinted items"
+            "advanceWhen": "two clean weeks on unhinted items",
+            "nswFamilies": [
+              "T-flaw"
+            ]
           },
           {
             "id": "3A.4",
             "skill": "Which statement most weakens a claim",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-weaken"
+            ]
           },
           {
             "id": "3A.5",
             "skill": "Mixed support and weaken items",
-            "advanceWhen": "sustained"
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "T-strengthen",
+              "T-weaken"
+            ]
           }
         ]
       },
@@ -783,27 +902,42 @@
           {
             "id": "3B.1",
             "skill": "Patterns with a constant step that is not 2, 5 or 10",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-pattern"
+            ]
           },
           {
             "id": "3B.2",
             "skill": "Patterns continued backwards",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "M-pattern"
+            ]
           },
           {
             "id": "3B.3",
             "skill": "Reading a table or pictogram for something it does not state outright",
-            "advanceWhen": "two clean weeks on unhinted items"
+            "advanceWhen": "two clean weeks on unhinted items",
+            "nswFamilies": [
+              "T-tables"
+            ]
           },
           {
             "id": "3B.4",
             "skill": "Which of two sizes is better value",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-optimise"
+            ]
           },
           {
             "id": "3B.5",
             "skill": "Patterns with a changing step",
-            "advanceWhen": "sustained"
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "M-pattern"
+            ]
           }
         ]
       },
@@ -813,27 +947,42 @@
           {
             "id": "3C.1",
             "skill": "Two clue logic needing both clues",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-deduce"
+            ]
           },
           {
             "id": "3C.2",
             "skill": "Three clue logic with one elimination",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-deduce"
+            ]
           },
           {
             "id": "3C.3",
             "skill": "What follows from a condition such as only those who X may Y",
-            "advanceWhen": "two clean weeks on unhinted items"
+            "advanceWhen": "two clean weeks on unhinted items",
+            "nswFamilies": [
+              "T-conditional"
+            ]
           },
           {
             "id": "3C.4",
             "skill": "Which option cannot be chosen, given the lists and the choices already made",
-            "advanceWhen": "two clean weeks"
+            "advanceWhen": "two clean weeks",
+            "nswFamilies": [
+              "T-deduce"
+            ]
           },
           {
             "id": "3C.5",
             "skill": "Order and position from clues",
-            "advanceWhen": "sustained"
+            "advanceWhen": "sustained",
+            "nswFamilies": [
+              "T-deduce"
+            ]
           }
         ]
       }
@@ -927,37 +1076,91 @@
         "term": "Autumn 1",
         "ends": "2026-10-24",
         "mason": "4 digit place value, add and subtract",
-        "elysia": "add and subtract within 100"
+        "elysia": "add and subtract within 100",
+        "families": {
+          "mason": [
+            "M-place"
+          ],
+          "elysia": [
+            "M-place"
+          ]
+        }
       },
       {
         "term": "Autumn 2",
         "ends": "2026-12-19",
         "mason": "length and perimeter",
-        "elysia": "money counting, equal groups and arrays"
+        "elysia": "money counting, equal groups and arrays",
+        "families": {
+          "mason": [
+            "M-measure",
+            "M-area"
+          ],
+          "elysia": [
+            "M-value"
+          ]
+        }
       },
       {
         "term": "Spring 1",
         "ends": "2027-02-12",
         "mason": "area",
-        "elysia": "tables 2, 5, 10 and tally charts"
+        "elysia": "tables 2, 5, 10 and tally charts",
+        "families": {
+          "mason": [
+            "M-area"
+          ],
+          "elysia": [
+            "M-data"
+          ]
+        }
       },
       {
         "term": "Spring 2",
         "ends": "2027-04-01",
         "mason": "fractions over 1, decimals",
-        "elysia": "shapes, symmetry, fractions"
+        "elysia": "shapes, symmetry, fractions",
+        "families": {
+          "mason": [
+            "M-frac"
+          ],
+          "elysia": [
+            "M-geom",
+            "M-frac"
+          ]
+        }
       },
       {
         "term": "Summer 1",
         "ends": "2027-05-28",
         "mason": "money in pounds and pence, 24 hour clock",
-        "elysia": "length and position"
+        "elysia": "length and position",
+        "families": {
+          "mason": [
+            "M-value",
+            "M-time"
+          ],
+          "elysia": [
+            "M-measure"
+          ]
+        }
       },
       {
         "term": "Summer 2",
         "ends": "2027-07-22",
         "mason": "statistics, properties of shape",
-        "elysia": "time to quarter hours, mass, capacity"
+        "elysia": "time to quarter hours, mass, capacity",
+        "families": {
+          "mason": [
+            "M-data",
+            "M-geom",
+            "T-spatial"
+          ],
+          "elysia": [
+            "M-time",
+            "M-measure"
+          ]
+        }
       }
     ]
   },

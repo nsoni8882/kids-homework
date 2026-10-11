@@ -2,7 +2,7 @@
   "note": "Source validated against the official Kumon UK and Singapore curricula (2026). Maths: levels 7A to O plus the X specialty tracks (XV Vectors, XM Transformations, XP Permutations, XS Statistics). English: 18 main levels 7A to L, with sub levels AI/AII through GI/GII for levels A to G. H to L are single levels. The final English level is L.",
   "warning": "This roadmap is maintained by hand and can lag behind the real worksheet content. Check it against the current week before trusting it.",
   "granularity": "Levels A to D of maths are broken down by Kumon sheet set, because that is where both children are working. From Level E up, and for English above Level D, each level lists the published topics for that level rather than its sheet sets. Check a level with the centre before treating its breakdown as exact.",
-  "stateNote": "A level is marked current when at least one sub-topic inside it is. More than one level can be current at once: the weekly homework runs nine slots in parallel, so multiplication and division can advance on different sheets. Every current sub-topic names the homework slot and rung that evidences it, from data/curriculum/position.json on 2026-10-11.",
+  "stateNote": "A level is marked current when at least one sub-topic inside it is. More than one level can be current at once: the weekly homework runs nine slots in parallel, so multiplication and division can advance on different sheets. Every current sub-topic names the homework slot and rung that evidences it, from data/curriculum/position.json on 2026-10-11. For tracks.nsw, `current` means the child's recorded rung delivers that family THIS week, not that a slot is heading for it. `kh.py validate` derives the same set from the spine and refuses a push when the two disagree, in either direction.",
   "shapeNote": "The two ladders below are the Kumon programme itself, so they are defined once and shared. A child record holds only where that child stands on them: every id in `cleared`, every id in `current` with the reason, and everything else is still ahead. That is deliberate. The two children were previously two hand kept copies of the same ladder, which is how a roadmap drifts.",
   "tracks": {
     "nsw": {
@@ -1011,27 +1011,11 @@
         "nsw": {
           "cleared": [],
           "current": {
-            "R-compare": "Slot 1A is at rung 1A.4, inference from an unseen passage, which is the first 8 items of the real Reading paper",
-            "M-place": "Slot 2C is on 4 digit place value this half term",
-            "M-factors": "Slot 3B rung 3B.2, multiples and factors with counting",
+            "M-place": "Slot 2C is on 4 digit place value this half term, which is Autumn 1 to late October",
             "M-reverse": "Slot 2B is at rung 2B.2 and writes the check back, which is the same undoing step",
-            "M-measure": "Slot 2C moves to length and perimeter in Autumn 2",
-            "M-area": "Slot 2C covers perimeter this half term and area in Spring 1",
-            "M-pattern": "Slot 3B infers the rule behind a number set, which is the sequence half of this item type",
-            "T-strengthen": "Slot 3A is re-pointed to argument analysis from week 25 and starts at rung 3A.1, which is this item exactly",
-            "T-weaken": "Slot 3A rung 3A.2, the next rung up",
-            "T-flaw": "Slot 3A rung 3A.3, naming the mistake",
-            "T-sufficiency": "Slot 3A rung 3A.4, what would have to be known to test the claim",
-            "T-tables": "Slot 3B rung 3B.4, reading a table for what it does not print",
-            "T-optimise": "Slot 3B rung 3B.5, best value across pack sizes",
-            "T-conditional": "Slot 3C is re-pointed to conditional logic from week 25 and starts at rung 3C.1",
-            "T-deduce": "Slot 3C rung 3C.3, constraint puzzles, and 3C.4, the minimum that guarantees an outcome",
-            "T-calendar": "Slot 3C rung 3C.5, counting events over a date range",
-            "W-brief": "New slot 1D from week 25, 4 marks inside English's 20, starting at one paragraph to a brief that names its audience and text type",
-            "W-persuade": "Slot 1D rung 1D.3",
-            "W-narrative": "Slot 1D rung 1D.4",
-            "W-plan": "Slot 1D rung 1D.5, the full 30 minute typed response planned in the first four minutes",
-            "W-type": "Already true: the worksheet is typed in the browser, so the writing box is the same kind of input the real test uses"
+            "M-pattern": "Slot 3B is at rung 3B.1, sequences with a changing step, which is the sequence half of this item type",
+            "T-strengthen": "Slot 3A is at rung 3A.1, which statement most strengthens a short argument. Week 24 teaches it hinted, so it is covered but not yet evidenced",
+            "T-conditional": "Slot 3C is at rung 3C.1, what follows from a conditional. Week 24 teaches it hinted, so it is covered but not yet evidenced"
           }
         }
       },
@@ -1092,23 +1076,17 @@
             "2A"
           ],
           "current": {
-            "AI": "Slot 1B is at rung 1B.2, picking the right 5W-1H element with a distractor present, and the subject and predicate gap is open again",
-            "AII": "Slot 1C is at rung 1C.4, word building from a root, which is AII vocabulary work"
+            "AI": "Slot 1B is at rung 1B.2, subject and predicate in longer sentences with an opening phrase, and the subject and predicate gap is open again",
+            "AII": "Slot 1C is at rung 1C.4, the prefixes un, re and dis, which is AII vocabulary work"
           }
         },
         "nsw": {
           "cleared": [],
           "current": {
-            "R-compare": "Slot 1A is at rung 1A.3, joining two facts from different paragraphs",
-            "M-place": "Slot 2C works on place value and addition and subtraction within 100",
-            "M-reverse": "Slot 2B is at rung 2B.2, vertical addition with carrying, and 2C sets two step problems",
-            "T-strengthen": "Slot 3A is re-pointed to argument analysis from week 23 and starts at rung 3A.1, which statement best supports a claim",
-            "T-weaken": "Slot 3A rung 3A.4",
-            "T-flaw": "Slot 3A rung 3A.3, spotting the mistake",
-            "T-conditional": "Slot 3C rung 3C.3, what follows from a condition",
-            "T-deduce": "Slot 3C rungs 3C.1 and 3C.2, two and three clue logic, and 3C.5 for order and position",
-            "T-tables": "Slot 3B rung 3B.3, reading a table or pictogram for what it does not state",
-            "T-optimise": "Slot 3B rung 3B.4, which of two sizes is better value"
+            "M-place": "Slot 2C works on adding and subtracting within 100 this half term",
+            "M-pattern": "Slot 3B is at rung 3B.1, patterns with a constant step that is not 2, 5 or 10",
+            "T-strengthen": "Slot 3A is at rung 3A.1, which statement best supports a claim. Week 22 teaches it hinted, so it is covered but not yet evidenced",
+            "T-deduce": "Slot 3C is at rung 3C.1, two clue logic needing both clues, which is week 22's section"
           }
         }
       },

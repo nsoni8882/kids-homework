@@ -483,7 +483,7 @@ def cmd_push(args):
         spine = load_spine()
         problems += check_curriculum(local, spine)
         problems += check_coverage(local, spine)
-        problems += check_nsw_alignment(spine)
+        problems += check_nsw_alignment(spine, local)
     if problems:
         for p in problems:
             print(f"  {p}")
@@ -658,6 +658,52 @@ def slots_for(spine, child, week=None):
         out[sid] = slot
     return out
 
+
+def nsw_state(spine, child, week, position, when=None):
+    """Which exam item families this child is ACTUALLY working on right now.
+
+    Derived, never stored, from three things only: which slots are live for the
+    child this week, the rung each slot is recorded at, and the school term for
+    slot 2C. It returns (current, reachable, owner), where `current` is the
+    families the live rung delivers, `reachable` maps every family to the first
+    rung that delivers it, and `owner` maps a family to the slots that can.
+
+    This exists because `assets/roadmap.json` used to hand-write which families
+    were current, and on 11 Oct 2026 that map claimed 21 of them for Mason when
+    five were true. It said writing to a brief was in the weekly homework while
+    slot 1D did not exist until week 25 and he had never typed a response, and
+    it claimed measurement and area while their own reasons said Autumn 2 and
+    Spring 1. A map that records where each slot is heading, under a label that
+    reads "in the weekly homework now", reports work that is not happening."""
+    live = slots_for(spine, child, week)
+    pos = ((position.get("children") or {}).get(child) or {}).get("slots") or {}
+    current, reachable, owner = set(), {}, {}
+
+    for sid, slot in sorted(spine["slots"].items()):
+        for fid in nsw_families(slot, child):
+            owner.setdefault(fid, []).append(sid)
+
+    for sid, slot in sorted(live.items()):
+        if slot.get("familiesFrom") == "schoolSync":
+            # 2C follows the school's half term, so the term decides, not a rung.
+            term = current_term(spine, when)
+            for fid in (term.get("families") or {}).get(child) or []:
+                current.add(fid)
+                reachable.setdefault(fid, f"{sid} in {term['term']}")
+            continue
+        ladder = (spine["ladders"].get(child) or {}).get(sid)
+        if not ladder:
+            continue
+        rungs = ladder["rungs"]
+        at = pos.get(sid, {}).get("rung")
+        idx = next((i for i, r in enumerate(rungs) if r["id"] == at), None)
+        for i, r in enumerate(rungs):
+            for fid in r.get("nswFamilies") or []:
+                if fid not in reachable:
+                    reachable[fid] = r["id"]
+                if idx is not None and i <= idx:
+                    current.add(fid)
+    return current, reachable, owner
 
 def cmd_curriculum(args):
     """Print the brief: the map, where the child stands on it, what is blocking
@@ -972,7 +1018,7 @@ def cmd_plan(args):
         print()
 
 
-def check_nsw_alignment(spine):
+def check_nsw_alignment(spine, local=None):
     """The spine and the roadmap must agree about the target.
 
     Every slot declares the NSW item families it serves, by the ids in
@@ -1013,6 +1059,31 @@ def check_nsw_alignment(spine):
             if fid not in served:
                 problems.append(f"{child}: the roadmap says {fid!r} is being worked on, but no "
                                 f"slot of theirs serves it")
+
+    # And the third direction, which is the one that actually drifted: a family
+    # the roadmap calls current must be one the child's LIVE rung delivers. A
+    # destination several rungs up, or a slot that does not start for another
+    # week, is a future family however firmly the reason is worded.
+    position = read_json(POSITION, {"children": {}})
+    for child in CHILDREN:
+        entry = ((roadmap.get("children") or {}).get(child)) or {}
+        prog = (((entry.get("progress") or {}).get("nsw")) or {})
+        claimed = dict(prog.get("current") or {})
+        cleared = set(prog.get("cleared") or [])
+        week = (local[child]["current"] or {}).get("weekNum") if local else None
+        current, reachable, _ = nsw_state(spine, child, week, position)
+
+        for fid in sorted(set(claimed) & cleared):
+            problems.append(f"{child}: the roadmap has {fid!r} both cleared and current")
+        for fid in sorted(set(claimed) - current):
+            at = reachable.get(fid)
+            where = f"it is delivered at {at}" if at else "no rung of theirs delivers it"
+            problems.append(f"{child}: the roadmap says {fid!r} is in the weekly homework now, "
+                            f"but {where} and they are not there yet")
+        missing = sorted(current - set(claimed) - cleared)
+        for fid in missing:
+            problems.append(f"{child}: {fid!r} IS in the weekly homework now, at {reachable.get(fid)}, "
+                            f"and the roadmap lists it as neither current nor cleared")
     return problems
 
 
@@ -1125,7 +1196,7 @@ def cmd_validate(args):
         spine = load_spine()
         problems += check_curriculum(local, spine)
         problems += check_coverage(local, spine)
-        problems += check_nsw_alignment(spine)
+        problems += check_nsw_alignment(spine, local)
     if not problems:
         print("data/ is valid")
         return

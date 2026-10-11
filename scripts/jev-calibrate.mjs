@@ -63,11 +63,14 @@ const CASES = [
       fixed: 'Exactly one defensible answer per item. No two valid splits.',
       inferredRule: true,
     },
-    rungDef: { id: '3A.2', skill: 'Part to whole analogies', advanceWhen: 'two clean weeks picking the direct whole, not an indirect one' },
+    rungDef: {
+      id: '3A.4',
+      skill: 'Odd one out on words, where two plausible groupings exist and only one is defensible',
+      advanceWhen: 'two clean weeks',
+    },
     expect: null,
     why: 'rose is the only non tree. That is the intended rule, not a shortcut past it',
     slot: '3A',
-    rung: '3A.4',
     section: { id: '3A', title: 'Odd One Out', subject: 'thinking' },
     question: { id: 'c3', text: 'oak, maple, rose, pine\nOdd one out: ____', marks: 1, accepted: ['rose', 'a rose'] },
   },
@@ -89,6 +92,7 @@ const CASES = [
   },
   {
     name: 'straight comprehension retrieval',
+    rungDef: { id: '1A.2', skill: 'Retrieval where the question wording differs from the passage wording', advanceWhen: 'two clean weeks, no substituted synonyms' },
     expect: null,
     why: 'one fact, stated once, key correct',
     slot: '1A',
@@ -131,6 +135,7 @@ const CASES = [
   },
   {
     name: 'key is arithmetically wrong',
+    rungDef: { id: '2A.2', skill: '2-digit x 1-digit', advanceWhen: 'two weeks in the top band' },
     expect: 'key_wrong',
     why: '7 x 8 is 56, not 54',
     slot: '2A',
@@ -139,6 +144,7 @@ const CASES = [
   },
   {
     name: 'key contradicts the passage',
+    rungDef: { id: '1A.2', skill: 'Retrieval where the question wording differs from the passage wording', advanceWhen: 'two clean weeks, no substituted synonyms' },
     expect: 'key_wrong',
     why: 'the passage says 8 kilograms, the key says 30',
     slot: '1A',
@@ -162,6 +168,7 @@ const CASES = [
   },
   {
     name: 'key omits equally correct synonyms',
+    rungDef: { id: '1C.2', skill: 'Word classes: noun, verb, adjective, adverb in a sentence', advanceWhen: 'two clean weeks' },
     expect: 'answers_too_narrow',
     why: 'cheerful and joyful are as correct as glad, and none of them is a wording the deterministic matcher can reach',
     slot: '1C',
@@ -179,6 +186,27 @@ const CASES = [
     question: { id: 'b7', text: 'If 3 pencils and 2 rubbers cost 85p, and 5 pencils and 4 rubbers cost 155p, what does one pencil cost?', marks: 1, accepted: ['15p'] },
   },
 ];
+
+/* The rung a case is judged at. A case that pins one is never allowed to drift:
+ * it either carries the whole definition, or names a rung that must exist. The
+ * old code fell back to `ladder.rungs[1]`, a bare index that moves whenever a
+ * rung is inserted, and `find` returning undefined was never detected, so the
+ * level judgment was made with no level at all and the suite still printed
+ * PASS. A calibration that cannot tell you it is uncalibrated is not one. */
+function resolveRung(child, c) {
+  if (c.rungDef) {
+    if (c.rung && c.rung !== c.rungDef.id) {
+      throw new Error(`case "${c.name}" pins rung ${c.rung} but defines ${c.rungDef.id}`);
+    }
+    return c.rungDef;
+  }
+  const ladder = spine.ladders[child]?.[c.slot];
+  if (!ladder) throw new Error(`case "${c.name}" has no rungDef and no ${child} ladder for ${c.slot}`);
+  if (!c.rung) throw new Error(`case "${c.name}" names no rung, so there is nothing to judge the level against`);
+  const rung = ladder.rungs.find((r) => r.id === c.rung);
+  if (!rung) throw new Error(`case "${c.name}" names rung ${c.rung}, which is not on ${child}'s ${c.slot} ladder`);
+  return rung;
+}
 
 // JEV_MODEL lets this suite measure one published model against the other
 const jev = new Jev(key, { model: process.env.JEV_MODEL });
@@ -200,10 +228,8 @@ for (const c of CASES) {
     // looked exactly like the model drifting, and it was not. A gate whose
     // calibration moves whenever the curriculum moves cannot tell you anything
     // about the gate.
-    const ladder = spine.ladders[child][c.slot];
     const spineSlot = c.spineSlot || spine.slots[c.slot];
-    const rung = c.rungDef
-      || (c.rung ? ladder.rungs.find((r) => r.id === c.rung) : ladder.rungs[1]);
+    const rung = resolveRung(child, c);
     res = await checkQuestion(jev, {
       child, section: c.section, question: c.question, spineSlot, rung,
     });
@@ -235,7 +261,7 @@ for (const r of rows) {
   }
 }
 console.log('-'.repeat(96));
-console.log(`${rows.length - failed} of ${rows.length} passed`);
+console.log(`${rows.length - failed} of ${rows.length} passed, model ${jev.model}`);
 console.log(`cost: ${jev.usage.requests} requests, ${jev.usage.inputTokens.toLocaleString()} tokens, `
   + `about $${(jev.usage.inputTokens / 1e6 * 0.042).toFixed(4)}`);
 process.exit(failed ? 1 : 0);

@@ -193,7 +193,7 @@ const child = args[0];
 const week = args[1] != null ? Number(args[1]) : null;
 
 const spine = loadSpine();
-const jev = new Jev(apiKey());
+const jev = new Jev(apiKey(), { model: process.env.JEV_MODEL });
 const children = child ? [child] : ['mason', 'elysia'];
 
 let totalFlagged = 0;
