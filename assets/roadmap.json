@@ -1,213 +1,269 @@
 {
   "note": "Source validated against the official Kumon UK and Singapore curricula (2026). Maths: levels 7A to O plus the X specialty tracks (XV Vectors, XM Transformations, XP Permutations, XS Statistics). English: 18 main levels 7A to L, with sub levels AI/AII through GI/GII for levels A to G. H to L are single levels. The final English level is L.",
   "warning": "This roadmap is maintained by hand and can lag behind the real worksheet content. Check it against the current week before trusting it.",
-  "stateNote": "A section is marked current when at least one of its sub-sections is. More than one section can be current at once: the weekly homework runs several slots in parallel, so multiplication and division can advance on different sheets. Every current sub-section names the homework slot and rung that evidences it, from data/curriculum/position.json on 2026-10-11.",
-  "children": {
-    "mason": {
-      "tracks": [
-        {
-          "track": "Maths",
-          "icon": "calc",
-          "sections": [
-            {
-              "label": "Levels 7A to B",
-              "sub": "Early numeracy to 3 digit addition and subtraction",
-              "items": [
-                { "state": "cleared", "name": "7A - 2A", "detail": "Early numeracy: counting, number recognition, writing 1-100, mental addition +1 to +10" },
-                { "state": "cleared", "name": "Level A", "detail": "Addition (sum up to 28), subtraction from up to 20, 200 sheets, SCT 1-3 min" },
-                { "state": "cleared", "name": "Level B", "detail": "2 and 3-digit addition and subtraction with carrying and borrowing, first word problems, SCT 1-5 min" }
-              ]
-            },
-            {
-              "label": "Level C",
-              "sub": "20 sub-topics, SCT 2-5 min per sheet",
-              "items": [
-                { "state": "cleared", "name": "C1-4", "detail": "Multiplication tables x1-x3, x1-x5, x1-x7, x1-x9 (recall drills)" },
-                { "state": "current", "name": "C5-10", "detail": "2-digit x 1-digit (5 progressive sections), then 3 or 4-digit x 1-digit", "why": "Slot 2A keeps a third of the drill here while the 2-digit x 2-digit layout is taught" },
-                { "state": "cleared", "name": "C11", "detail": "Introduction to division, short division with no remainder" },
-                { "state": "current", "name": "C12-15", "detail": "Division with remainders (4 sections)", "why": "Slot 2B is at rung 2B.2, short division with remainders, with the check written back" },
-                { "state": "future", "name": "C16-17", "detail": "Division: 2-digit divided by 1-digit (2 sections)" },
-                { "state": "future", "name": "C18-20", "detail": "Division: 3-digit divided by 1-digit (2 sections), Level C complete" }
-              ]
-            },
-            {
-              "label": "Level D",
-              "sub": "20 sub-topics, SCT 2-6 min per sheet",
-              "items": [
-                { "state": "current", "name": "D1-4", "detail": "2-digit x 2-digit (3 sections), 3-digit x 2-digit", "why": "Slot 2A is at rung 2A.5, 2-digit x 2-digit, so the drill is already working above the Level C sheets" },
-                { "state": "future", "name": "D5-8", "detail": "Mixed add and subtract, multiplication and division, division by 2-digit numbers (5 sections)" },
-                { "state": "future", "name": "D9-12", "detail": "Division with quotients of 2 or more digits, introduction to fractions, reduction (4 sections, GCF)" }
-              ]
-            },
-            {
-              "label": "Levels E to O",
-              "sub": "Fractions through to calculus",
-              "items": [
-                { "state": "future", "name": "Levels E-F", "detail": "All fraction operations, fraction and decimal conversions, order of operations, word problems" },
-                { "state": "future", "name": "Levels G-H", "detail": "Negative integers, linear equations, simultaneous equations, functions and graphs" },
-                { "state": "future", "name": "Levels I-O", "detail": "Factorisation, quadratics, Pythagoras, trigonometry, calculus, SCT up to 30-60 min" },
-                { "state": "future", "name": "X-Levels", "detail": "XV Vectors, XM Transformations, XP Permutations and Combinations, XS Statistics (advanced elective tracks)" }
-              ]
-            }
-          ]
-        },
-        {
-          "track": "English",
-          "icon": "book",
-          "note": "Reading comprehension in slot 1A is at rung 1A.4, inference from an unseen passage, which is ahead of the Kumon sheet position below. The selective test drives that, not Kumon.",
-          "sections": [
-            {
-              "label": "Levels 7A to 2A",
-              "sub": "Phonics to fluent short passages",
-              "items": [
-                { "state": "cleared", "name": "7A - 3A", "detail": "Phonics, word recognition, sight words, short passages, basic comprehension" },
-                { "state": "cleared", "name": "Level 2A", "detail": "Longer passages, sequencing, nouns, verbs and adjectives, 50-word passage fluency" }
-              ]
-            },
-            {
-              "label": "Level A",
-              "sub": "Sub-levels AI and AII",
-              "items": [
-                { "state": "cleared", "name": "AI", "detail": "Structure of simple sentences, subject and predicate, basic punctuation" },
-                { "state": "cleared", "name": "AII", "detail": "Sentence structure, thought sequence, vocabulary building, comprehension questions" }
-              ]
-            },
-            {
-              "label": "Level B",
-              "sub": "Sub-levels BI and BII",
-              "items": [
-                { "state": "current", "name": "BI", "detail": "Subject and predicate deeper, past tense expressions, modifiers, 5W-1H questions", "why": "Slot 1B is at rung 1B.3, subject and predicate in compound sentences, and 1C is at 1C.4 word families" },
-                { "state": "future", "name": "BII", "detail": "Comparing and contrasting, reading speed 85 wpm, figurative language mastery" }
-              ]
-            },
-            {
-              "label": "Level C",
-              "sub": "Sub-levels CI and CII",
-              "items": [
-                { "state": "future", "name": "CI", "detail": "Constructing sentences, correct word order" },
-                { "state": "future", "name": "CII", "detail": "Organising information, tenses and voices" }
-              ]
-            },
-            {
-              "label": "Level D",
-              "sub": "Sub-levels DI and DII",
-              "items": [
-                { "state": "future", "name": "DI", "detail": "Combining sentences, relative clauses" },
-                { "state": "future", "name": "DII", "detail": "Main idea, understanding paragraphs, reported speech" }
-              ]
-            },
-            {
-              "label": "Levels E to G",
-              "sub": "Sub-levels EI/EII to GI/GII",
-              "items": [
-                { "state": "future", "name": "EI-EII", "detail": "Topic and main idea of paragraphs, scene transition, reason and result" },
-                { "state": "future", "name": "FI-FII", "detail": "Links within sentences (referring words, restatement), diagramming paragraphs, interpreting text" },
-                { "state": "future", "name": "GI-GII", "detail": "Paragraph elements, impressions, sentiment, single-paragraph summary" }
-              ]
-            },
-            {
-              "label": "Levels H to L",
-              "sub": "Summarisation then critique, L is the final level",
-              "items": [
-                { "state": "future", "name": "H - I", "detail": "Extended summarisation, character sentiment, key word relationships, concise comprehension answers" },
-                { "state": "future", "name": "J - L", "detail": "Critical reading: plot, atmosphere, irony, literary characters, figurative language analysis, objective commentary" }
-              ]
-            }
-          ]
-        }
+  "granularity": "Levels A to D of maths are broken down by Kumon sheet set, because that is where both children are working. From Level E up, and for English above Level D, each level lists the published topics for that level rather than its sheet sets. Check a level with the centre before treating its breakdown as exact.",
+  "stateNote": "A level is marked current when at least one sub-topic inside it is. More than one level can be current at once: the weekly homework runs nine slots in parallel, so multiplication and division can advance on different sheets. Every current sub-topic names the homework slot and rung that evidences it, from data/curriculum/position.json on 2026-10-11.",
+  "shapeNote": "The two ladders below are the Kumon programme itself, so they are defined once and shared. A child record holds only where that child stands on them: every id in `cleared`, every id in `current` with the reason, and everything else is still ahead. That is deliberate. The two children were previously two hand kept copies of the same ladder, which is how a roadmap drifts.",
+  "tracks": {
+    "maths": {
+      "track": "Maths",
+      "icon": "calc",
+      "sections": [
+        { "id": "7A", "label": "Level 7A", "sub": "Counting and number recognition",
+          "items": [
+            { "id": "7A", "name": "7A", "detail": "Counting up to 10, matching a number to a quantity, pencil control and tracing" }
+          ] },
+        { "id": "6A", "label": "Level 6A", "sub": "Counting and writing to 30",
+          "items": [
+            { "id": "6A", "name": "6A", "detail": "Counting up to 30, reading numbers, writing the numbers already recognised" }
+          ] },
+        { "id": "5A", "label": "Level 5A", "sub": "Writing numbers and sequences",
+          "items": [
+            { "id": "5A", "name": "5A", "detail": "Writing numbers 1 to 50, number sequences up to 100" }
+          ] },
+        { "id": "4A", "label": "Level 4A", "sub": "Larger numbers and the first addition",
+          "items": [
+            { "id": "4A", "name": "4A", "detail": "Reading and writing numbers up to 220, number sequences, the idea of adding on" }
+          ] },
+        { "id": "3A", "label": "Level 3A", "sub": "Horizontal addition begins",
+          "items": [
+            { "id": "3A", "name": "3A", "detail": "Mental addition +1, +2 and +3, horizontal, no written method" }
+          ] },
+        { "id": "2A", "label": "Level 2A", "sub": "SCT 1-2 min per sheet",
+          "items": [
+            { "id": "2A", "name": "2A", "detail": "Mental addition +4 to +10, adding 4 to 9 in sequence, sums up to 10" }
+          ] },
+        { "id": "A", "label": "Level A", "sub": "20 sub-topics, SCT 1-3 min per sheet",
+          "items": [
+            { "id": "A1-8", "name": "A1-8", "detail": "Addition 1 (review of 2A), addition 2-8, sums up to 12 then up to 28, with summary" },
+            { "id": "A9-12", "name": "A9-12", "detail": "Subtraction 1-4: subtracting 1, 2, 3, and up to 3, from numbers up to 10" },
+            { "id": "A13-20", "name": "A13-20", "detail": "Subtraction 5-12: from numbers up to 11 then up to 20, summary, Level A complete" }
+          ] },
+        { "id": "B", "label": "Level B", "sub": "20 sub-topics, SCT 1-5 min per sheet",
+          "items": [
+            { "id": "B1-10", "name": "B1-10", "detail": "Vertical 2 and 3-digit addition with carrying, and mental addition that bridges a ten" },
+            { "id": "B11-20", "name": "B11-20", "detail": "Vertical 2 and 3-digit subtraction with borrowing, first word problems, Level B complete" }
+          ] },
+        { "id": "C", "label": "Level C", "sub": "20 sub-topics, SCT 2-5 min per sheet",
+          "items": [
+            { "id": "C1-4", "name": "C1-4", "detail": "Multiplication tables x1-x3, x1-x5, x1-x7, x1-x9 (recall drills)" },
+            { "id": "C5-10", "name": "C5-10", "detail": "2-digit x 1-digit (5 progressive sections), then 3 or 4-digit x 1-digit" },
+            { "id": "C11", "name": "C11", "detail": "Introduction to division, short division with no remainder" },
+            { "id": "C12-15", "name": "C12-15", "detail": "Division with remainders (4 sections)" },
+            { "id": "C16-17", "name": "C16-17", "detail": "Division: 2-digit divided by 1-digit (2 sections)" },
+            { "id": "C18-20", "name": "C18-20", "detail": "Division: 3-digit divided by 1-digit (2 sections), Level C complete" }
+          ] },
+        { "id": "D", "label": "Level D", "sub": "20 sub-topics, SCT 2-6 min per sheet. The three blocks below are the ones mapped to sheet sets so far.",
+          "items": [
+            { "id": "D1-4", "name": "D1-4", "detail": "2-digit x 2-digit (3 sections), 3-digit x 2-digit" },
+            { "id": "D5-8", "name": "D5-8", "detail": "Mixed add and subtract, multiplication and division, division by 2-digit numbers (5 sections)" },
+            { "id": "D9-12", "name": "D9-12", "detail": "Division with quotients of 2 or more digits, introduction to fractions, reduction (4 sections, GCF)" }
+          ] },
+        { "id": "E", "label": "Level E", "sub": "Fractions: addition and subtraction",
+          "items": [
+            { "id": "E-equiv", "name": "Equivalent fractions", "detail": "Reduction to lowest terms, improper fractions and mixed numbers" },
+            { "id": "E-addsub", "name": "Addition and subtraction", "detail": "Fractions with different denominators, using the lowest common multiple" },
+            { "id": "E-word", "name": "Word problems", "detail": "Fraction word problems, and fractions of a quantity" }
+          ] },
+        { "id": "F", "label": "Level F", "sub": "Fractions and decimals: all four operations",
+          "items": [
+            { "id": "F-muldiv", "name": "Multiplication and division", "detail": "Multiplying and dividing fractions and mixed numbers" },
+            { "id": "F-four", "name": "Four operations", "detail": "Fractions and decimals together, converting between the two" },
+            { "id": "F-order", "name": "Order of operations", "detail": "Brackets and the order of operations, then word problems" }
+          ] },
+        { "id": "G", "label": "Level G", "sub": "Negative numbers and the first algebra",
+          "items": [
+            { "id": "G-neg", "name": "Positive and negative numbers", "detail": "The four operations with directed numbers" },
+            { "id": "G-expr", "name": "Algebraic expressions", "detail": "Simplifying, substituting and expanding simple expressions" },
+            { "id": "G-eq", "name": "Linear equations", "detail": "Equations in one variable, then word problems that lead to one" }
+          ] },
+        { "id": "H", "label": "Level H", "sub": "Simultaneous equations, inequalities and graphs",
+          "items": [
+            { "id": "H-sim", "name": "Simultaneous equations", "detail": "Linear equations in two variables, by substitution and elimination" },
+            { "id": "H-ineq", "name": "Inequalities", "detail": "Solving and graphing linear inequalities" },
+            { "id": "H-graph", "name": "Functions and graphs", "detail": "Linear functions, gradient and intercept, graphing" }
+          ] },
+        { "id": "I", "label": "Level I", "sub": "Factorisation, quadratics and Pythagoras",
+          "items": [
+            { "id": "I-fact", "name": "Expansion and factorisation", "detail": "Expanding brackets, then factorising quadratic expressions" },
+            { "id": "I-root", "name": "Square roots", "detail": "Surds and operations with square roots" },
+            { "id": "I-quad", "name": "Quadratic equations", "detail": "By factorising, completing the square and the formula" },
+            { "id": "I-pyth", "name": "Pythagoras' theorem", "detail": "The theorem and its use in two dimensions" }
+          ] },
+        { "id": "J", "label": "Level J", "sub": "Advanced algebra",
+          "items": [
+            { "id": "J-poly", "name": "Polynomials", "detail": "Division of polynomials, the remainder and factor theorems" },
+            { "id": "J-frac", "name": "Fractional and irrational expressions", "detail": "Algebraic fractions and expressions with surds" },
+            { "id": "J-ineq", "name": "Inequalities and proof", "detail": "Simultaneous and quadratic inequalities, and simple proofs" }
+          ] },
+        { "id": "K", "label": "Level K", "sub": "Functions",
+          "items": [
+            { "id": "K-quad", "name": "Quadratic functions", "detail": "Maximum and minimum values, and quadratic graphs" },
+            { "id": "K-fracirr", "name": "Fractional and irrational functions", "detail": "Their graphs and domains" },
+            { "id": "K-explog", "name": "Exponential and logarithmic functions", "detail": "Indices, logarithms and their graphs" }
+          ] },
+        { "id": "L", "label": "Level L", "sub": "Limits and the start of calculus",
+          "items": [
+            { "id": "L-lim", "name": "Limits", "detail": "Limits of functions, and continuity" },
+            { "id": "L-diff", "name": "Differentiation", "detail": "From first principles, then the rules, tangents and rates of change" },
+            { "id": "L-int", "name": "Integration", "detail": "Indefinite and definite integrals, area under a curve" }
+          ] },
+        { "id": "M", "label": "Level M", "sub": "Trigonometry and coordinate geometry",
+          "items": [
+            { "id": "M-trig", "name": "Trigonometric functions", "detail": "The ratios, identities, and equations involving them" },
+            { "id": "M-coord", "name": "Straight lines and circles", "detail": "Coordinate geometry of lines, circles and their intersections" }
+          ] },
+        { "id": "N", "label": "Level N", "sub": "Sequences, loci and further calculus",
+          "items": [
+            { "id": "N-loci", "name": "Loci and regions", "detail": "Describing a locus, and regions defined by inequalities" },
+            { "id": "N-seq", "name": "Sequences and series", "detail": "Arithmetic and geometric series, sigma notation, limits of sequences" },
+            { "id": "N-diff", "name": "Further differentiation", "detail": "Differentiating products, quotients and composite functions" }
+          ] },
+        { "id": "O", "label": "Level O", "sub": "Advanced calculus, the final maths level",
+          "items": [
+            { "id": "O-diff", "name": "Advanced differentiation", "detail": "Implicit and parametric differentiation, curve sketching" },
+            { "id": "O-int", "name": "Advanced integration", "detail": "Substitution, parts, and applications to area and volume" },
+            { "id": "O-de", "name": "Differential equations", "detail": "Forming and solving them, with applications. Level O complete" }
+          ] },
+        { "id": "X", "label": "X levels", "sub": "Electives, taken alongside or after Level O",
+          "items": [
+            { "id": "XV", "name": "XV Vectors", "detail": "Vectors in two and three dimensions, and their geometry" },
+            { "id": "XM", "name": "XM Transformations", "detail": "Matrices, linear transformations and their composition" },
+            { "id": "XP", "name": "XP Permutations", "detail": "Permutations, combinations and probability" },
+            { "id": "XS", "name": "XS Statistics", "detail": "Distributions, sampling and statistical inference" }
+          ] }
       ]
     },
-    "elysia": {
-      "tracks": [
-        {
-          "track": "Maths",
-          "icon": "calc",
-          "sections": [
-            {
-              "label": "Levels 7A to 2A",
-              "sub": "Counting to mental addition within 10",
-              "items": [
-                { "state": "cleared", "name": "7A - 3A", "detail": "Counting, number recognition, pencil tracing, writing 1-50, sequences to 100, addition +1 to +3" },
-                { "state": "cleared", "name": "Level 2A", "detail": "Mental addition +4 to +10, adding up to 10, SCT 1-2 min per sheet" }
-              ]
-            },
-            {
-              "label": "Level A",
-              "sub": "20 sub-topics, SCT 1-3 min per sheet",
-              "items": [
-                { "state": "cleared", "name": "A1-8", "detail": "Addition 1 (review of 2A), addition 2-8, sums up to 12 then up to 28, with summary" },
-                { "state": "cleared", "name": "A9-12", "detail": "Subtraction 1-4: subtracting 1, 2, 3, and up to 3, from numbers up to 10" },
-                { "state": "cleared", "name": "A13-20", "detail": "Subtraction 5-12: from numbers up to 11 then up to 20, summary, Level A complete" }
-              ]
-            },
-            {
-              "label": "Level B",
-              "sub": "20 sub-topics, SCT 1-5 min per sheet",
-              "items": [
-                { "state": "current", "name": "B1-10", "detail": "Vertical 2 and 3-digit addition with carrying, and mental addition that bridges a ten", "why": "Slot 2A is at rung 2A.3, addition within 100 crossing a ten, and 2B is at 2B.2, vertical addition with carrying" },
-                { "state": "future", "name": "B11-20", "detail": "Vertical 2 and 3-digit subtraction with borrowing, first word problems, Level B complete" }
-              ]
-            },
-            {
-              "label": "Level C and beyond",
-              "sub": "Multiplication and division",
-              "items": [
-                { "state": "future", "name": "Level C", "detail": "Times tables x1-x9, 2 to 4-digit x 1-digit, short division, SCT 2-5 min. School does not teach the 7, 8, 9, 11 or 12 tables yet, so homework stays off them" },
-                { "state": "future", "name": "Level D+", "detail": "Long division, 2-digit multiplication, fractions, algebra and beyond" }
-              ]
-            }
-          ]
-        },
-        {
-          "track": "English",
-          "icon": "book",
-          "note": "Reading comprehension in slot 1A is at rung 1A.3, joining two facts from different paragraphs, which runs ahead of the Kumon sheet position below.",
-          "sections": [
-            {
-              "label": "Levels 7A to 2A",
-              "sub": "Letters and phonics to fluent short passages",
-              "items": [
-                { "state": "cleared", "name": "7A - 4A", "detail": "Letter recognition, phonics, word recognition, simple sentences, sight words" },
-                { "state": "cleared", "name": "Level 3A", "detail": "Short passages, basic comprehension, polysyllabic words, vowel digraphs" },
-                { "state": "cleared", "name": "Level 2A", "detail": "Reading 50-word passages fluently in 1 min, nouns, verbs and adjectives, writing words independently, sequencing" }
-              ]
-            },
-            {
-              "label": "Level A",
-              "sub": "Sub-levels AI and AII",
-              "items": [
-                { "state": "current", "name": "AI", "detail": "Structure of simple sentences, subject and predicate, basic punctuation", "why": "Slot 1B is at rung 1B.2, picking the right 5W-1H element with a distractor present, and the subject and predicate gap is open again" },
-                { "state": "current", "name": "AII", "detail": "Sentence structure, thought sequence, vocabulary building, comprehension questions", "why": "Slot 1C is at rung 1C.4, word building from a root, which is AII vocabulary work" }
-              ]
-            },
-            {
-              "label": "Level B",
-              "sub": "Sub-levels BI and BII",
-              "items": [
-                { "state": "future", "name": "BI", "detail": "Subject and predicate deeper, past tense expressions, modifiers, 5W-1H questions" },
-                { "state": "future", "name": "BII", "detail": "Comparing and contrasting, reading speed 85 wpm, figurative language mastery" }
-              ]
-            },
-            {
-              "label": "Levels C to G",
-              "sub": "Sub-levels CI/CII through GI/GII",
-              "items": [
-                { "state": "future", "name": "CI-CII", "detail": "Sentence parts, correct word order, tenses and voices" },
-                { "state": "future", "name": "DI-DII", "detail": "Relative clauses, reported speech, statements from paragraphs" },
-                { "state": "future", "name": "EI-GII", "detail": "Topic and main idea, paragraph flow, impressions, sentiment, single-paragraph summary" }
-              ]
-            },
-            {
-              "label": "Levels H to L",
-              "sub": "Summarisation then critique, L is the final level",
-              "items": [
-                { "state": "future", "name": "H - I", "detail": "Extended summarisation, character sentiment, key word relationships" },
-                { "state": "future", "name": "J - L", "detail": "Critical reading: plot, atmosphere, irony, literary analysis" }
-              ]
-            }
-          ]
-        }
+    "english": {
+      "track": "English",
+      "icon": "book",
+      "sections": [
+        { "id": "7A", "label": "Level 7A", "sub": "Listening, looking and repeating",
+          "items": [
+            { "id": "7A", "name": "7A", "detail": "Vocabulary from pictures, listening to a passage read aloud, first spoken words" }
+          ] },
+        { "id": "6A", "label": "Level 6A", "sub": "Phonics: first sounds",
+          "items": [
+            { "id": "6A", "name": "6A", "detail": "Initial letter sounds, vocabulary building from pictures" }
+          ] },
+        { "id": "5A", "label": "Level 5A", "sub": "Phonics: blending",
+          "items": [
+            { "id": "5A", "name": "5A", "detail": "Blending sounds into short words, reading simple words aloud" }
+          ] },
+        { "id": "4A", "label": "Level 4A", "sub": "Letters, sight words and first sentences",
+          "items": [
+            { "id": "4A", "name": "4A", "detail": "Letter recognition and the alphabet, phonics, sight words, simple sentences" }
+          ] },
+        { "id": "3A", "label": "Level 3A", "sub": "Short passages",
+          "items": [
+            { "id": "3A", "name": "3A", "detail": "Short passages, polysyllabic words, vowel digraphs, basic comprehension" }
+          ] },
+        { "id": "2A", "label": "Level 2A", "sub": "Fluency and word classes",
+          "items": [
+            { "id": "2A", "name": "2A", "detail": "Reading a 50-word passage fluently in a minute, nouns, verbs and adjectives, sequencing, writing words independently" }
+          ] },
+        { "id": "A", "label": "Level A", "sub": "Sub-levels AI and AII",
+          "items": [
+            { "id": "AI", "name": "AI", "detail": "Structure of simple sentences, subject and predicate, basic punctuation" },
+            { "id": "AII", "name": "AII", "detail": "Sentence structure, thought sequence, vocabulary building, comprehension questions" }
+          ] },
+        { "id": "B", "label": "Level B", "sub": "Sub-levels BI and BII",
+          "items": [
+            { "id": "BI", "name": "BI", "detail": "Subject and predicate deeper, past tense expressions, modifiers, 5W-1H questions" },
+            { "id": "BII", "name": "BII", "detail": "Comparing and contrasting, reading speed 85 wpm, figurative language" }
+          ] },
+        { "id": "C", "label": "Level C", "sub": "Sub-levels CI and CII",
+          "items": [
+            { "id": "CI", "name": "CI", "detail": "Constructing sentences, correct word order" },
+            { "id": "CII", "name": "CII", "detail": "Organising information, tenses and voices" }
+          ] },
+        { "id": "D", "label": "Level D", "sub": "Sub-levels DI and DII",
+          "items": [
+            { "id": "DI", "name": "DI", "detail": "Combining sentences, relative clauses" },
+            { "id": "DII", "name": "DII", "detail": "Main idea, understanding paragraphs, reported speech" }
+          ] },
+        { "id": "E", "label": "Level E", "sub": "Sub-levels EI and EII",
+          "items": [
+            { "id": "EI", "name": "EI", "detail": "Topic and main idea of a paragraph" },
+            { "id": "EII", "name": "EII", "detail": "Scene transition, reason and result" }
+          ] },
+        { "id": "F", "label": "Level F", "sub": "Sub-levels FI and FII",
+          "items": [
+            { "id": "FI", "name": "FI", "detail": "Links within sentences: referring words and restatement" },
+            { "id": "FII", "name": "FII", "detail": "Diagramming paragraphs, interpreting a text" }
+          ] },
+        { "id": "G", "label": "Level G", "sub": "Sub-levels GI and GII",
+          "items": [
+            { "id": "GI", "name": "GI", "detail": "Paragraph elements and the impression a passage leaves" },
+            { "id": "GII", "name": "GII", "detail": "Sentiment, and summarising a passage in one paragraph" }
+          ] },
+        { "id": "H", "label": "Level H", "sub": "Summarisation begins",
+          "items": [
+            { "id": "H", "name": "H", "detail": "Key word relationships, concise comprehension answers, summarising a paragraph" }
+          ] },
+        { "id": "I", "label": "Level I", "sub": "Extended summarisation",
+          "items": [
+            { "id": "I", "name": "I", "detail": "Summarising longer texts, character sentiment, tracking an argument" }
+          ] },
+        { "id": "J", "label": "Level J", "sub": "Critique stage begins",
+          "items": [
+            { "id": "J", "name": "J", "detail": "Critical reading: plot, setting and atmosphere" }
+          ] },
+        { "id": "K", "label": "Level K", "sub": "Critique stage",
+          "items": [
+            { "id": "K", "name": "K", "detail": "Irony, literary characters, and analysis of figurative language" }
+          ] },
+        { "id": "L", "label": "Level L", "sub": "The final English level",
+          "items": [
+            { "id": "L", "name": "L", "detail": "Objective commentary on a text, sustained critique, Level L complete" }
+          ] }
       ]
+    }
+  },
+  "children": {
+    "mason": {
+      "tracks": ["maths", "english"],
+      "notes": {
+        "english": "Reading comprehension in slot 1A is at rung 1A.4, inference from an unseen passage, which is ahead of the Kumon sheet position below. The selective test drives that, not Kumon."
+      },
+      "progress": {
+        "maths": {
+          "cleared": ["7A", "6A", "5A", "4A", "3A", "2A", "A1-8", "A9-12", "A13-20", "B1-10", "B11-20", "C1-4", "C11"],
+          "current": {
+            "C5-10": "Slot 2A keeps a third of the drill here while the 2-digit x 2-digit layout is taught",
+            "C12-15": "Slot 2B is at rung 2B.2, short division with remainders, with the check written back",
+            "D1-4": "Slot 2A is at rung 2A.5, 2-digit x 2-digit, so the drill is already working above the Level C sheets"
+          }
+        },
+        "english": {
+          "cleared": ["7A", "6A", "5A", "4A", "3A", "2A", "AI", "AII"],
+          "current": {
+            "BI": "Slot 1B is at rung 1B.3, subject and predicate in compound sentences, and 1C is at 1C.4 word families"
+          }
+        }
+      }
+    },
+    "elysia": {
+      "tracks": ["maths", "english"],
+      "notes": {
+        "maths": "School does not teach the 7, 8, 9, 11 or 12 times tables until later, so the homework stays off them even once Level C starts.",
+        "english": "Reading comprehension in slot 1A is at rung 1A.3, joining two facts from different paragraphs, which runs ahead of the Kumon sheet position below."
+      },
+      "progress": {
+        "maths": {
+          "cleared": ["7A", "6A", "5A", "4A", "3A", "2A", "A1-8", "A9-12", "A13-20"],
+          "current": {
+            "B1-10": "Slot 2A is at rung 2A.3, addition within 100 crossing a ten, and 2B is at 2B.2, vertical addition with carrying"
+          }
+        },
+        "english": {
+          "cleared": ["7A", "6A", "5A", "4A", "3A", "2A"],
+          "current": {
+            "AI": "Slot 1B is at rung 1B.2, picking the right 5W-1H element with a distractor present, and the subject and predicate gap is open again",
+            "AII": "Slot 1C is at rung 1C.4, word building from a root, which is AII vocabulary work"
+          }
+        }
+      }
     }
   }
 }

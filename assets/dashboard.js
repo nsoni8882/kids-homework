@@ -676,8 +676,29 @@ function drawHistoryChart(kid) {
 const STATE_ICON = { cleared: 'checkCircle', current: 'target', future: 'square' };
 const STATE_LABEL = { cleared: 'Cleared', current: 'Working on this now', future: 'Not yet reached' };
 
-/* A section's state is derived, never stored: current if any sub-section is
- * current, cleared if every one is, future otherwise. More than one section can
+/* The two Kumon ladders are the programme itself, so roadmap.json holds one
+ * copy of each and a child record says only where that child stands: the ids
+ * cleared, the ids current with the reason, and everything else still ahead.
+ * Both children used to be hand kept copies of the same ladder, which is how a
+ * roadmap drifts out of step with itself. */
+function resolveTrack(trackId, progress) {
+  const track = roadmap.tracks[trackId];
+  if (!track) return null;
+  const cleared = new Set(progress.cleared || []);
+  const current = progress.current || {};
+  const sections = track.sections.map((sec) => ({
+    ...sec,
+    items: sec.items.map((it) => ({
+      ...it,
+      state: it.id in current ? 'current' : cleared.has(it.id) ? 'cleared' : 'future',
+      why: current[it.id] || null,
+    })),
+  }));
+  return { ...track, sections };
+}
+
+/* A level's state is derived, never stored: current if any sub-topic inside it
+ * is, cleared if every one is, still ahead otherwise. More than one level can
  * be current at once, because the nine homework slots advance independently. */
 function sectionState(sec) {
   if (sec.items.some((i) => i.state === 'current')) return 'current';
@@ -687,7 +708,7 @@ function sectionState(sec) {
 
 function renderRoadmap() {
   const panel = $('panel-roadmap');
-  if (!roadmap || !roadmap.children) {
+  if (!roadmap || !roadmap.tracks || !roadmap.children) {
     panel.innerHTML = '<div class="card"><p class="card-note">The roadmap did not load.</p></div>';
     return;
   }
@@ -700,13 +721,16 @@ function renderRoadmap() {
     <h1 class="sr-only">The full Kumon roadmap for both children</h1>
     <section class="card">
       <div class="chart-head">${icon('layers')}<h2>The whole pathway, both children</h2></div>
-      <p class="card-note">Every Kumon level either child will pass through. The section they are
-        working towards is open, the rest are folded away. ${esc(roadmap.stateNote || '')}</p>
+      <p class="card-note">Every Kumon level either child will pass through, one fold per level.
+        The levels they are working on are open, the rest are folded away.
+        ${esc(roadmap.stateNote || '')}</p>
       ${legend}
     </section>
     ${KIDS.map(childRoadmapHtml).join('')}
     <section class="card">
       <p class="card-note">${esc(roadmap.note)}</p>
+      ${roadmap.granularity ? `<p class="card-note" style="margin-top:var(--s2)">
+        ${esc(roadmap.granularity)}</p>` : ''}
       <p class="card-note" style="margin-top:var(--s2);color:var(--warn)">
         ${icon('alert', 'i i-sm')} ${esc(roadmap.warning)}</p>
     </section>`;
@@ -715,15 +739,23 @@ function renderRoadmap() {
 function childRoadmapHtml(kid) {
   const child = roadmap.children[kid];
   if (!child) return '';
-  const cols = child.tracks.map((t) => {
-    const here = t.sections.filter((sec) => sectionState(sec) === 'current')
-      .flatMap((sec) => sec.items.filter((i) => i.state === 'current').map((i) => i.name));
+  const cols = (child.tracks || []).map((trackId) => {
+    const t = resolveTrack(trackId, (child.progress || {})[trackId] || {});
+    if (!t) return '';
+    const note = (child.notes || {})[trackId];
+    // A sub-topic named C5-10 or AI already carries its level; one named
+    // "Equivalent fractions" does not, so it gets the level id in front.
+    const here = t.sections.flatMap((sec) => sec.items
+      .filter((i) => i.state === 'current')
+      .map((i) => (i.name.startsWith(sec.id) ? i.name : `${sec.id} ${i.name}`)));
+    const done = t.sections.filter((sec) => sectionState(sec) === 'cleared').length;
     return `<div class="roadmap-col">
       <h3>${icon(t.icon)} ${esc(t.track)}</h3>
       <p class="card-note rm-now">${here.length
-        ? `${icon('target', 'i i-sm')} Now on ${here.map(esc).join(', ')}`
+        ? `${icon('target', 'i i-sm')} Now on ${esc(here.join(', '))}`
         : 'No current level recorded'}</p>
-      ${t.note ? `<p class="card-note rm-note">${icon('trend', 'i i-sm')} ${esc(t.note)}</p>` : ''}
+      <p class="card-note">${done} of ${t.sections.length} levels cleared outright.</p>
+      ${note ? `<p class="card-note rm-note">${icon('trend', 'i i-sm')} ${esc(note)}</p>` : ''}
       ${t.sections.map(sectionHtml).join('')}
     </div>`;
   }).join('');
@@ -754,12 +786,14 @@ function sectionHtml(sec) {
         ${it.why ? `<div class="kl-why">${icon('target', 'i i-sm')} ${esc(it.why)}</div>` : ''}
       </div></div>`).join('');
 
-  // Open on the section they are working towards, folded otherwise.
+  // Open on the level they are working on, folded otherwise. A level with one
+  // sub-topic says nothing useful in the "n of m" count, so it is left off.
   return `<details class="rm-sec"${st === 'current' ? ' open' : ''}>
     <summary>${icon('chevronRight', 'i i-sm chev')}
       <span class="rm-sec-label">${esc(sec.label)}</span>
       ${badge}
-      <span class="rm-sec-count">${done} of ${sec.items.length} cleared</span></summary>
+      ${sec.items.length > 1
+        ? `<span class="rm-sec-count">${done} of ${sec.items.length} cleared</span>` : ''}</summary>
     ${sec.sub ? `<p class="card-note rm-sec-sub">${esc(sec.sub)}</p>` : ''}
     <div class="rm-sec-items">${items}</div>
   </details>`;
