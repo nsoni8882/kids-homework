@@ -967,15 +967,33 @@ def check_coverage(local, spine):
                 problems.append(f"{child} W{week}: gap '{g['topic'][:48]}' is assigned to slot "
                                 f"{sid}, which is not in this week")
 
-        # a hinted section cannot evidence its rung
+        # a hinted section cannot evidence its rung, unless the hint is deliberate
+        #
+        # Nik can decide that a gap needs teaching outright rather than testing again,
+        # which is what happened to Elysia's predicate gap on 11 Oct 2026 after three
+        # failures. The section then lists those gap topics in hintedGaps, and they are
+        # exempt here. The rule they are exempt FROM is the gate, not the diagnosis:
+        # step 5 of the weekly cycle still records a hinted pass as improving, never
+        # resolved, because a hinted pass only proves the child can copy.
         for sid, s in sections.items():
             if not s.get("hinted"):
                 continue
-            blocking = [g for g in gaps if g.get("slot") == sid]
+            taught = [t.lower() for t in (s.get("hintedGaps") or [])]
+            if taught and not s.get("hintedWhy"):
+                problems.append(f"{child} W{week} {sid}: hintedGaps is set without hintedWhy, so "
+                                "there is no record of why the hint was deliberate")
+            on_slot = [g for g in gaps if g.get("slot") == sid]
+            for t in taught:
+                if not any(t in g["topic"].lower() for g in on_slot):
+                    problems.append(f"{child} W{week} {sid}: hintedGaps names '{t[:40]}', which is "
+                                    f"not an open gap on slot {sid}")
+            blocking = [g for g in on_slot
+                        if not any(t in g["topic"].lower() for t in taught)]
             if blocking:
                 problems.append(f"{child} W{week} {sid}: the section declares itself hinted, so it "
                                 f"cannot resolve the open gap '{blocking[0]['topic'][:40]}'. Either "
-                                "remove the hint or accept the gap stays open.")
+                                "remove the hint, or list that gap in the section's hintedGaps with "
+                                "a hintedWhy to say the teaching is deliberate.")
 
         # the drill must actually be a drill
         for sid, s in sections.items():

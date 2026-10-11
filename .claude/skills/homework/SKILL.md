@@ -212,6 +212,12 @@ Give Nik:
 
 ## Step 8. Build next week (only after he replies)
 
+**Standing instruction, Nik 11 Oct 2026: progression is this skill's job, not his.** Every built
+week is built at the rung `kh.py plan` prints for each slot, and step 7 says per slot whether it
+advanced or held and which `advanceWhen` condition decided it. A hold cites the condition. A slot
+that has held three cycles running is reported as a problem to solve, not a steady state. He should
+never have to ask for this again.
+
 Apply his accepted mark changes and gap closures first, then:
 
 ```bash

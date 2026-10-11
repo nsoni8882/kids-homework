@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-10-04",
+  "updated": "2026-10-11",
   "purpose": "The fixed map the weekly homework is generated against. Read this BEFORE designing a week. It exists so the pathway is decided once and then followed, instead of being re-derived from scratch every week, which is how the content drifts. This file holds the map only. Where each child currently stands on it is data/curriculum/position.json, which the weekly cycle updates. Do not restate, summarise or re-invent this file in a weekly plan: cite the rung ids.",
   "howToUse": [
     "Run scripts/kh.py curriculum <child> to get this map merged with the child's current position, open gaps and the school topic for today. That printout is the brief.",
@@ -61,7 +61,7 @@
     "2A": {
       "subject": "maths",
       "purpose": "Arithmetic fluency drill, timed",
-      "format": "A score banded drill. At least 30 problems. First third easy, middle moderate, last third harder.",
+      "format": "A score banded drill. At least 30 problems. First third easy, middle moderate, last third harder. From week 24 Mason's 2A carries 6 of his 20 maths marks rather than 8, with the same 30 items and the bands rescaled.",
       "fixed": "Always scoreBand true with scoreBandRules. Always the child's current Kumon arithmetic operation.",
       "inferredRule": false
     },
@@ -75,7 +75,7 @@
     "2C": {
       "subject": "maths",
       "purpose": "Applied reasoning on the school's current half term topic",
-      "format": "Word problems. Mason keeps a couple of remainder or two step problems regardless of the school topic.",
+      "format": "Word problems. Mason keeps a couple of remainder or two step problems regardless of the school topic. From week 24 Mason's 2C carries 8 of his 20 maths marks, and 4 of those sit on two 2 mark problems where the answer earns one mark and the written method with its sense check earns the other, marked against a scheme. Nik asked for the working to be worth marks on 11 Oct 2026.",
       "fixed": "Always follows schoolSync for today's date. This is the only slot that tracks the school calendar.",
       "inferredRule": false
     },
@@ -787,7 +787,21 @@
   },
   "retired": {
     "note": "Item shapes Nik ruled ambiguous or unfair. Never generate these again, in any wording.",
-    "mason": [],
-    "elysia": []
+    "mason": [
+      {
+        "shape": "Odd one out on numbers where more than one divisibility rule splits the set",
+        "example": "9, 12, 15, 18, where multiples of 3 that are not multiples of 5 names 15 and multiples of 3 that are not multiples of 4 names 12",
+        "why": "Two defensible answers. Jev flagged it at 76 percent, Nik accepted the child's 12 and retired the shape on 11 Oct 2026.",
+        "retiredOn": "2026-10-11"
+      }
+    ],
+    "elysia": [
+      {
+        "shape": "Odd one out on living things where the intended category is insect against mammal but one member is the only harmless one",
+        "example": "wasp, bee, butterfly, bat, where butterfly is the only one of the four that cannot sting or bite",
+        "why": "Two defensible answers. Jev flagged it at 51 percent, Nik accepted the child's butterfly and retired the shape on 11 Oct 2026.",
+        "retiredOn": "2026-10-11"
+      }
+    ]
   }
 }
