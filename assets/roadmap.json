@@ -1,1161 +1,1163 @@
 {
-  "note": "Source validated against the official Kumon UK and Singapore curricula (2026). Maths: levels 7A to O plus the X specialty tracks (XV Vectors, XM Transformations, XP Permutations, XS Statistics). English: 18 main levels 7A to L, with sub levels AI/AII through GI/GII for levels A to G. H to L are single levels. The final English level is L.",
-  "warning": "This roadmap is maintained by hand and can lag behind the real worksheet content. Check it against the current week before trusting it.",
-  "granularity": "Levels A to D of maths are broken down by Kumon sheet set, because that is where both children are working. From Level E up, and for English above Level D, each level lists the published topics for that level rather than its sheet sets. Check a level with the centre before treating its breakdown as exact.",
-  "stateNote": "A level is marked current when at least one sub-topic inside it is. More than one level can be current at once: the weekly homework runs nine slots in parallel, so multiplication and division can advance on different sheets. Every current sub-topic names the homework slot and rung that evidences it, from data/curriculum/position.json on 2026-10-11. For tracks.nsw, `current` means the child's recorded rung delivers that family THIS week, not that a slot is heading for it. `kh.py validate` derives the same set from the spine and refuses a push when the two disagree, in either direction.",
-  "shapeNote": "The two ladders below are the Kumon programme itself, so they are defined once and shared. A child record holds only where that child stands on them: every id in `cleared`, every id in `current` with the reason, and everything else is still ahead. That is deliberate. The two children were previously two hand kept copies of the same ladder, which is how a roadmap drifts.",
-  "tracks": {
-    "nsw": {
-      "track": "NSW placement test",
-      "icon": "target",
-      "wide": true,
-      "stateLabels": {
-        "cleared": "Covered and evidenced",
-        "current": "In the weekly homework now",
-        "future": "Not started yet"
+ "note": "Source validated against the official Kumon UK and Singapore curricula (2026). Maths: levels 7A to O plus the X specialty tracks (XV Vectors, XM Transformations, XP Permutations, XS Statistics). English: 18 main levels 7A to L, with sub levels AI/AII through GI/GII for levels A to G. H to L are single levels. The final English level is L.",
+ "warning": "This roadmap is maintained by hand and can lag behind the real worksheet content. Check it against the current week before trusting it.",
+ "granularity": "Levels A to D of maths are broken down by Kumon sheet set, because that is where both children are working. From Level E up, and for English above Level D, each level lists the published topics for that level rather than its sheet sets. Check a level with the centre before treating its breakdown as exact.",
+ "stateNote": "A level is marked current when at least one sub-topic inside it is. More than one level can be current at once: the weekly homework runs nine slots in parallel, so multiplication and division can advance on different sheets. Every current sub-topic names the homework slot and rung that evidences it, from data/curriculum/position.json on 2026-10-11. For tracks.nsw, `current` means the child's recorded rung delivers that family THIS week, not that a slot is heading for it. `kh.py validate` derives the same set from the spine and refuses a push when the two disagree, in either direction.",
+ "shapeNote": "The two ladders below are the Kumon programme itself, so they are defined once and shared. A child record holds only where that child stands on them: every id in `cleared`, every id in `current` with the reason, and everything else is still ahead. That is deliberate. The two children were previously two hand kept copies of the same ladder, which is how a roadmap drifts.",
+ "tracks": {
+  "nsw": {
+   "track": "NSW placement test",
+   "icon": "target",
+   "wide": true,
+   "stateLabels": {
+    "cleared": "Covered and evidenced",
+    "current": "In the weekly homework now",
+    "future": "Not started yet"
+   },
+   "sections": [
+    {
+     "id": "R",
+     "label": "Reading",
+     "sub": "Selective: 17 questions, 38 answers, 45 minutes. OC: 14 questions, 40 minutes. Five distinct item types, not one comprehension task.",
+     "items": [
+      {
+       "id": "R-compare",
+       "name": "Paired extracts, compared",
+       "detail": "Two short texts on one theme, then multiple choice on both: which extract does X, why a detail matters, what the writer implies, how the writer feels. Items 1 to 8 of the real paper.",
+       "slots": [
+        "1A"
+       ]
       },
-      "sections": [
-        {
-          "id": "R",
-          "label": "Reading",
-          "sub": "Selective: 17 questions, 38 answers, 45 minutes. OC: 14 questions, 40 minutes. Five distinct item types, not one comprehension task.",
-          "items": [
-            {
-              "id": "R-compare",
-              "name": "Paired extracts, compared",
-              "detail": "Two short texts on one theme, then multiple choice on both: which extract does X, why a detail matters, what the writer implies, how the writer feels. Items 1 to 8 of the real paper.",
-              "slots": [
-                "1A"
-              ]
-            },
-            {
-              "id": "R-cloze",
-              "name": "Vocabulary in context",
-              "detail": "A passage with gaps. Each gap offers four near synonyms and only one fits the register and collocation: ordaining / inaugurating / consecrating / enthroning. 8 answers.",
-              "slots": [
-                "1C"
-              ]
-            },
-            {
-              "id": "R-poem",
-              "name": "Poetry",
-              "detail": "A poem, then questions on what the title does, what is compared to what, which word use is the odd one out, and what the form of the poem reflects.",
-              "slots": [
-                "1A"
-              ]
-            },
-            {
-              "id": "R-missing",
-              "name": "Missing sentences",
-              "detail": "Six sentences are removed from a text and seven are offered. Each gap is filled by tracking reference words and the thread of the argument.",
-              "slots": [
-                "1B"
-              ]
-            },
-            {
-              "id": "R-match",
-              "name": "Four extracts, matched to statements",
-              "detail": "Four extracts on one theme and ten statements: which extract mentions, argues, describes, explains this. Scanning four texts at once against a claim.",
-              "slots": [
-                "1A"
-              ]
-            }
-          ]
-        },
-        {
-          "id": "M",
-          "label": "Mathematical Reasoning",
-          "sub": "Selective and OC: 35 questions, 40 minutes, five options each, no calculator. Concepts from the NSW curriculum to Year 6 for selective, to Year 4 for OC.",
-          "items": [
-            {
-              "id": "M-place",
-              "name": "Place value and rounding",
-              "detail": "Numbers to millions, what a digit represents, how many times larger one digit's value is than another's, and comparing two different roundings of the same number.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "M-factors",
-              "name": "Multiples, factors and counting",
-              "detail": "Largest multiple under a limit, how many numbers in a range are multiples of 3 but not of 8, smallest and largest possible values under two conditions.",
-              "slots": [
-                "3B"
-              ]
-            },
-            {
-              "id": "M-frac",
-              "name": "Fractions of a quantity",
-              "detail": "Fractions of a shape and of an amount, comparing and combining unlike fractions, sharing a whole between four people and finding the difference.",
-              "slots": [
-                "2B"
-              ]
-            },
-            {
-              "id": "M-reverse",
-              "name": "Working backwards",
-              "detail": "He gave half of what was left, then half of that, and the last person got $1.60. Undoing a chain of operations, and choosing the number sentence that models a situation.",
-              "slots": [
-                "2B",
-                "2C"
-              ]
-            },
-            {
-              "id": "M-measure",
-              "name": "Measurement and scale reading",
-              "detail": "Grams, millilitres, metres and centimetres converted inside one question, a jar weighed with its contents, and a scale whose pointer does not start at zero.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "M-time",
-              "name": "Time, 24 hour and time zones",
-              "detail": "1850 in 12 hour format, a duration that crosses midnight, and a journey through two flights and a 17 hour time difference.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "M-area",
-              "name": "Area and perimeter of composite shapes",
-              "detail": "Perimeter of a shape left when two rectangles are cut from one, equal areas giving an unknown side, and the black area of a part shaded figure.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "M-geom",
-              "name": "Shape, angle and symmetry",
-              "detail": "Lines of symmetry, the angle in a symmetrical figure, rotation through a given angle, cube nets, views from the side, and faces plus edges plus vertices of a hexagonal pyramid.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "M-prob",
-              "name": "Probability",
-              "detail": "Probability as a decimal or fraction, the remaining probability when two are given, and judging three probability statements at once.",
-              "slots": [
-                "2B",
-                "2C"
-              ]
-            },
-            {
-              "id": "M-data",
-              "name": "Graphs and tables",
-              "detail": "A rainfall column graph and a temperature line graph, each with three statements to test, including one that needs a unit change from centimetres to metres.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "M-pattern",
-              "name": "Patterns and two unknowns",
-              "detail": "Each term is the sum of the three before it, a magic square with gaps, and 3 stars plus 5 hearts is 27 points while 5 stars plus 7 hearts is 41.",
-              "slots": [
-                "3B"
-              ]
-            },
-            {
-              "id": "M-value",
-              "name": "Rate and best value",
-              "detail": "Two pack sizes and a quantity to hit exactly, cheapest valid combination, and which shop to buy from.",
-              "slots": [
-                "2C"
-              ]
-            }
-          ]
-        },
-        {
-          "id": "T",
-          "label": "Thinking Skills",
-          "sub": "Selective: 40 questions, 40 minutes. OC: 30 questions, 30 minutes. Four options. Deliberately no curriculum knowledge: it is argument analysis, logic and spatial reasoning.",
-          "items": [
-            {
-              "id": "T-strengthen",
-              "name": "Strengthen an argument",
-              "detail": "Someone makes a case. Which statement, if true, most strengthens it. The commonest single item type on the paper.",
-              "slots": [
-                "3A"
-              ]
-            },
-            {
-              "id": "T-weaken",
-              "name": "Weaken an argument",
-              "detail": "The same shape in reverse: which statement, if true, most weakens the argument.",
-              "slots": [
-                "3A"
-              ]
-            },
-            {
-              "id": "T-flaw",
-              "name": "Spot the mistake in reasoning",
-              "detail": "Two people talk and one draws a bad conclusion. Which sentence shows the mistake: usually a confusion of necessary with sufficient, or treating one case as all cases.",
-              "slots": [
-                "3A"
-              ]
-            },
-            {
-              "id": "T-conditional",
-              "name": "Conditional reasoning",
-              "detail": "If only those at the meeting may go on the excursion, what follows and what does not. Must be true, cannot be true, whose reasoning is correct.",
-              "slots": [
-                "3C"
-              ]
-            },
-            {
-              "id": "T-deduce",
-              "name": "Constraint puzzles",
-              "detail": "Five children's ages from four clues, who stands where in a row, the minimum final score that guarantees the prize.",
-              "slots": [
-                "3C"
-              ]
-            },
-            {
-              "id": "T-spatial",
-              "name": "Spatial and visual reasoning",
-              "detail": "Which piece completes the shape, which view is possible from the side, which arrangement cannot be made, and a seven segment display with two broken segments.",
-              "slots": [
-                "2C"
-              ]
-            },
-            {
-              "id": "T-tables",
-              "name": "Deduction from data",
-              "detail": "A table or chart that does not state the answer: how many goats had one kid only, how many owners had exactly one dog, which category was left out.",
-              "slots": [
-                "3B"
-              ]
-            },
-            {
-              "id": "T-optimise",
-              "name": "Cost and optimisation",
-              "detail": "Several offers and a constraint, and the cheapest or best combination has to be found rather than calculated directly.",
-              "slots": [
-                "3B"
-              ]
-            },
-            {
-              "id": "T-calendar",
-              "name": "Calendar and scheduling",
-              "detail": "A show runs from the 12th to the 29th with extra matinees on two weekdays. Counting events over a date range without slipping by one.",
-              "slots": [
-                "3C"
-              ]
-            },
-            {
-              "id": "T-sufficiency",
-              "name": "What evidence would settle it",
-              "detail": "Which two of the missing answers must be known in order to test whether the claim is true.",
-              "slots": [
-                "3A"
-              ]
-            }
-          ]
-        },
-        {
-          "id": "W",
-          "label": "Writing",
-          "sub": "Selective only: one task, 30 minutes, typed. Not part of the OC test.",
-          "items": [
-            {
-              "id": "W-brief",
-              "name": "Writing to a brief",
-              "detail": "The task names an audience and a text type, such as an advice sheet for three new students, and the response has to actually be that text type.",
-              "slots": [
-                "1D"
-              ]
-            },
-            {
-              "id": "W-persuade",
-              "name": "Persuasive writing",
-              "detail": "A position held consistently, reasons ordered by strength, and the obvious objection answered.",
-              "slots": [
-                "1D"
-              ]
-            },
-            {
-              "id": "W-narrative",
-              "name": "Imaginative writing",
-              "detail": "A narrative or descriptive response to a prompt, shaped rather than merely started.",
-              "slots": [
-                "1D"
-              ]
-            },
-            {
-              "id": "W-plan",
-              "name": "Planning under 30 minutes",
-              "detail": "Three or four minutes of planning, then a finished piece inside the remaining time. The paper gives space for notes and says to think about organisation first.",
-              "slots": [
-                "1D"
-              ]
-            },
-            {
-              "id": "W-type",
-              "name": "Typing the response",
-              "detail": "The writing test is typed on a department computer, so handwriting speed is irrelevant and typing speed and on screen editing are not.",
-              "slots": [
-                "1D"
-              ]
-            }
-          ]
-        }
-      ],
-      "slotsNote": "Each item's `slots` is every weekly slot that serves it for either child, taken from spine `slots.<id>.nswFamilies`. kh.py validate keeps the two in step: a family served by a slot the roadmap does not list, or listed against a slot that does not serve it, is a map that cannot be trusted about where the work happens."
+      {
+       "id": "R-cloze",
+       "name": "Vocabulary in context",
+       "detail": "A passage with gaps. Each gap offers four near synonyms and only one fits the register and collocation: ordaining / inaugurating / consecrating / enthroning. 8 answers.",
+       "slots": [
+        "1C"
+       ]
+      },
+      {
+       "id": "R-poem",
+       "name": "Poetry",
+       "detail": "A poem, then questions on what the title does, what is compared to what, which word use is the odd one out, and what the form of the poem reflects.",
+       "slots": [
+        "1A"
+       ]
+      },
+      {
+       "id": "R-missing",
+       "name": "Missing sentences",
+       "detail": "Six sentences are removed from a text and seven are offered. Each gap is filled by tracking reference words and the thread of the argument.",
+       "slots": [
+        "1B"
+       ]
+      },
+      {
+       "id": "R-match",
+       "name": "Four extracts, matched to statements",
+       "detail": "Four extracts on one theme and ten statements: which extract mentions, argues, describes, explains this. Scanning four texts at once against a claim.",
+       "slots": [
+        "1A"
+       ]
+      }
+     ]
     },
+    {
+     "id": "M",
+     "label": "Mathematical Reasoning",
+     "sub": "Selective and OC: 35 questions, 40 minutes, five options each, no calculator. Concepts from the NSW curriculum to Year 6 for selective, to Year 4 for OC.",
+     "items": [
+      {
+       "id": "M-place",
+       "name": "Place value and rounding",
+       "detail": "Numbers to millions, what a digit represents, how many times larger one digit's value is than another's, and comparing two different roundings of the same number.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "M-factors",
+       "name": "Multiples, factors and counting",
+       "detail": "Largest multiple under a limit, how many numbers in a range are multiples of 3 but not of 8, smallest and largest possible values under two conditions.",
+       "slots": [
+        "3B"
+       ]
+      },
+      {
+       "id": "M-frac",
+       "name": "Fractions of a quantity",
+       "detail": "Fractions of a shape and of an amount, comparing and combining unlike fractions, sharing a whole between four people and finding the difference.",
+       "slots": [
+        "2B"
+       ]
+      },
+      {
+       "id": "M-reverse",
+       "name": "Working backwards",
+       "detail": "He gave half of what was left, then half of that, and the last person got $1.60. Undoing a chain of operations, and choosing the number sentence that models a situation.",
+       "slots": [
+        "2B",
+        "2C"
+       ]
+      },
+      {
+       "id": "M-measure",
+       "name": "Measurement and scale reading",
+       "detail": "Grams, millilitres, metres and centimetres converted inside one question, a jar weighed with its contents, and a scale whose pointer does not start at zero.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "M-time",
+       "name": "Time, 24 hour and time zones",
+       "detail": "1850 in 12 hour format, a duration that crosses midnight, and a journey through two flights and a 17 hour time difference.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "M-area",
+       "name": "Area and perimeter of composite shapes",
+       "detail": "Perimeter of a shape left when two rectangles are cut from one, equal areas giving an unknown side, and the black area of a part shaded figure.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "M-geom",
+       "name": "Shape, angle and symmetry",
+       "detail": "Lines of symmetry, the angle in a symmetrical figure, rotation through a given angle, cube nets, views from the side, and faces plus edges plus vertices of a hexagonal pyramid.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "M-prob",
+       "name": "Probability",
+       "detail": "Probability as a decimal or fraction, the remaining probability when two are given, and judging three probability statements at once.",
+       "slots": [
+        "2B",
+        "2C"
+       ]
+      },
+      {
+       "id": "M-data",
+       "name": "Graphs and tables",
+       "detail": "A rainfall column graph and a temperature line graph, each with three statements to test, including one that needs a unit change from centimetres to metres.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "M-pattern",
+       "name": "Patterns and two unknowns",
+       "detail": "Each term is the sum of the three before it, a magic square with gaps, and 3 stars plus 5 hearts is 27 points while 5 stars plus 7 hearts is 41.",
+       "slots": [
+        "3B"
+       ]
+      },
+      {
+       "id": "M-value",
+       "name": "Rate and best value",
+       "detail": "Two pack sizes and a quantity to hit exactly, cheapest valid combination, and which shop to buy from.",
+       "slots": [
+        "2C"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "T",
+     "label": "Thinking Skills",
+     "sub": "Selective: 40 questions, 40 minutes. OC: 30 questions, 30 minutes. Four options. Deliberately no curriculum knowledge: it is argument analysis, logic and spatial reasoning.",
+     "items": [
+      {
+       "id": "T-strengthen",
+       "name": "Strengthen an argument",
+       "detail": "Someone makes a case. Which statement, if true, most strengthens it. The commonest single item type on the paper.",
+       "slots": [
+        "3A"
+       ]
+      },
+      {
+       "id": "T-weaken",
+       "name": "Weaken an argument",
+       "detail": "The same shape in reverse: which statement, if true, most weakens the argument.",
+       "slots": [
+        "3A"
+       ]
+      },
+      {
+       "id": "T-flaw",
+       "name": "Spot the mistake in reasoning",
+       "detail": "Two people talk and one draws a bad conclusion. Which sentence shows the mistake: usually a confusion of necessary with sufficient, or treating one case as all cases.",
+       "slots": [
+        "3A"
+       ]
+      },
+      {
+       "id": "T-conditional",
+       "name": "Conditional reasoning",
+       "detail": "If only those at the meeting may go on the excursion, what follows and what does not. Must be true, cannot be true, whose reasoning is correct.",
+       "slots": [
+        "3C"
+       ]
+      },
+      {
+       "id": "T-deduce",
+       "name": "Constraint puzzles",
+       "detail": "Five children's ages from four clues, who stands where in a row, the minimum final score that guarantees the prize.",
+       "slots": [
+        "3C"
+       ]
+      },
+      {
+       "id": "T-spatial",
+       "name": "Spatial and visual reasoning",
+       "detail": "Which piece completes the shape, which view is possible from the side, which arrangement cannot be made, and a seven segment display with two broken segments.",
+       "slots": [
+        "2C"
+       ]
+      },
+      {
+       "id": "T-tables",
+       "name": "Deduction from data",
+       "detail": "A table or chart that does not state the answer: how many goats had one kid only, how many owners had exactly one dog, which category was left out.",
+       "slots": [
+        "3B"
+       ]
+      },
+      {
+       "id": "T-optimise",
+       "name": "Cost and optimisation",
+       "detail": "Several offers and a constraint, and the cheapest or best combination has to be found rather than calculated directly.",
+       "slots": [
+        "3B"
+       ]
+      },
+      {
+       "id": "T-calendar",
+       "name": "Calendar and scheduling",
+       "detail": "A show runs from the 12th to the 29th with extra matinees on two weekdays. Counting events over a date range without slipping by one.",
+       "slots": [
+        "3C"
+       ]
+      },
+      {
+       "id": "T-sufficiency",
+       "name": "What evidence would settle it",
+       "detail": "Which two of the missing answers must be known in order to test whether the claim is true.",
+       "slots": [
+        "3A"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "W",
+     "label": "Writing",
+     "sub": "Selective only: one task, 30 minutes, typed. Not part of the OC test.",
+     "items": [
+      {
+       "id": "W-brief",
+       "name": "Writing to a brief",
+       "detail": "The task names an audience and a text type, such as an advice sheet for three new students, and the response has to actually be that text type.",
+       "slots": [
+        "1D"
+       ]
+      },
+      {
+       "id": "W-persuade",
+       "name": "Persuasive writing",
+       "detail": "A position held consistently, reasons ordered by strength, and the obvious objection answered.",
+       "slots": [
+        "1D"
+       ]
+      },
+      {
+       "id": "W-narrative",
+       "name": "Imaginative writing",
+       "detail": "A narrative or descriptive response to a prompt, shaped rather than merely started.",
+       "slots": [
+        "1D"
+       ]
+      },
+      {
+       "id": "W-plan",
+       "name": "Planning under 30 minutes",
+       "detail": "Three or four minutes of planning, then a finished piece inside the remaining time. The paper gives space for notes and says to think about organisation first.",
+       "slots": [
+        "1D"
+       ]
+      },
+      {
+       "id": "W-type",
+       "name": "Typing the response",
+       "detail": "The writing test is typed on a department computer, so handwriting speed is irrelevant and typing speed and on screen editing are not.",
+       "slots": [
+        "1D"
+       ]
+      }
+     ]
+    }
+   ],
+   "slotsNote": "Each item's `slots` is every weekly slot that serves it for either child, taken from spine `slots.<id>.nswFamilies`. kh.py validate keeps the two in step: a family served by a slot the roadmap does not list, or listed against a slot that does not serve it, is a map that cannot be trusted about where the work happens."
+  },
+  "maths": {
+   "track": "Maths",
+   "icon": "calc",
+   "sections": [
+    {
+     "id": "7A",
+     "label": "Level 7A",
+     "sub": "Counting and number recognition",
+     "items": [
+      {
+       "id": "7A",
+       "name": "7A",
+       "detail": "Counting up to 10, matching a number to a quantity, pencil control and tracing"
+      }
+     ]
+    },
+    {
+     "id": "6A",
+     "label": "Level 6A",
+     "sub": "Counting and writing to 30",
+     "items": [
+      {
+       "id": "6A",
+       "name": "6A",
+       "detail": "Counting up to 30, reading numbers, writing the numbers already recognised"
+      }
+     ]
+    },
+    {
+     "id": "5A",
+     "label": "Level 5A",
+     "sub": "Writing numbers and sequences",
+     "items": [
+      {
+       "id": "5A",
+       "name": "5A",
+       "detail": "Writing numbers 1 to 50, number sequences up to 100"
+      }
+     ]
+    },
+    {
+     "id": "4A",
+     "label": "Level 4A",
+     "sub": "Larger numbers and the first addition",
+     "items": [
+      {
+       "id": "4A",
+       "name": "4A",
+       "detail": "Reading and writing numbers up to 220, number sequences, the idea of adding on"
+      }
+     ]
+    },
+    {
+     "id": "3A",
+     "label": "Level 3A",
+     "sub": "Horizontal addition begins",
+     "items": [
+      {
+       "id": "3A",
+       "name": "3A",
+       "detail": "Mental addition +1, +2 and +3, horizontal, no written method"
+      }
+     ]
+    },
+    {
+     "id": "2A",
+     "label": "Level 2A",
+     "sub": "SCT 1-2 min per sheet",
+     "items": [
+      {
+       "id": "2A",
+       "name": "2A",
+       "detail": "Mental addition +4 to +10, adding 4 to 9 in sequence, sums up to 10"
+      }
+     ]
+    },
+    {
+     "id": "A",
+     "label": "Level A",
+     "sub": "20 sub-topics, SCT 1-3 min per sheet",
+     "items": [
+      {
+       "id": "A1-8",
+       "name": "A1-8",
+       "detail": "Addition 1 (review of 2A), addition 2-8, sums up to 12 then up to 28, with summary"
+      },
+      {
+       "id": "A9-12",
+       "name": "A9-12",
+       "detail": "Subtraction 1-4: subtracting 1, 2, 3, and up to 3, from numbers up to 10"
+      },
+      {
+       "id": "A13-20",
+       "name": "A13-20",
+       "detail": "Subtraction 5-12: from numbers up to 11 then up to 20, summary, Level A complete"
+      }
+     ]
+    },
+    {
+     "id": "B",
+     "label": "Level B",
+     "sub": "20 sub-topics, SCT 1-5 min per sheet",
+     "items": [
+      {
+       "id": "B1-10",
+       "name": "B1-10",
+       "detail": "Vertical 2 and 3-digit addition with carrying, and mental addition that bridges a ten"
+      },
+      {
+       "id": "B11-20",
+       "name": "B11-20",
+       "detail": "Vertical 2 and 3-digit subtraction with borrowing, first word problems, Level B complete"
+      }
+     ]
+    },
+    {
+     "id": "C",
+     "label": "Level C",
+     "sub": "20 sub-topics, SCT 2-5 min per sheet",
+     "items": [
+      {
+       "id": "C1-4",
+       "name": "C1-4",
+       "detail": "Multiplication tables x1-x3, x1-x5, x1-x7, x1-x9 (recall drills)"
+      },
+      {
+       "id": "C5-10",
+       "name": "C5-10",
+       "detail": "2-digit x 1-digit (5 progressive sections), then 3 or 4-digit x 1-digit"
+      },
+      {
+       "id": "C11",
+       "name": "C11",
+       "detail": "Introduction to division, short division with no remainder"
+      },
+      {
+       "id": "C12-15",
+       "name": "C12-15",
+       "detail": "Division with remainders (4 sections)"
+      },
+      {
+       "id": "C16-17",
+       "name": "C16-17",
+       "detail": "Division: 2-digit divided by 1-digit (2 sections)"
+      },
+      {
+       "id": "C18-20",
+       "name": "C18-20",
+       "detail": "Division: 3-digit divided by 1-digit (2 sections), Level C complete"
+      }
+     ]
+    },
+    {
+     "id": "D",
+     "label": "Level D",
+     "sub": "20 sub-topics, SCT 2-6 min per sheet. The three blocks below are the ones mapped to sheet sets so far.",
+     "items": [
+      {
+       "id": "D1-4",
+       "name": "D1-4",
+       "detail": "2-digit x 2-digit (3 sections), 3-digit x 2-digit"
+      },
+      {
+       "id": "D5-8",
+       "name": "D5-8",
+       "detail": "Mixed add and subtract, multiplication and division, division by 2-digit numbers (5 sections)"
+      },
+      {
+       "id": "D9-12",
+       "name": "D9-12",
+       "detail": "Division with quotients of 2 or more digits, introduction to fractions, reduction (4 sections, GCF)"
+      }
+     ]
+    },
+    {
+     "id": "E",
+     "label": "Level E",
+     "sub": "Fractions: addition and subtraction",
+     "items": [
+      {
+       "id": "E-equiv",
+       "name": "Equivalent fractions",
+       "detail": "Reduction to lowest terms, improper fractions and mixed numbers"
+      },
+      {
+       "id": "E-addsub",
+       "name": "Addition and subtraction",
+       "detail": "Fractions with different denominators, using the lowest common multiple"
+      },
+      {
+       "id": "E-word",
+       "name": "Word problems",
+       "detail": "Fraction word problems, and fractions of a quantity"
+      }
+     ]
+    },
+    {
+     "id": "F",
+     "label": "Level F",
+     "sub": "Fractions and decimals: all four operations",
+     "items": [
+      {
+       "id": "F-muldiv",
+       "name": "Multiplication and division",
+       "detail": "Multiplying and dividing fractions and mixed numbers"
+      },
+      {
+       "id": "F-four",
+       "name": "Four operations",
+       "detail": "Fractions and decimals together, converting between the two"
+      },
+      {
+       "id": "F-order",
+       "name": "Order of operations",
+       "detail": "Brackets and the order of operations, then word problems"
+      }
+     ]
+    },
+    {
+     "id": "G",
+     "label": "Level G",
+     "sub": "Negative numbers and the first algebra",
+     "items": [
+      {
+       "id": "G-neg",
+       "name": "Positive and negative numbers",
+       "detail": "The four operations with directed numbers"
+      },
+      {
+       "id": "G-expr",
+       "name": "Algebraic expressions",
+       "detail": "Simplifying, substituting and expanding simple expressions"
+      },
+      {
+       "id": "G-eq",
+       "name": "Linear equations",
+       "detail": "Equations in one variable, then word problems that lead to one"
+      }
+     ]
+    },
+    {
+     "id": "H",
+     "label": "Level H",
+     "sub": "Simultaneous equations, inequalities and graphs",
+     "items": [
+      {
+       "id": "H-sim",
+       "name": "Simultaneous equations",
+       "detail": "Linear equations in two variables, by substitution and elimination"
+      },
+      {
+       "id": "H-ineq",
+       "name": "Inequalities",
+       "detail": "Solving and graphing linear inequalities"
+      },
+      {
+       "id": "H-graph",
+       "name": "Functions and graphs",
+       "detail": "Linear functions, gradient and intercept, graphing"
+      }
+     ]
+    },
+    {
+     "id": "I",
+     "label": "Level I",
+     "sub": "Factorisation, quadratics and Pythagoras",
+     "items": [
+      {
+       "id": "I-fact",
+       "name": "Expansion and factorisation",
+       "detail": "Expanding brackets, then factorising quadratic expressions"
+      },
+      {
+       "id": "I-root",
+       "name": "Square roots",
+       "detail": "Surds and operations with square roots"
+      },
+      {
+       "id": "I-quad",
+       "name": "Quadratic equations",
+       "detail": "By factorising, completing the square and the formula"
+      },
+      {
+       "id": "I-pyth",
+       "name": "Pythagoras' theorem",
+       "detail": "The theorem and its use in two dimensions"
+      }
+     ]
+    },
+    {
+     "id": "J",
+     "label": "Level J",
+     "sub": "Advanced algebra",
+     "items": [
+      {
+       "id": "J-poly",
+       "name": "Polynomials",
+       "detail": "Division of polynomials, the remainder and factor theorems"
+      },
+      {
+       "id": "J-frac",
+       "name": "Fractional and irrational expressions",
+       "detail": "Algebraic fractions and expressions with surds"
+      },
+      {
+       "id": "J-ineq",
+       "name": "Inequalities and proof",
+       "detail": "Simultaneous and quadratic inequalities, and simple proofs"
+      }
+     ]
+    },
+    {
+     "id": "K",
+     "label": "Level K",
+     "sub": "Functions",
+     "items": [
+      {
+       "id": "K-quad",
+       "name": "Quadratic functions",
+       "detail": "Maximum and minimum values, and quadratic graphs"
+      },
+      {
+       "id": "K-fracirr",
+       "name": "Fractional and irrational functions",
+       "detail": "Their graphs and domains"
+      },
+      {
+       "id": "K-explog",
+       "name": "Exponential and logarithmic functions",
+       "detail": "Indices, logarithms and their graphs"
+      }
+     ]
+    },
+    {
+     "id": "L",
+     "label": "Level L",
+     "sub": "Limits and the start of calculus",
+     "items": [
+      {
+       "id": "L-lim",
+       "name": "Limits",
+       "detail": "Limits of functions, and continuity"
+      },
+      {
+       "id": "L-diff",
+       "name": "Differentiation",
+       "detail": "From first principles, then the rules, tangents and rates of change"
+      },
+      {
+       "id": "L-int",
+       "name": "Integration",
+       "detail": "Indefinite and definite integrals, area under a curve"
+      }
+     ]
+    },
+    {
+     "id": "M",
+     "label": "Level M",
+     "sub": "Trigonometry and coordinate geometry",
+     "items": [
+      {
+       "id": "M-trig",
+       "name": "Trigonometric functions",
+       "detail": "The ratios, identities, and equations involving them"
+      },
+      {
+       "id": "M-coord",
+       "name": "Straight lines and circles",
+       "detail": "Coordinate geometry of lines, circles and their intersections"
+      }
+     ]
+    },
+    {
+     "id": "N",
+     "label": "Level N",
+     "sub": "Sequences, loci and further calculus",
+     "items": [
+      {
+       "id": "N-loci",
+       "name": "Loci and regions",
+       "detail": "Describing a locus, and regions defined by inequalities"
+      },
+      {
+       "id": "N-seq",
+       "name": "Sequences and series",
+       "detail": "Arithmetic and geometric series, sigma notation, limits of sequences"
+      },
+      {
+       "id": "N-diff",
+       "name": "Further differentiation",
+       "detail": "Differentiating products, quotients and composite functions"
+      }
+     ]
+    },
+    {
+     "id": "O",
+     "label": "Level O",
+     "sub": "Advanced calculus, the final maths level",
+     "items": [
+      {
+       "id": "O-diff",
+       "name": "Advanced differentiation",
+       "detail": "Implicit and parametric differentiation, curve sketching"
+      },
+      {
+       "id": "O-int",
+       "name": "Advanced integration",
+       "detail": "Substitution, parts, and applications to area and volume"
+      },
+      {
+       "id": "O-de",
+       "name": "Differential equations",
+       "detail": "Forming and solving them, with applications. Level O complete"
+      }
+     ]
+    },
+    {
+     "id": "X",
+     "label": "X levels",
+     "sub": "Electives, taken alongside or after Level O",
+     "items": [
+      {
+       "id": "XV",
+       "name": "XV Vectors",
+       "detail": "Vectors in two and three dimensions, and their geometry"
+      },
+      {
+       "id": "XM",
+       "name": "XM Transformations",
+       "detail": "Matrices, linear transformations and their composition"
+      },
+      {
+       "id": "XP",
+       "name": "XP Permutations",
+       "detail": "Permutations, combinations and probability"
+      },
+      {
+       "id": "XS",
+       "name": "XS Statistics",
+       "detail": "Distributions, sampling and statistical inference"
+      }
+     ]
+    }
+   ]
+  },
+  "english": {
+   "track": "English",
+   "icon": "book",
+   "sections": [
+    {
+     "id": "7A",
+     "label": "Level 7A",
+     "sub": "Listening, looking and repeating",
+     "items": [
+      {
+       "id": "7A",
+       "name": "7A",
+       "detail": "Vocabulary from pictures, listening to a passage read aloud, first spoken words"
+      }
+     ]
+    },
+    {
+     "id": "6A",
+     "label": "Level 6A",
+     "sub": "Phonics: first sounds",
+     "items": [
+      {
+       "id": "6A",
+       "name": "6A",
+       "detail": "Initial letter sounds, vocabulary building from pictures"
+      }
+     ]
+    },
+    {
+     "id": "5A",
+     "label": "Level 5A",
+     "sub": "Phonics: blending",
+     "items": [
+      {
+       "id": "5A",
+       "name": "5A",
+       "detail": "Blending sounds into short words, reading simple words aloud"
+      }
+     ]
+    },
+    {
+     "id": "4A",
+     "label": "Level 4A",
+     "sub": "Letters, sight words and first sentences",
+     "items": [
+      {
+       "id": "4A",
+       "name": "4A",
+       "detail": "Letter recognition and the alphabet, phonics, sight words, simple sentences"
+      }
+     ]
+    },
+    {
+     "id": "3A",
+     "label": "Level 3A",
+     "sub": "Short passages",
+     "items": [
+      {
+       "id": "3A",
+       "name": "3A",
+       "detail": "Short passages, polysyllabic words, vowel digraphs, basic comprehension"
+      }
+     ]
+    },
+    {
+     "id": "2A",
+     "label": "Level 2A",
+     "sub": "Fluency and word classes",
+     "items": [
+      {
+       "id": "2A",
+       "name": "2A",
+       "detail": "Reading a 50-word passage fluently in a minute, nouns, verbs and adjectives, sequencing, writing words independently"
+      }
+     ]
+    },
+    {
+     "id": "A",
+     "label": "Level A",
+     "sub": "Sub-levels AI and AII",
+     "items": [
+      {
+       "id": "AI",
+       "name": "AI",
+       "detail": "Structure of simple sentences, subject and predicate, basic punctuation"
+      },
+      {
+       "id": "AII",
+       "name": "AII",
+       "detail": "Sentence structure, thought sequence, vocabulary building, comprehension questions"
+      }
+     ]
+    },
+    {
+     "id": "B",
+     "label": "Level B",
+     "sub": "Sub-levels BI and BII",
+     "items": [
+      {
+       "id": "BI",
+       "name": "BI",
+       "detail": "Subject and predicate deeper, past tense expressions, modifiers, 5W-1H questions"
+      },
+      {
+       "id": "BII",
+       "name": "BII",
+       "detail": "Comparing and contrasting, reading speed 85 wpm, figurative language"
+      }
+     ]
+    },
+    {
+     "id": "C",
+     "label": "Level C",
+     "sub": "Sub-levels CI and CII",
+     "items": [
+      {
+       "id": "CI",
+       "name": "CI",
+       "detail": "Constructing sentences, correct word order"
+      },
+      {
+       "id": "CII",
+       "name": "CII",
+       "detail": "Organising information, tenses and voices"
+      }
+     ]
+    },
+    {
+     "id": "D",
+     "label": "Level D",
+     "sub": "Sub-levels DI and DII",
+     "items": [
+      {
+       "id": "DI",
+       "name": "DI",
+       "detail": "Combining sentences, relative clauses"
+      },
+      {
+       "id": "DII",
+       "name": "DII",
+       "detail": "Main idea, understanding paragraphs, reported speech"
+      }
+     ]
+    },
+    {
+     "id": "E",
+     "label": "Level E",
+     "sub": "Sub-levels EI and EII",
+     "items": [
+      {
+       "id": "EI",
+       "name": "EI",
+       "detail": "Topic and main idea of a paragraph"
+      },
+      {
+       "id": "EII",
+       "name": "EII",
+       "detail": "Scene transition, reason and result"
+      }
+     ]
+    },
+    {
+     "id": "F",
+     "label": "Level F",
+     "sub": "Sub-levels FI and FII",
+     "items": [
+      {
+       "id": "FI",
+       "name": "FI",
+       "detail": "Links within sentences: referring words and restatement"
+      },
+      {
+       "id": "FII",
+       "name": "FII",
+       "detail": "Diagramming paragraphs, interpreting a text"
+      }
+     ]
+    },
+    {
+     "id": "G",
+     "label": "Level G",
+     "sub": "Sub-levels GI and GII",
+     "items": [
+      {
+       "id": "GI",
+       "name": "GI",
+       "detail": "Paragraph elements and the impression a passage leaves"
+      },
+      {
+       "id": "GII",
+       "name": "GII",
+       "detail": "Sentiment, and summarising a passage in one paragraph"
+      }
+     ]
+    },
+    {
+     "id": "H",
+     "label": "Level H",
+     "sub": "Summarisation begins",
+     "items": [
+      {
+       "id": "H",
+       "name": "H",
+       "detail": "Key word relationships, concise comprehension answers, summarising a paragraph"
+      }
+     ]
+    },
+    {
+     "id": "I",
+     "label": "Level I",
+     "sub": "Extended summarisation",
+     "items": [
+      {
+       "id": "I",
+       "name": "I",
+       "detail": "Summarising longer texts, character sentiment, tracking an argument"
+      }
+     ]
+    },
+    {
+     "id": "J",
+     "label": "Level J",
+     "sub": "Critique stage begins",
+     "items": [
+      {
+       "id": "J",
+       "name": "J",
+       "detail": "Critical reading: plot, setting and atmosphere"
+      }
+     ]
+    },
+    {
+     "id": "K",
+     "label": "Level K",
+     "sub": "Critique stage",
+     "items": [
+      {
+       "id": "K",
+       "name": "K",
+       "detail": "Irony, literary characters, and analysis of figurative language"
+      }
+     ]
+    },
+    {
+     "id": "L",
+     "label": "Level L",
+     "sub": "The final English level",
+     "items": [
+      {
+       "id": "L",
+       "name": "L",
+       "detail": "Objective commentary on a text, sustained critique, Level L complete"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "children": {
+  "mason": {
+   "tracks": [
+    "nsw",
+    "maths",
+    "english"
+   ],
+   "notes": {
+    "english": "Reading comprehension in slot 1A is at rung 1A.4, inference from an unseen passage, which is ahead of the Kumon sheet position below. The selective test drives that, not Kumon.",
+    "nsw": "Re-pointed on 11 Oct 2026. Slots 3A and 3C were analogies and ciphers, neither of which is on the NSW paper, and now carry argument analysis and conditional logic. Slot 1D, writing, is new and takes 4 of English's 20 marks, so the week is still 55. Both take effect from week 25, and the three re-pointed Thinking rungs were reset to the bottom of their new ladders, so expect a dip before it reads as progress. Still untouched: spatial and visual reasoning, which waits for 2C to reach properties of shape, and four of the five Reading item types."
+   },
+   "progress": {
     "maths": {
-      "track": "Maths",
-      "icon": "calc",
-      "sections": [
-        {
-          "id": "7A",
-          "label": "Level 7A",
-          "sub": "Counting and number recognition",
-          "items": [
-            {
-              "id": "7A",
-              "name": "7A",
-              "detail": "Counting up to 10, matching a number to a quantity, pencil control and tracing"
-            }
-          ]
-        },
-        {
-          "id": "6A",
-          "label": "Level 6A",
-          "sub": "Counting and writing to 30",
-          "items": [
-            {
-              "id": "6A",
-              "name": "6A",
-              "detail": "Counting up to 30, reading numbers, writing the numbers already recognised"
-            }
-          ]
-        },
-        {
-          "id": "5A",
-          "label": "Level 5A",
-          "sub": "Writing numbers and sequences",
-          "items": [
-            {
-              "id": "5A",
-              "name": "5A",
-              "detail": "Writing numbers 1 to 50, number sequences up to 100"
-            }
-          ]
-        },
-        {
-          "id": "4A",
-          "label": "Level 4A",
-          "sub": "Larger numbers and the first addition",
-          "items": [
-            {
-              "id": "4A",
-              "name": "4A",
-              "detail": "Reading and writing numbers up to 220, number sequences, the idea of adding on"
-            }
-          ]
-        },
-        {
-          "id": "3A",
-          "label": "Level 3A",
-          "sub": "Horizontal addition begins",
-          "items": [
-            {
-              "id": "3A",
-              "name": "3A",
-              "detail": "Mental addition +1, +2 and +3, horizontal, no written method"
-            }
-          ]
-        },
-        {
-          "id": "2A",
-          "label": "Level 2A",
-          "sub": "SCT 1-2 min per sheet",
-          "items": [
-            {
-              "id": "2A",
-              "name": "2A",
-              "detail": "Mental addition +4 to +10, adding 4 to 9 in sequence, sums up to 10"
-            }
-          ]
-        },
-        {
-          "id": "A",
-          "label": "Level A",
-          "sub": "20 sub-topics, SCT 1-3 min per sheet",
-          "items": [
-            {
-              "id": "A1-8",
-              "name": "A1-8",
-              "detail": "Addition 1 (review of 2A), addition 2-8, sums up to 12 then up to 28, with summary"
-            },
-            {
-              "id": "A9-12",
-              "name": "A9-12",
-              "detail": "Subtraction 1-4: subtracting 1, 2, 3, and up to 3, from numbers up to 10"
-            },
-            {
-              "id": "A13-20",
-              "name": "A13-20",
-              "detail": "Subtraction 5-12: from numbers up to 11 then up to 20, summary, Level A complete"
-            }
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Level B",
-          "sub": "20 sub-topics, SCT 1-5 min per sheet",
-          "items": [
-            {
-              "id": "B1-10",
-              "name": "B1-10",
-              "detail": "Vertical 2 and 3-digit addition with carrying, and mental addition that bridges a ten"
-            },
-            {
-              "id": "B11-20",
-              "name": "B11-20",
-              "detail": "Vertical 2 and 3-digit subtraction with borrowing, first word problems, Level B complete"
-            }
-          ]
-        },
-        {
-          "id": "C",
-          "label": "Level C",
-          "sub": "20 sub-topics, SCT 2-5 min per sheet",
-          "items": [
-            {
-              "id": "C1-4",
-              "name": "C1-4",
-              "detail": "Multiplication tables x1-x3, x1-x5, x1-x7, x1-x9 (recall drills)"
-            },
-            {
-              "id": "C5-10",
-              "name": "C5-10",
-              "detail": "2-digit x 1-digit (5 progressive sections), then 3 or 4-digit x 1-digit"
-            },
-            {
-              "id": "C11",
-              "name": "C11",
-              "detail": "Introduction to division, short division with no remainder"
-            },
-            {
-              "id": "C12-15",
-              "name": "C12-15",
-              "detail": "Division with remainders (4 sections)"
-            },
-            {
-              "id": "C16-17",
-              "name": "C16-17",
-              "detail": "Division: 2-digit divided by 1-digit (2 sections)"
-            },
-            {
-              "id": "C18-20",
-              "name": "C18-20",
-              "detail": "Division: 3-digit divided by 1-digit (2 sections), Level C complete"
-            }
-          ]
-        },
-        {
-          "id": "D",
-          "label": "Level D",
-          "sub": "20 sub-topics, SCT 2-6 min per sheet. The three blocks below are the ones mapped to sheet sets so far.",
-          "items": [
-            {
-              "id": "D1-4",
-              "name": "D1-4",
-              "detail": "2-digit x 2-digit (3 sections), 3-digit x 2-digit"
-            },
-            {
-              "id": "D5-8",
-              "name": "D5-8",
-              "detail": "Mixed add and subtract, multiplication and division, division by 2-digit numbers (5 sections)"
-            },
-            {
-              "id": "D9-12",
-              "name": "D9-12",
-              "detail": "Division with quotients of 2 or more digits, introduction to fractions, reduction (4 sections, GCF)"
-            }
-          ]
-        },
-        {
-          "id": "E",
-          "label": "Level E",
-          "sub": "Fractions: addition and subtraction",
-          "items": [
-            {
-              "id": "E-equiv",
-              "name": "Equivalent fractions",
-              "detail": "Reduction to lowest terms, improper fractions and mixed numbers"
-            },
-            {
-              "id": "E-addsub",
-              "name": "Addition and subtraction",
-              "detail": "Fractions with different denominators, using the lowest common multiple"
-            },
-            {
-              "id": "E-word",
-              "name": "Word problems",
-              "detail": "Fraction word problems, and fractions of a quantity"
-            }
-          ]
-        },
-        {
-          "id": "F",
-          "label": "Level F",
-          "sub": "Fractions and decimals: all four operations",
-          "items": [
-            {
-              "id": "F-muldiv",
-              "name": "Multiplication and division",
-              "detail": "Multiplying and dividing fractions and mixed numbers"
-            },
-            {
-              "id": "F-four",
-              "name": "Four operations",
-              "detail": "Fractions and decimals together, converting between the two"
-            },
-            {
-              "id": "F-order",
-              "name": "Order of operations",
-              "detail": "Brackets and the order of operations, then word problems"
-            }
-          ]
-        },
-        {
-          "id": "G",
-          "label": "Level G",
-          "sub": "Negative numbers and the first algebra",
-          "items": [
-            {
-              "id": "G-neg",
-              "name": "Positive and negative numbers",
-              "detail": "The four operations with directed numbers"
-            },
-            {
-              "id": "G-expr",
-              "name": "Algebraic expressions",
-              "detail": "Simplifying, substituting and expanding simple expressions"
-            },
-            {
-              "id": "G-eq",
-              "name": "Linear equations",
-              "detail": "Equations in one variable, then word problems that lead to one"
-            }
-          ]
-        },
-        {
-          "id": "H",
-          "label": "Level H",
-          "sub": "Simultaneous equations, inequalities and graphs",
-          "items": [
-            {
-              "id": "H-sim",
-              "name": "Simultaneous equations",
-              "detail": "Linear equations in two variables, by substitution and elimination"
-            },
-            {
-              "id": "H-ineq",
-              "name": "Inequalities",
-              "detail": "Solving and graphing linear inequalities"
-            },
-            {
-              "id": "H-graph",
-              "name": "Functions and graphs",
-              "detail": "Linear functions, gradient and intercept, graphing"
-            }
-          ]
-        },
-        {
-          "id": "I",
-          "label": "Level I",
-          "sub": "Factorisation, quadratics and Pythagoras",
-          "items": [
-            {
-              "id": "I-fact",
-              "name": "Expansion and factorisation",
-              "detail": "Expanding brackets, then factorising quadratic expressions"
-            },
-            {
-              "id": "I-root",
-              "name": "Square roots",
-              "detail": "Surds and operations with square roots"
-            },
-            {
-              "id": "I-quad",
-              "name": "Quadratic equations",
-              "detail": "By factorising, completing the square and the formula"
-            },
-            {
-              "id": "I-pyth",
-              "name": "Pythagoras' theorem",
-              "detail": "The theorem and its use in two dimensions"
-            }
-          ]
-        },
-        {
-          "id": "J",
-          "label": "Level J",
-          "sub": "Advanced algebra",
-          "items": [
-            {
-              "id": "J-poly",
-              "name": "Polynomials",
-              "detail": "Division of polynomials, the remainder and factor theorems"
-            },
-            {
-              "id": "J-frac",
-              "name": "Fractional and irrational expressions",
-              "detail": "Algebraic fractions and expressions with surds"
-            },
-            {
-              "id": "J-ineq",
-              "name": "Inequalities and proof",
-              "detail": "Simultaneous and quadratic inequalities, and simple proofs"
-            }
-          ]
-        },
-        {
-          "id": "K",
-          "label": "Level K",
-          "sub": "Functions",
-          "items": [
-            {
-              "id": "K-quad",
-              "name": "Quadratic functions",
-              "detail": "Maximum and minimum values, and quadratic graphs"
-            },
-            {
-              "id": "K-fracirr",
-              "name": "Fractional and irrational functions",
-              "detail": "Their graphs and domains"
-            },
-            {
-              "id": "K-explog",
-              "name": "Exponential and logarithmic functions",
-              "detail": "Indices, logarithms and their graphs"
-            }
-          ]
-        },
-        {
-          "id": "L",
-          "label": "Level L",
-          "sub": "Limits and the start of calculus",
-          "items": [
-            {
-              "id": "L-lim",
-              "name": "Limits",
-              "detail": "Limits of functions, and continuity"
-            },
-            {
-              "id": "L-diff",
-              "name": "Differentiation",
-              "detail": "From first principles, then the rules, tangents and rates of change"
-            },
-            {
-              "id": "L-int",
-              "name": "Integration",
-              "detail": "Indefinite and definite integrals, area under a curve"
-            }
-          ]
-        },
-        {
-          "id": "M",
-          "label": "Level M",
-          "sub": "Trigonometry and coordinate geometry",
-          "items": [
-            {
-              "id": "M-trig",
-              "name": "Trigonometric functions",
-              "detail": "The ratios, identities, and equations involving them"
-            },
-            {
-              "id": "M-coord",
-              "name": "Straight lines and circles",
-              "detail": "Coordinate geometry of lines, circles and their intersections"
-            }
-          ]
-        },
-        {
-          "id": "N",
-          "label": "Level N",
-          "sub": "Sequences, loci and further calculus",
-          "items": [
-            {
-              "id": "N-loci",
-              "name": "Loci and regions",
-              "detail": "Describing a locus, and regions defined by inequalities"
-            },
-            {
-              "id": "N-seq",
-              "name": "Sequences and series",
-              "detail": "Arithmetic and geometric series, sigma notation, limits of sequences"
-            },
-            {
-              "id": "N-diff",
-              "name": "Further differentiation",
-              "detail": "Differentiating products, quotients and composite functions"
-            }
-          ]
-        },
-        {
-          "id": "O",
-          "label": "Level O",
-          "sub": "Advanced calculus, the final maths level",
-          "items": [
-            {
-              "id": "O-diff",
-              "name": "Advanced differentiation",
-              "detail": "Implicit and parametric differentiation, curve sketching"
-            },
-            {
-              "id": "O-int",
-              "name": "Advanced integration",
-              "detail": "Substitution, parts, and applications to area and volume"
-            },
-            {
-              "id": "O-de",
-              "name": "Differential equations",
-              "detail": "Forming and solving them, with applications. Level O complete"
-            }
-          ]
-        },
-        {
-          "id": "X",
-          "label": "X levels",
-          "sub": "Electives, taken alongside or after Level O",
-          "items": [
-            {
-              "id": "XV",
-              "name": "XV Vectors",
-              "detail": "Vectors in two and three dimensions, and their geometry"
-            },
-            {
-              "id": "XM",
-              "name": "XM Transformations",
-              "detail": "Matrices, linear transformations and their composition"
-            },
-            {
-              "id": "XP",
-              "name": "XP Permutations",
-              "detail": "Permutations, combinations and probability"
-            },
-            {
-              "id": "XS",
-              "name": "XS Statistics",
-              "detail": "Distributions, sampling and statistical inference"
-            }
-          ]
-        }
-      ]
+     "cleared": [
+      "7A",
+      "6A",
+      "5A",
+      "4A",
+      "3A",
+      "2A",
+      "A1-8",
+      "A9-12",
+      "A13-20",
+      "B1-10",
+      "B11-20",
+      "C1-4",
+      "C11"
+     ],
+     "current": {
+      "C5-10": "Slot 2A keeps a third of the drill here while the 2-digit x 2-digit layout is taught",
+      "C12-15": "Slot 2B is at rung 2B.2, short division with remainders, with the check written back",
+      "D1-4": "Slot 2A is at rung 2A.5, 2-digit x 2-digit, so the drill is already working above the Level C sheets"
+     }
     },
     "english": {
-      "track": "English",
-      "icon": "book",
-      "sections": [
-        {
-          "id": "7A",
-          "label": "Level 7A",
-          "sub": "Listening, looking and repeating",
-          "items": [
-            {
-              "id": "7A",
-              "name": "7A",
-              "detail": "Vocabulary from pictures, listening to a passage read aloud, first spoken words"
-            }
-          ]
-        },
-        {
-          "id": "6A",
-          "label": "Level 6A",
-          "sub": "Phonics: first sounds",
-          "items": [
-            {
-              "id": "6A",
-              "name": "6A",
-              "detail": "Initial letter sounds, vocabulary building from pictures"
-            }
-          ]
-        },
-        {
-          "id": "5A",
-          "label": "Level 5A",
-          "sub": "Phonics: blending",
-          "items": [
-            {
-              "id": "5A",
-              "name": "5A",
-              "detail": "Blending sounds into short words, reading simple words aloud"
-            }
-          ]
-        },
-        {
-          "id": "4A",
-          "label": "Level 4A",
-          "sub": "Letters, sight words and first sentences",
-          "items": [
-            {
-              "id": "4A",
-              "name": "4A",
-              "detail": "Letter recognition and the alphabet, phonics, sight words, simple sentences"
-            }
-          ]
-        },
-        {
-          "id": "3A",
-          "label": "Level 3A",
-          "sub": "Short passages",
-          "items": [
-            {
-              "id": "3A",
-              "name": "3A",
-              "detail": "Short passages, polysyllabic words, vowel digraphs, basic comprehension"
-            }
-          ]
-        },
-        {
-          "id": "2A",
-          "label": "Level 2A",
-          "sub": "Fluency and word classes",
-          "items": [
-            {
-              "id": "2A",
-              "name": "2A",
-              "detail": "Reading a 50-word passage fluently in a minute, nouns, verbs and adjectives, sequencing, writing words independently"
-            }
-          ]
-        },
-        {
-          "id": "A",
-          "label": "Level A",
-          "sub": "Sub-levels AI and AII",
-          "items": [
-            {
-              "id": "AI",
-              "name": "AI",
-              "detail": "Structure of simple sentences, subject and predicate, basic punctuation"
-            },
-            {
-              "id": "AII",
-              "name": "AII",
-              "detail": "Sentence structure, thought sequence, vocabulary building, comprehension questions"
-            }
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Level B",
-          "sub": "Sub-levels BI and BII",
-          "items": [
-            {
-              "id": "BI",
-              "name": "BI",
-              "detail": "Subject and predicate deeper, past tense expressions, modifiers, 5W-1H questions"
-            },
-            {
-              "id": "BII",
-              "name": "BII",
-              "detail": "Comparing and contrasting, reading speed 85 wpm, figurative language"
-            }
-          ]
-        },
-        {
-          "id": "C",
-          "label": "Level C",
-          "sub": "Sub-levels CI and CII",
-          "items": [
-            {
-              "id": "CI",
-              "name": "CI",
-              "detail": "Constructing sentences, correct word order"
-            },
-            {
-              "id": "CII",
-              "name": "CII",
-              "detail": "Organising information, tenses and voices"
-            }
-          ]
-        },
-        {
-          "id": "D",
-          "label": "Level D",
-          "sub": "Sub-levels DI and DII",
-          "items": [
-            {
-              "id": "DI",
-              "name": "DI",
-              "detail": "Combining sentences, relative clauses"
-            },
-            {
-              "id": "DII",
-              "name": "DII",
-              "detail": "Main idea, understanding paragraphs, reported speech"
-            }
-          ]
-        },
-        {
-          "id": "E",
-          "label": "Level E",
-          "sub": "Sub-levels EI and EII",
-          "items": [
-            {
-              "id": "EI",
-              "name": "EI",
-              "detail": "Topic and main idea of a paragraph"
-            },
-            {
-              "id": "EII",
-              "name": "EII",
-              "detail": "Scene transition, reason and result"
-            }
-          ]
-        },
-        {
-          "id": "F",
-          "label": "Level F",
-          "sub": "Sub-levels FI and FII",
-          "items": [
-            {
-              "id": "FI",
-              "name": "FI",
-              "detail": "Links within sentences: referring words and restatement"
-            },
-            {
-              "id": "FII",
-              "name": "FII",
-              "detail": "Diagramming paragraphs, interpreting a text"
-            }
-          ]
-        },
-        {
-          "id": "G",
-          "label": "Level G",
-          "sub": "Sub-levels GI and GII",
-          "items": [
-            {
-              "id": "GI",
-              "name": "GI",
-              "detail": "Paragraph elements and the impression a passage leaves"
-            },
-            {
-              "id": "GII",
-              "name": "GII",
-              "detail": "Sentiment, and summarising a passage in one paragraph"
-            }
-          ]
-        },
-        {
-          "id": "H",
-          "label": "Level H",
-          "sub": "Summarisation begins",
-          "items": [
-            {
-              "id": "H",
-              "name": "H",
-              "detail": "Key word relationships, concise comprehension answers, summarising a paragraph"
-            }
-          ]
-        },
-        {
-          "id": "I",
-          "label": "Level I",
-          "sub": "Extended summarisation",
-          "items": [
-            {
-              "id": "I",
-              "name": "I",
-              "detail": "Summarising longer texts, character sentiment, tracking an argument"
-            }
-          ]
-        },
-        {
-          "id": "J",
-          "label": "Level J",
-          "sub": "Critique stage begins",
-          "items": [
-            {
-              "id": "J",
-              "name": "J",
-              "detail": "Critical reading: plot, setting and atmosphere"
-            }
-          ]
-        },
-        {
-          "id": "K",
-          "label": "Level K",
-          "sub": "Critique stage",
-          "items": [
-            {
-              "id": "K",
-              "name": "K",
-              "detail": "Irony, literary characters, and analysis of figurative language"
-            }
-          ]
-        },
-        {
-          "id": "L",
-          "label": "Level L",
-          "sub": "The final English level",
-          "items": [
-            {
-              "id": "L",
-              "name": "L",
-              "detail": "Objective commentary on a text, sustained critique, Level L complete"
-            }
-          ]
-        }
-      ]
-    }
-  },
-  "children": {
-    "mason": {
-      "tracks": [
-        "nsw",
-        "maths",
-        "english"
-      ],
-      "notes": {
-        "english": "Reading comprehension in slot 1A is at rung 1A.4, inference from an unseen passage, which is ahead of the Kumon sheet position below. The selective test drives that, not Kumon.",
-        "nsw": "Re-pointed on 11 Oct 2026. Slots 3A and 3C were analogies and ciphers, neither of which is on the NSW paper, and now carry argument analysis and conditional logic. Slot 1D, writing, is new and takes 4 of English's 20 marks, so the week is still 55. Both take effect from week 25, and the three re-pointed Thinking rungs were reset to the bottom of their new ladders, so expect a dip before it reads as progress. Still untouched: spatial and visual reasoning, which waits for 2C to reach properties of shape, and four of the five Reading item types."
-      },
-      "progress": {
-        "maths": {
-          "cleared": [
-            "7A",
-            "6A",
-            "5A",
-            "4A",
-            "3A",
-            "2A",
-            "A1-8",
-            "A9-12",
-            "A13-20",
-            "B1-10",
-            "B11-20",
-            "C1-4",
-            "C11"
-          ],
-          "current": {
-            "C5-10": "Slot 2A keeps a third of the drill here while the 2-digit x 2-digit layout is taught",
-            "C12-15": "Slot 2B is at rung 2B.2, short division with remainders, with the check written back",
-            "D1-4": "Slot 2A is at rung 2A.5, 2-digit x 2-digit, so the drill is already working above the Level C sheets"
-          }
-        },
-        "english": {
-          "cleared": [
-            "7A",
-            "6A",
-            "5A",
-            "4A",
-            "3A",
-            "2A",
-            "AI",
-            "AII"
-          ],
-          "current": {
-            "BI": "Slot 1B is at rung 1B.3, subject and predicate in compound sentences, and 1C is at 1C.4 word families"
-          }
-        },
-        "nsw": {
-          "cleared": [],
-          "current": {
-            "M-place": "Slot 2C is on 4 digit place value this half term, which is Autumn 1 to late October",
-            "M-reverse": "Slot 2B is at rung 2B.2 and writes the check back, which is the same undoing step",
-            "M-pattern": "Slot 3B is at rung 3B.1, sequences with a changing step, which is the sequence half of this item type",
-            "T-strengthen": "Slot 3A is at rung 3A.1, which statement most strengthens a short argument. Week 24 teaches it hinted, so it is covered but not yet evidenced",
-            "T-conditional": "Slot 3C is at rung 3C.1, what follows from a conditional. Week 24 teaches it hinted, so it is covered but not yet evidenced"
-          }
-        }
-      },
-      "exam": {
-        "test": "Selective High School Placement Test",
-        "sits": "NSW Year 6, test held in early May 2029",
-        "entry": "Year 7 in 2030",
-        "schools": [
-          "Normanhurst Boys High School, fully selective, boys, Normanhurst",
-          "Asquith Boys and St Ives High School if a partially selective stream is wanted as a second choice"
-        ],
-        "weighting": "Four components, 25 percent each from 2026 entry onwards",
-        "sections": [
-          "Reading: 17 questions, 38 answers, 45 minutes",
-          "Mathematical Reasoning: 35 questions, 40 minutes, five options, no calculator",
-          "Thinking Skills: 40 questions, 40 minutes, four options",
-          "Writing: 1 task, 30 minutes, typed"
-        ],
-        "selection": "Placement is on test performance and the order of school choices. School reports and teacher assessment do not count. Results come back as performance bands, and the Department has published no minimum entry score since 2021. Up to 20 percent of places at each school are held under the Equity Placement Model.",
-        "timeline": "Arrives in NSW August 2028, part way through NSW Year 5. Applications open the October before the test, so his application window is October 2028 and the test is about six months after arrival."
-      }
+     "cleared": [
+      "7A",
+      "6A",
+      "5A",
+      "4A",
+      "3A",
+      "2A",
+      "AI",
+      "AII"
+     ],
+     "current": {
+      "BI": "Slot 1B is at rung 1B.3, subject and predicate in compound sentences, and 1C is at 1C.4 word families"
+     }
     },
-    "elysia": {
-      "tracks": [
-        "nsw",
-        "maths",
-        "english"
-      ],
-      "notes": {
-        "maths": "School does not teach the 7, 8, 9, 11 or 12 times tables until later, so the homework stays off them even once Level C starts.",
-        "english": "Reading comprehension in slot 1A is at rung 1A.3, joining two facts from different paragraphs, which runs ahead of the Kumon sheet position below.",
-        "nsw": "Re-pointed on 11 Oct 2026 the same way as Mason's, from week 23, at OC level. Her OC test has no writing paper, so slot 1D is not hers yet: she gets it when she turns to the 2031 selective test. Her bans on the 7, 8, 9, 11 and 12 tables and on written multiplication and division are right for her UK school today and must lift during 2028, because the OC paper assumes the whole of NSW Year 4."
-      },
-      "progress": {
-        "maths": {
-          "cleared": [
-            "7A",
-            "6A",
-            "5A",
-            "4A",
-            "3A",
-            "2A",
-            "A1-8",
-            "A9-12",
-            "A13-20"
-          ],
-          "current": {
-            "B1-10": "Slot 2A is at rung 2A.3, addition within 100 crossing a ten, and 2B is at 2B.2, vertical addition with carrying"
-          }
-        },
-        "english": {
-          "cleared": [
-            "7A",
-            "6A",
-            "5A",
-            "4A",
-            "3A",
-            "2A"
-          ],
-          "current": {
-            "AI": "Slot 1B is at rung 1B.2, subject and predicate in longer sentences with an opening phrase, and the subject and predicate gap is open again",
-            "AII": "Slot 1C is at rung 1C.4, the prefixes un, re and dis, which is AII vocabulary work"
-          }
-        },
-        "nsw": {
-          "cleared": [],
-          "current": {
-            "M-place": "Slot 2C works on adding and subtracting within 100 this half term",
-            "M-pattern": "Slot 3B is at rung 3B.1, patterns with a constant step that is not 2, 5 or 10",
-            "T-strengthen": "Slot 3A is at rung 3A.1, which statement best supports a claim. Week 22 teaches it hinted, so it is covered but not yet evidenced",
-            "T-deduce": "Slot 3C is at rung 3C.1, two clue logic needing both clues, which is week 22's section"
-          }
-        }
-      },
-      "exam": {
-        "test": "Opportunity Class Placement Test, then the Selective test two years later",
-        "sits": "OC test in NSW Year 4, 2029. Selective test in NSW Year 6, 2031",
-        "entry": "OC class Years 5 and 6 from 2030, then Year 7 in 2032",
-        "schools": [
-          "Hornsby Girls High School, fully selective, girls, Hornsby",
-          "Beecroft Public School is the nearest confirmed opportunity class, so check which OC schools are in range from Hornsby before the application"
-        ],
-        "weighting": "OC has three components, 33.3 percent each. No writing test. The Selective test she sits in 2031 adds Writing and drops each component to 25 percent.",
-        "sections": [
-          "Reading: 14 questions, 40 minutes",
-          "Mathematical Reasoning: 35 questions, 40 minutes, five options, no calculator",
-          "Thinking Skills: 30 questions, 30 minutes, four options"
-        ],
-        "selection": "Same mechanism as the selective test: test performance and choice order only, performance bands rather than scores, no published cut off, 20 percent equity reservation.",
-        "timeline": "Arrives in NSW August 2028. The OC application window opens that October, so she can apply in her first term in an Australian school and misses no cycle."
-      }
+    "nsw": {
+     "cleared": [],
+     "current": {
+      "M-place": "Slot 2C is on 4 digit place value this half term, which is Autumn 1 to late October",
+      "M-reverse": "Slot 2B is at rung 2B.3, the written division method checked by multiplying back, which is the same undoing step",
+      "M-pattern": "Slot 3B is at rung 3B.1, sequences with a changing step, which is the sequence half of this item type",
+      "T-strengthen": "Slot 3A is at rung 3A.1, which statement most strengthens a short argument. Week 24 taught it hinted and 3 of 5; week 25 runs it unhinted so the rung can be evidenced",
+      "T-conditional": "Slot 3C is at rung 3C.1, what follows from a conditional. Week 24 taught it hinted and 2 of 5, the converse taken as though it followed; week 25 runs it unhinted",
+      "W-brief": "Slot 1D opens in week 25 at rung 1D.1, one paragraph to a brief that names its audience and its text type. First week, so it is covered and not yet evidenced",
+      "W-type": "Slot 1D's brief states the text type and the audience every week, so writing to the right kind of text is part of rung 1D.1 from week 25"
+     }
     }
+   },
+   "exam": {
+    "test": "Selective High School Placement Test",
+    "sits": "NSW Year 6, test held in early May 2029",
+    "entry": "Year 7 in 2030",
+    "schools": [
+     "Normanhurst Boys High School, fully selective, boys, Normanhurst",
+     "Asquith Boys and St Ives High School if a partially selective stream is wanted as a second choice"
+    ],
+    "weighting": "Four components, 25 percent each from 2026 entry onwards",
+    "sections": [
+     "Reading: 17 questions, 38 answers, 45 minutes",
+     "Mathematical Reasoning: 35 questions, 40 minutes, five options, no calculator",
+     "Thinking Skills: 40 questions, 40 minutes, four options",
+     "Writing: 1 task, 30 minutes, typed"
+    ],
+    "selection": "Placement is on test performance and the order of school choices. School reports and teacher assessment do not count. Results come back as performance bands, and the Department has published no minimum entry score since 2021. Up to 20 percent of places at each school are held under the Equity Placement Model.",
+    "timeline": "Arrives in NSW August 2028, part way through NSW Year 5. Applications open the October before the test, so his application window is October 2028 and the test is about six months after arrival."
+   }
   },
-  "target": "The exam is the point. Both children are being prepared for the NSW placement tests for selective entry near Hornsby, and the Kumon ladders below are the engine for that, not the goal. The NSW track is the target itself, written from the Department's own practice papers for 2026 entry."
+  "elysia": {
+   "tracks": [
+    "nsw",
+    "maths",
+    "english"
+   ],
+   "notes": {
+    "maths": "School does not teach the 7, 8, 9, 11 or 12 times tables until later, so the homework stays off them even once Level C starts.",
+    "english": "Reading comprehension in slot 1A is at rung 1A.3, joining two facts from different paragraphs, which runs ahead of the Kumon sheet position below.",
+    "nsw": "Re-pointed on 11 Oct 2026 the same way as Mason's, from week 23, at OC level. Her OC test has no writing paper, so slot 1D is not hers yet: she gets it when she turns to the 2031 selective test. Her bans on the 7, 8, 9, 11 and 12 tables and on written multiplication and division are right for her UK school today and must lift during 2028, because the OC paper assumes the whole of NSW Year 4."
+   },
+   "progress": {
+    "maths": {
+     "cleared": [
+      "7A",
+      "6A",
+      "5A",
+      "4A",
+      "3A",
+      "2A",
+      "A1-8",
+      "A9-12",
+      "A13-20"
+     ],
+     "current": {
+      "B1-10": "Slot 2A is at rung 2A.3, addition within 100 crossing a ten, and 2B is at 2B.2, vertical addition with carrying"
+     }
+    },
+    "english": {
+     "cleared": [
+      "7A",
+      "6A",
+      "5A",
+      "4A",
+      "3A",
+      "2A"
+     ],
+     "current": {
+      "AI": "Slot 1B is at rung 1B.2, subject and predicate in longer sentences with an opening phrase, and the subject and predicate gap is open again",
+      "AII": "Slot 1C is at rung 1C.4, the prefixes un, re and dis, which is AII vocabulary work"
+     }
+    },
+    "nsw": {
+     "cleared": [],
+     "current": {
+      "M-place": "Slot 2C works on adding and subtracting within 100 this half term",
+      "M-pattern": "Slot 3B is at rung 3B.1, patterns with a constant step that is not 2, 5 or 10",
+      "T-strengthen": "Slot 3A is at rung 3A.1, which statement best supports a claim. Week 22 teaches it hinted, so it is covered but not yet evidenced",
+      "T-deduce": "Slot 3C is at rung 3C.1, two clue logic needing both clues, which is week 22's section"
+     }
+    }
+   },
+   "exam": {
+    "test": "Opportunity Class Placement Test, then the Selective test two years later",
+    "sits": "OC test in NSW Year 4, 2029. Selective test in NSW Year 6, 2031",
+    "entry": "OC class Years 5 and 6 from 2030, then Year 7 in 2032",
+    "schools": [
+     "Hornsby Girls High School, fully selective, girls, Hornsby",
+     "Beecroft Public School is the nearest confirmed opportunity class, so check which OC schools are in range from Hornsby before the application"
+    ],
+    "weighting": "OC has three components, 33.3 percent each. No writing test. The Selective test she sits in 2031 adds Writing and drops each component to 25 percent.",
+    "sections": [
+     "Reading: 14 questions, 40 minutes",
+     "Mathematical Reasoning: 35 questions, 40 minutes, five options, no calculator",
+     "Thinking Skills: 30 questions, 30 minutes, four options"
+    ],
+    "selection": "Same mechanism as the selective test: test performance and choice order only, performance bands rather than scores, no published cut off, 20 percent equity reservation.",
+    "timeline": "Arrives in NSW August 2028. The OC application window opens that October, so she can apply in her first term in an Australian school and misses no cycle."
+   }
+  }
+ },
+ "target": "The exam is the point. Both children are being prepared for the NSW placement tests for selective entry near Hornsby, and the Kumon ladders below are the engine for that, not the goal. The NSW track is the target itself, written from the Department's own practice papers for 2026 entry."
 }
