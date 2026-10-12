@@ -143,7 +143,11 @@
       "fromDate": {
         "elysia": "2029-09-01"
       },
-      "marksNote": "Mason's 4 marks come out of English's 20 from week 25. Elysia's split is not decided yet and must be before September 2029: her English 15 has to make room without the week leaving 40."
+      "marksNote": "Mason's 4 marks come out of English's 20 from week 25. Elysia's split is not decided yet and must be before September 2029: her English 15 has to make room without the week leaving 40.",
+      "plannedMarks": {
+        "elysia": 3
+      },
+      "plannedMarksNote": "A PROPOSAL for Nik, not a decision. When slot 1D opens for Elysia in September 2029 her English 15 has to make room without the week leaving 40, and the obvious split is 1A 4, 1B 4, 1C 4, 1D 3. Writing is a quarter of the selective mark, so 3 of 15 under-weights it, and the alternative is to take a mark from Maths or Thinking, which is a bigger call. Decide before the 2029 OC test, not after: the reason writing reached zero coverage for Mason is that it was never given marks, and anything not marked does not get done."
     },
     "2A": {
       "subject": "maths",
@@ -1565,7 +1569,7 @@
       {
         "from": "2026-10-12",
         "sections": 1,
-        "note": "The rule was agreed on 11 Oct 2026, the same day Mason's week 24 and Elysia's week 22 went to the children. Rebuilding a live section into multiple choice would throw away whatever they had already typed into it, for no gain, so the ramp starts the day after and bites on every week built from the next cycle onward. This date is the only reason those two weeks pass with none."
+        "note": "Agreed 11 Oct 2026. See fromWeekWhy for why the two weeks already published are not retro-failed."
       },
       {
         "from": "2027-09-01",
@@ -1581,6 +1585,11 @@
         "note": "full paper practice in the run up to each test"
       }
     ],
-    "howMarked": "A section sets \"examFormat\": true and every question in it carries options[] with exactly one key. kh.py validate and check-week.mjs both count them."
+    "howMarked": "A section sets \"examFormat\": true and every question in it carries options[] with exactly one key. kh.py validate and check-week.mjs both count them.",
+    "fromWeek": {
+      "mason": 25,
+      "elysia": 23
+    },
+    "fromWeekWhy": "The first week each child is EXPECTED to carry an exam format section. Mason's week 24 and Elysia's week 22 were already with the children when the rule was agreed on 11 Oct 2026, and rebuilding a live section into multiple choice would discard whatever they had typed into it. A date alone was not enough: the ramp's first step fell due on 12 Oct and `validate` then failed both published weeks, which would have blocked `push` for everything, the same way slot 1D would have failed week 24 without its week guard. Enforcement needs both the date and the week."
   }
 }

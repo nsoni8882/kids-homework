@@ -787,7 +787,38 @@ def cmd_curriculum(args):
         print(f"  next week : W{(cur.get('weekNum') or 0)} is loaded now; "
               f"position recorded as of W{pos.get('asOfWeek', '?')}")
         print(f"  school    : {term['term']} to {term['ends']}, "
-              f"2C topic is \"{term[child]}\"")
+              f"2C topic is \"{term[child]}\""
+              + ("  (PLANNED, not the school's published topic)"
+                 if term.get("source") == "planned" else ""))
+        for t in goal.get("tests") or []:
+            print(f"  sits      : {t['name']}, {t['when']}, "
+                  f"{', '.join(t['components'])}, {t['weightEach']} each")
+
+        # Progress against the papers, which is the only scoreboard that matters.
+        # Counted per component so a strong week in one cannot hide a component at
+        # zero: that is how Thinking Skills sat at nothing for both children while
+        # they scored near full marks on the weekly Thinking sections.
+        roadmap = read_json(ROADMAP) or {}
+        nsw = ((roadmap.get("tracks") or {}).get("nsw") or {})
+        week_now = cur.get("weekNum")
+        live, reachable, _ = nsw_state(spine, child, week_now, position)
+        routes = nsw_routes(spine, child)
+        if nsw:
+            print("  NSW PAPERS, families in the week now / with a route / on the paper:")
+            for sec in nsw["sections"]:
+                ids = [i["id"] for i in sec["items"]]
+                inweek = [f for f in ids if f in live]
+                routed = [f for f in ids if f in routes]
+                flag = "  <- nothing in the week" if not inweek else ""
+                print(f"    {sec['label']:26s} {len(inweek)} / {len(routed)} / {len(ids)}{flag}")
+                if inweek:
+                    print(f"      in the week: {', '.join(inweek)}")
+            noroute = sorted(set(f for sec in nsw["sections"] for f in [i['id'] for i in sec['items']])
+                             - set(routes))
+            if noroute:
+                print(f"    NO ROUTE AT ALL: {', '.join(noroute)}")
+        for lim in expiring_limits(spine, child):
+            print(f"  BAN LIFTS : {lim['until']}, {lim['rule'][:70]}")
         print()
 
         for slot_id, slot in sorted(slots_for(spine, child).items()):
@@ -823,7 +854,15 @@ def cmd_curriculum(args):
                 for g in blocking:
                     print(f"                - [{g['status']}] {g['topic'][:70]}")
             if section and slot.get("fixed"):
-                print(f"       fixed  : {slot['fixed']}")
+                fams = nsw_families(slot, child)
+            if fams:
+                rung_now = rungs[idx] if idx is not None else None
+                delivering = sorted(set(rung_now.get("nswFamilies") or []) if rung_now else [])
+                if slot.get("familiesFrom") == "schoolSync":
+                    delivering = (term.get("families") or {}).get(child) or []
+                print(f"       serves : {', '.join(fams)}")
+                print(f"       now    : {', '.join(delivering) if delivering else 'nothing yet, a step on the way'}")
+            print(f"       fixed  : {slot['fixed']}")
             print()
 
         unattached = [g for g in gaps
@@ -1005,6 +1044,26 @@ def cmd_plan(args):
               f"English {goal['weeklyMarks']['english']}, Maths {goal['weeklyMarks']['maths']}, "
               f"Thinking {goal['weeklyMarks']['thinking']}")
         print(f"  school term {term['term']} to {term['ends']}, 2C topic \"{term[child]}\"")
+        if term.get("source") == "planned":
+            print("  that term row is PLANNED, not the school's published topic. Replace it when "
+                  "the school publishes.")
+
+        # Why this week exists. Everything below is in service of these dates.
+        for t in goal.get("tests") or []:
+            print(f"  TARGET: {t['name']}, {t['when']}, "
+                  f"{len(t['components'])} components at {t['weightEach']} each")
+        routes = nsw_routes(spine, child)
+        current, reachable, _ = nsw_state(spine, child, next_week, position)
+        print(f"  exam item families: {len(current)} in the week at week {next_week}, "
+              f"{len(routes)} with a route, of {len(routes)} on the papers they sit")
+        quota = exam_format_quota(spine)
+        first_ef = ((spine.get("examFormat") or {}).get("fromWeek") or {}).get(child)
+        if first_ef is not None and next_week >= first_ef:
+            print(f"  EXAM FORMAT: {quota} section(s) must be multiple choice this week, on a rung "
+                  f"being CONSOLIDATED, four options or five for maths, exactly one key")
+        soon = expiring_limits(spine, child)
+        for lim in soon:
+            print(f"  BAN LIFTS {lim['until']}: {lim['rule'][:84]}")
         print()
 
         # next_week, not this one: the spec is for the week being built, so a
@@ -1039,7 +1098,22 @@ def cmd_plan(args):
             fixed = (slot.get("marks") or {}).get(child)
             out_of = fixed if fixed is not None else (
                 last_section.get("totalMarks") if last_section else None)
-            pct = round(last_marks / out_of * 100) if last_marks is not None and out_of else None
+            # The percentage must divide last week's marks by what last week was
+            # OUT OF, not by what next week will be out of. Mason's English was
+            # re-split on 11 Oct 2026, so 1B went from 6 marks to 5: his clean
+            # 6 out of 6 then read as 120 percent and the spec offered to advance
+            # the rung off it. A score over 100 is the signal that the two came
+            # from different weeks.
+            scored_out_of = None
+            if weeks:
+                qset = read_json(os.path.join(
+                    DATA, "children", child, "question-sets", f"w{weeks[-1]['week']}.json"))
+                if qset:
+                    hit = next((x for x in qset.get("sections", []) if x["id"] == sid), None)
+                    if hit:
+                        scored_out_of = hit.get("totalMarks")
+            denom = scored_out_of if scored_out_of else out_of
+            pct = round(last_marks / denom * 100) if last_marks is not None and denom else None
 
             print(f"  [{sid}] {slot['purpose']}")
             print(f"       marks   : {out_of if out_of else '?'}   subject {slot['subject']}")
@@ -1049,6 +1123,25 @@ def cmd_plan(args):
             else:
                 print("       BUILD AT: rung not recorded. Set it before generating.")
             print(f"       format  : {slot['fixed']}")
+            # The point of the slot, in the test's own terms. A section that
+            # cannot name the item family it builds towards is the drift this
+            # whole file exists to stop.
+            fams = nsw_families(slot, child)
+            if fams:
+                here_now = sorted(set(rung.get("nswFamilies") or []) if rung else [])
+                ahead = [f for f in fams if f not in here_now]
+                print(f"       serves  : {', '.join(fams)}")
+                if here_now:
+                    print(f"       THIS RUNG DELIVERS: {', '.join(here_now)}")
+                elif slot.get("familiesFrom") == "schoolSync":
+                    tf = (term.get("families") or {}).get(child) or []
+                    print(f"       THIS TERM DELIVERS: {', '.join(tf) if tf else 'nothing, which is a gap'}")
+                else:
+                    print("       THIS RUNG DELIVERS: nothing yet, it is a step on the way")
+                if ahead:
+                    print(f"       still ahead on this slot: {', '.join(ahead)}")
+            else:
+                print(f"       serves  : no exam family directly. {slot.get('nswRole','support')[:70]}")
 
             must = []
             if blocking:
@@ -1093,10 +1186,15 @@ def cmd_plan(args):
                 print(f"    [{g['status']:9s}] {g['topic'][:66]}")
             print()
 
-        limits = spine["hardLimits"].get(child, []) + spine["hardLimits"]["both"]
-        print("  HARD LIMITS:")
-        for lim in limits:
-            print(f"    - {lim['rule']}")
+        print("  HARD LIMITS (only the ones still in force today):")
+        for lim in live_limits(spine, child):
+            until = f"  [lifts {lim['until']}]" if lim.get("until") else ""
+            print(f"    - {lim['rule']}{until}")
+        lifted = [l for l in (list(spine["hardLimits"].get(child, []))
+                              + list(spine["hardLimits"]["both"]))
+                  if l.get("until") and today() >= l["until"]]
+        for lim in lifted:
+            print(f"    - LIFTED on {lim['until']}, no longer enforced: {lim['rule'][:70]}")
         print()
         print("  When the week is written, gate it:  node scripts/check-week.mjs " + child)
         print()
@@ -1320,8 +1418,16 @@ def check_coverage(local, spine):
                 problems.append(f"{child} W{week} 2A: only {n} drill items, the spine asks for at "
                                 "least 30 for maths and 12 for an English letter drill")
 
-        # at least N sections a week in exam format, N from the ramp
+        # at least N sections a week in exam format, N from the ramp. The quota
+        # applies from the first week each child is expected to carry one: the
+        # weeks already published when the rule was agreed are not retro-failed,
+        # and without that guard the ramp's first step failed both of them and
+        # `push` refuses on a failed validation, so the whole CLI would have
+        # stopped on the day the date fell due.
         quota = exam_format_quota(spine)
+        first = ((spine.get("examFormat") or {}).get("fromWeek") or {}).get(child)
+        if first is not None and week is not None and week < first:
+            quota = 0
         got = exam_format_sections(cur)
         if len(got) < quota:
             problems.append(f"{child} W{week}: {len(got)} section(s) in exam format, the spine's ramp "
