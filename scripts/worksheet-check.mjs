@@ -15,14 +15,43 @@
  * have to sum to the total. There is no Chromium on this machine, so this stubs
  * the DOM calls worksheet.js makes and reads back the HTML.
  *
- *   node scripts/worksheet-check.mjs [mason|elysia] [payload.json]
+ *   node scripts/worksheet-check.mjs                      every fixture, then both live weeks
+ *   node scripts/worksheet-check.mjs mason                 one child's live week
+ *   node scripts/worksheet-check.mjs mason payload.json    one saved payload
+ *
+ * The fixtures matter more than the live run. A live week with nothing
+ * referred exercises none of this, and a week cannot be put back into the
+ * state that was reported, so scripts/fixtures/week-<child>-pending.json
+ * holds it: Mason's week 24 exactly as it stood before anybody marked it, and
+ * Elysia's week 21 with two answers forced back to undecided, one of them
+ * inside the banded drill where an undecided item is worth nothing on its own.
+ * worksheet.js keeps module state from the moment it is imported, so one
+ * process checks one payload and the no-argument form re-runs itself per case.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const child = process.argv[2] || 'mason';
+const self = fileURLToPath(import.meta.url);
+
+if (!process.argv[2]) {
+  const fixtures = readdirSync(`${root}/scripts/fixtures`)
+    .filter((f) => /^week-(mason|elysia)-.*\.json$/.test(f))
+    .map((f) => [f.split('-')[1], `scripts/fixtures/${f}`]);
+  const cases = [...fixtures, ['mason'], ['elysia']];
+  let bad = 0;
+  for (const [who, file] of cases) {
+    const r = spawnSync(process.execPath, [self, who, ...(file ? [file] : [])],
+      { stdio: 'inherit', cwd: root });
+    if (r.status !== 0) bad += 1;
+  }
+  console.log(bad ? `${bad} of ${cases.length} case(s) FAILED` : `all ${cases.length} cases pass`);
+  process.exit(bad ? 1 : 0);
+}
+
+const child = process.argv[2];
 const payloadArg = process.argv[3];
 const API = 'https://kids-homework-api.nikunj-sap.workers.dev';
 const payload = payloadArg
@@ -71,19 +100,39 @@ global.performance = { now: () => Date.now() };
 global.requestAnimationFrame = (fn) => fn(0);
 
 let awardBody = null;
+let awardResult = null;
 global.fetch = async (url, opts = {}) => {
   const u = String(url);
   if (u.endsWith(`/api/week/${child}`)) return { ok: true, json: async () => payload };
   if (u.endsWith(`/api/week/${child}/award`)) {
     awardBody = JSON.parse(opts.body);
-    // What the Worker does: rewrite those rows, then recompute from the rows.
+    // What the Worker does: rewrite those rows, then recompute every section
+    // from the rows. A banded drill is recomputed from the COUNT CORRECT, not
+    // by adding the award on, which is why this is modelled rather than
+    // approximated: awarding a referred drill item can leave the section's
+    // marks exactly where they were, and the page must agree with that.
     const marks = { ...payload.submitted.sectionMarks };
-    for (const [qid, m] of Object.entries(awardBody.awards)) {
-      const sec = payload.questions.sections.find((s) => s.questions.some((q) => q.id === qid));
-      if (!sec.scoreBand) marks[sec.id] += m;
+    for (const sec of payload.questions.sections) {
+      const touched = sec.questions.some((q) => q.id in awardBody.awards);
+      if (!touched) continue;
+      if (sec.scoreBand) {
+        const n = sec.questions.filter((q) => {
+          if (!q.autoMark) return false;
+          if (q.id in awardBody.awards) return awardBody.awards[q.id] > 0;
+          const p = payload.submitted.perQuestion[q.id];
+          return p && p.correct === 1;
+        }).length;
+        const rule = (sec.scoreBandRules || []).find(([lo, hi]) => n >= lo && n <= hi);
+        marks[sec.id] = rule ? rule[2] : 0;
+      } else {
+        for (const [qid, m] of Object.entries(awardBody.awards)) {
+          if (sec.questions.some((q) => q.id === qid)) marks[sec.id] += m;
+        }
+      }
     }
     const total = Object.values(marks).reduce((a, b) => a + b, 0);
-    return { ok: true, json: async () => ({ child, week: payload.week, total, outOf: payload.submitted.outOf, sectionMarks: marks }) };
+    awardResult = { child, week: payload.week, total, outOf: payload.submitted.outOf, sectionMarks: marks };
+    return { ok: true, json: async () => awardResult };
   }
   throw new Error(`unexpected fetch ${u}`);
 };
@@ -151,6 +200,17 @@ if (pending.length) {
   ok(!results.includes('confetti'), 'confetti over a week that is not marked yet');
   ok(results.includes('Waiting for a grown up'), 'the pending answers are not listed');
   pending.forEach((qid) => ok(results.includes(`${qid} ·`), `${qid} is waiting and is not listed`));
+  // The marks at stake must not count a drill item, whose marks ride on the
+  // band and are already in the band's own loss. Counting both was the
+  // inverse of the bug this file exists for.
+  const atStake = pending.reduce((t, qid) => t + (byId[qid].s.scoreBand ? 0 : byId[qid].q.marks), 0);
+  ok(results.includes(`waiting on ${pending.length} ${pending.length === 1 ? 'answer' : 'answers'}`)
+     || atStake === 0,
+    'the ledger does not name the answers that are waiting');
+  if (atStake) {
+    ok(new RegExp(`${atStake} marks?</span>\\s*<span class="ledger-what">waiting`).test(results),
+      `the marks at stake should be ${atStake}, which excludes anything inside a banded drill`);
+  }
 
   // 3. a grown up can finish the marking from here, and the page then settles
   //    on what the server recomputed rather than its own running sum.
@@ -172,10 +232,19 @@ if (pending.length) {
       `sent ${Object.keys(awardBody.awards).length} awards for ${pending.length} referred answers`);
   }
   const after = app.innerHTML;
-  const expect = payload.submitted.total
-    + pending.reduce((t, qid) => t + (byId[qid].s.scoreBand ? 0 : byId[qid].q.marks), 0);
+  // The server owns the total. The page must show what came back, not its own
+  // running sum, which is the whole reason the award response is re-read.
+  const expect = awardResult ? awardResult.total : payload.submitted.total;
   ok(new RegExp(`${expect} / ${payload.submitted.outOf}`).test(after),
-    `after awarding full marks the screen should read ${expect} / ${payload.submitted.outOf}`);
+    `the screen should read what the server returned, ${expect} / ${payload.submitted.outOf}`);
+  // a referred item inside a banded drill is worth nothing on its own, so
+  // awarding it must not move the total unless it moves the band
+  const inBand = pending.filter((qid) => byId[qid].s.scoreBand);
+  if (inBand.length) {
+    ok(!new RegExp(`up to \\d+ marks? still to decide`).test(
+      after.slice(after.indexOf(inBand[0])) || ''),
+      'a drill item is still shown as waiting after it was marked');
+  }
   const afterNums = marksOf(after);
   if (afterNums.length) {
     ok(afterNums[0] === payload.submitted.outOf - expect,

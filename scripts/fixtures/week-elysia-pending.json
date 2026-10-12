@@ -1,0 +1,1190 @@
+{
+ "child": "elysia",
+ "week": 21,
+ "questions": {
+  "weekNum": 21,
+  "sections": [
+   {
+    "id": "1A",
+    "subject": "english",
+    "title": "Reading Comprehension",
+    "timerMins": 5,
+    "totalMarks": 5,
+    "questions": [
+     {
+      "id": "1A-Q1",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1A-Q1, text not kept]",
+      "accepted": [
+       "key-1A-Q1"
+      ],
+      "markScheme": "[mark scheme for 1A-Q1, not kept]"
+     },
+     {
+      "id": "1A-Q2",
+      "marks": 2,
+      "inputType": "multiline",
+      "autoMark": false,
+      "text": "[question 1A-Q2, text not kept]",
+      "markScheme": "[mark scheme for 1A-Q2, not kept]"
+     },
+     {
+      "id": "1A-Q3",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1A-Q3, text not kept]",
+      "accepted": [
+       "key-1A-Q3"
+      ],
+      "markScheme": "[mark scheme for 1A-Q3, not kept]"
+     },
+     {
+      "id": "1A-Q4",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1A-Q4, text not kept]",
+      "accepted": [
+       "key-1A-Q4"
+      ],
+      "markScheme": "[mark scheme for 1A-Q4, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "1B",
+    "subject": "english",
+    "title": "Predicate and Subject",
+    "timerMins": 5,
+    "totalMarks": 5,
+    "questions": [
+     {
+      "id": "1B-Q1",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1B-Q1, text not kept]",
+      "accepted": [
+       "key-1B-Q1"
+      ],
+      "markScheme": "[mark scheme for 1B-Q1, not kept]"
+     },
+     {
+      "id": "1B-Q2",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1B-Q2, text not kept]",
+      "accepted": [
+       "key-1B-Q2"
+      ],
+      "markScheme": "[mark scheme for 1B-Q2, not kept]"
+     },
+     {
+      "id": "1B-Q3",
+      "marks": 2,
+      "inputType": "multiline",
+      "autoMark": false,
+      "text": "[question 1B-Q3, text not kept]",
+      "markScheme": "[mark scheme for 1B-Q3, not kept]"
+     },
+     {
+      "id": "1B-Q4",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1B-Q4, text not kept]",
+      "accepted": [
+       "key-1B-Q4"
+      ],
+      "markScheme": "[mark scheme for 1B-Q4, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "1C",
+    "subject": "english",
+    "title": "Adjectives and Spelling",
+    "timerMins": 5,
+    "totalMarks": 5,
+    "questions": [
+     {
+      "id": "1C-Q1",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1C-Q1, text not kept]",
+      "accepted": [
+       "key-1C-Q1"
+      ],
+      "markScheme": "[mark scheme for 1C-Q1, not kept]"
+     },
+     {
+      "id": "1C-Q2",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1C-Q2, text not kept]",
+      "accepted": [
+       "key-1C-Q2"
+      ],
+      "markScheme": "[mark scheme for 1C-Q2, not kept]"
+     },
+     {
+      "id": "1C-Q3",
+      "marks": 1,
+      "inputType": "letter",
+      "autoMark": true,
+      "text": "[question 1C-Q3, text not kept]",
+      "accepted": [
+       "key-1C-Q3"
+      ],
+      "markScheme": "[mark scheme for 1C-Q3, not kept]"
+     },
+     {
+      "id": "1C-Q4",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1C-Q4, text not kept]",
+      "accepted": [
+       "key-1C-Q4"
+      ],
+      "markScheme": "[mark scheme for 1C-Q4, not kept]"
+     },
+     {
+      "id": "1C-Q5",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 1C-Q5, text not kept]",
+      "accepted": [
+       "key-1C-Q5"
+      ],
+      "markScheme": "[mark scheme for 1C-Q5, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "2A",
+    "subject": "maths",
+    "title": "Addition Fluency: 30 problems",
+    "timerMins": 8,
+    "totalMarks": 8,
+    "scoreBand": true,
+    "scoreBandRules": [
+     [
+      29,
+      30,
+      8
+     ],
+     [
+      25,
+      28,
+      6
+     ],
+     [
+      20,
+      24,
+      4
+     ],
+     [
+      0,
+      19,
+      2
+     ]
+    ],
+    "questions": [
+     {
+      "id": "2A-Q1",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q1, text not kept]",
+      "accepted": [
+       "key-2A-Q1"
+      ],
+      "markScheme": "[mark scheme for 2A-Q1, not kept]"
+     },
+     {
+      "id": "2A-Q2",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q2, text not kept]",
+      "accepted": [
+       "key-2A-Q2"
+      ],
+      "markScheme": "[mark scheme for 2A-Q2, not kept]"
+     },
+     {
+      "id": "2A-Q3",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q3, text not kept]",
+      "accepted": [
+       "key-2A-Q3"
+      ],
+      "markScheme": "[mark scheme for 2A-Q3, not kept]"
+     },
+     {
+      "id": "2A-Q4",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q4, text not kept]",
+      "accepted": [
+       "key-2A-Q4"
+      ],
+      "markScheme": "[mark scheme for 2A-Q4, not kept]"
+     },
+     {
+      "id": "2A-Q5",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q5, text not kept]",
+      "accepted": [
+       "key-2A-Q5"
+      ],
+      "markScheme": "[mark scheme for 2A-Q5, not kept]"
+     },
+     {
+      "id": "2A-Q6",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q6, text not kept]",
+      "accepted": [
+       "key-2A-Q6"
+      ],
+      "markScheme": "[mark scheme for 2A-Q6, not kept]"
+     },
+     {
+      "id": "2A-Q7",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q7, text not kept]",
+      "accepted": [
+       "key-2A-Q7"
+      ],
+      "markScheme": "[mark scheme for 2A-Q7, not kept]"
+     },
+     {
+      "id": "2A-Q8",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q8, text not kept]",
+      "accepted": [
+       "key-2A-Q8"
+      ],
+      "markScheme": "[mark scheme for 2A-Q8, not kept]"
+     },
+     {
+      "id": "2A-Q9",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q9, text not kept]",
+      "accepted": [
+       "key-2A-Q9"
+      ],
+      "markScheme": "[mark scheme for 2A-Q9, not kept]"
+     },
+     {
+      "id": "2A-Q10",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q10, text not kept]",
+      "accepted": [
+       "key-2A-Q10"
+      ],
+      "markScheme": "[mark scheme for 2A-Q10, not kept]"
+     },
+     {
+      "id": "2A-Q11",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q11, text not kept]",
+      "accepted": [
+       "key-2A-Q11"
+      ],
+      "markScheme": "[mark scheme for 2A-Q11, not kept]"
+     },
+     {
+      "id": "2A-Q12",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q12, text not kept]",
+      "accepted": [
+       "key-2A-Q12"
+      ],
+      "markScheme": "[mark scheme for 2A-Q12, not kept]"
+     },
+     {
+      "id": "2A-Q13",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q13, text not kept]",
+      "accepted": [
+       "key-2A-Q13"
+      ],
+      "markScheme": "[mark scheme for 2A-Q13, not kept]"
+     },
+     {
+      "id": "2A-Q14",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q14, text not kept]",
+      "accepted": [
+       "key-2A-Q14"
+      ],
+      "markScheme": "[mark scheme for 2A-Q14, not kept]"
+     },
+     {
+      "id": "2A-Q15",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q15, text not kept]",
+      "accepted": [
+       "key-2A-Q15"
+      ],
+      "markScheme": "[mark scheme for 2A-Q15, not kept]"
+     },
+     {
+      "id": "2A-Q16",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q16, text not kept]",
+      "accepted": [
+       "key-2A-Q16"
+      ],
+      "markScheme": "[mark scheme for 2A-Q16, not kept]"
+     },
+     {
+      "id": "2A-Q17",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q17, text not kept]",
+      "accepted": [
+       "key-2A-Q17"
+      ],
+      "markScheme": "[mark scheme for 2A-Q17, not kept]"
+     },
+     {
+      "id": "2A-Q18",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q18, text not kept]",
+      "accepted": [
+       "key-2A-Q18"
+      ],
+      "markScheme": "[mark scheme for 2A-Q18, not kept]"
+     },
+     {
+      "id": "2A-Q19",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q19, text not kept]",
+      "accepted": [
+       "key-2A-Q19"
+      ],
+      "markScheme": "[mark scheme for 2A-Q19, not kept]"
+     },
+     {
+      "id": "2A-Q20",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q20, text not kept]",
+      "accepted": [
+       "key-2A-Q20"
+      ],
+      "markScheme": "[mark scheme for 2A-Q20, not kept]"
+     },
+     {
+      "id": "2A-Q21",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q21, text not kept]",
+      "accepted": [
+       "key-2A-Q21"
+      ],
+      "markScheme": "[mark scheme for 2A-Q21, not kept]"
+     },
+     {
+      "id": "2A-Q22",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q22, text not kept]",
+      "accepted": [
+       "key-2A-Q22"
+      ],
+      "markScheme": "[mark scheme for 2A-Q22, not kept]"
+     },
+     {
+      "id": "2A-Q23",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q23, text not kept]",
+      "accepted": [
+       "key-2A-Q23"
+      ],
+      "markScheme": "[mark scheme for 2A-Q23, not kept]"
+     },
+     {
+      "id": "2A-Q24",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q24, text not kept]",
+      "accepted": [
+       "key-2A-Q24"
+      ],
+      "markScheme": "[mark scheme for 2A-Q24, not kept]"
+     },
+     {
+      "id": "2A-Q25",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q25, text not kept]",
+      "accepted": [
+       "key-2A-Q25"
+      ],
+      "markScheme": "[mark scheme for 2A-Q25, not kept]"
+     },
+     {
+      "id": "2A-Q26",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q26, text not kept]",
+      "accepted": [
+       "key-2A-Q26"
+      ],
+      "markScheme": "[mark scheme for 2A-Q26, not kept]"
+     },
+     {
+      "id": "2A-Q27",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q27, text not kept]",
+      "accepted": [
+       "key-2A-Q27"
+      ],
+      "markScheme": "[mark scheme for 2A-Q27, not kept]"
+     },
+     {
+      "id": "2A-Q28",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q28, text not kept]",
+      "accepted": [
+       "key-2A-Q28"
+      ],
+      "markScheme": "[mark scheme for 2A-Q28, not kept]"
+     },
+     {
+      "id": "2A-Q29",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q29, text not kept]",
+      "accepted": [
+       "key-2A-Q29"
+      ],
+      "markScheme": "[mark scheme for 2A-Q29, not kept]"
+     },
+     {
+      "id": "2A-Q30",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2A-Q30, text not kept]",
+      "accepted": [
+       "key-2A-Q30"
+      ],
+      "markScheme": "[mark scheme for 2A-Q30, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "2B",
+    "subject": "maths",
+    "title": "Subtraction within 100",
+    "timerMins": 3,
+    "totalMarks": 3,
+    "questions": [
+     {
+      "id": "2B-Q1",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2B-Q1, text not kept]",
+      "accepted": [
+       "key-2B-Q1"
+      ],
+      "markScheme": "[mark scheme for 2B-Q1, not kept]"
+     },
+     {
+      "id": "2B-Q2",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2B-Q2, text not kept]",
+      "accepted": [
+       "key-2B-Q2"
+      ],
+      "markScheme": "[mark scheme for 2B-Q2, not kept]"
+     },
+     {
+      "id": "2B-Q3",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2B-Q3, text not kept]",
+      "accepted": [
+       "key-2B-Q3"
+      ],
+      "markScheme": "[mark scheme for 2B-Q3, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "2C",
+    "subject": "maths",
+    "title": "Halves, Quarters and Thirds",
+    "timerMins": 4,
+    "totalMarks": 4,
+    "questions": [
+     {
+      "id": "2C-Q1",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2C-Q1, text not kept]",
+      "accepted": [
+       "key-2C-Q1"
+      ],
+      "markScheme": "[mark scheme for 2C-Q1, not kept]"
+     },
+     {
+      "id": "2C-Q2",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2C-Q2, text not kept]",
+      "accepted": [
+       "key-2C-Q2"
+      ],
+      "markScheme": "[mark scheme for 2C-Q2, not kept]"
+     },
+     {
+      "id": "2C-Q3",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2C-Q3, text not kept]",
+      "accepted": [
+       "key-2C-Q3"
+      ],
+      "markScheme": "[mark scheme for 2C-Q3, not kept]"
+     },
+     {
+      "id": "2C-Q4",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 2C-Q4, text not kept]",
+      "accepted": [
+       "key-2C-Q4"
+      ],
+      "markScheme": "[mark scheme for 2C-Q4, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "3A",
+    "subject": "thinking",
+    "title": "Odd One Out",
+    "timerMins": 3,
+    "totalMarks": 3,
+    "questions": [
+     {
+      "id": "3A-Q1",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3A-Q1, text not kept]",
+      "accepted": [
+       "key-3A-Q1"
+      ],
+      "markScheme": "[mark scheme for 3A-Q1, not kept]"
+     },
+     {
+      "id": "3A-Q2",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3A-Q2, text not kept]",
+      "accepted": [
+       "key-3A-Q2"
+      ],
+      "markScheme": "[mark scheme for 3A-Q2, not kept]"
+     },
+     {
+      "id": "3A-Q3",
+      "marks": 1,
+      "inputType": "number",
+      "autoMark": true,
+      "text": "[question 3A-Q3, text not kept]",
+      "accepted": [
+       "key-3A-Q3"
+      ],
+      "markScheme": "[mark scheme for 3A-Q3, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "3B",
+    "subject": "thinking",
+    "title": "Number Patterns",
+    "timerMins": 4,
+    "totalMarks": 4,
+    "questions": [
+     {
+      "id": "3B-Q1",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3B-Q1, text not kept]",
+      "accepted": [
+       "key-3B-Q1"
+      ],
+      "markScheme": "[mark scheme for 3B-Q1, not kept]"
+     },
+     {
+      "id": "3B-Q2",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3B-Q2, text not kept]",
+      "accepted": [
+       "key-3B-Q2"
+      ],
+      "markScheme": "[mark scheme for 3B-Q2, not kept]"
+     },
+     {
+      "id": "3B-Q3",
+      "marks": 2,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3B-Q3, text not kept]",
+      "accepted": [
+       "key-3B-Q3"
+      ],
+      "markScheme": "[mark scheme for 3B-Q3, not kept]"
+     }
+    ]
+   },
+   {
+    "id": "3C",
+    "subject": "thinking",
+    "title": "Two Clue Logic",
+    "timerMins": 3,
+    "totalMarks": 3,
+    "questions": [
+     {
+      "id": "3C-Q1",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3C-Q1, text not kept]",
+      "accepted": [
+       "key-3C-Q1"
+      ],
+      "markScheme": "[mark scheme for 3C-Q1, not kept]"
+     },
+     {
+      "id": "3C-Q2",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3C-Q2, text not kept]",
+      "accepted": [
+       "key-3C-Q2"
+      ],
+      "markScheme": "[mark scheme for 3C-Q2, not kept]"
+     },
+     {
+      "id": "3C-Q3",
+      "marks": 1,
+      "inputType": "text",
+      "autoMark": true,
+      "text": "[question 3C-Q3, text not kept]",
+      "accepted": [
+       "key-3C-Q3"
+      ],
+      "markScheme": "[mark scheme for 3C-Q3, not kept]"
+     }
+    ]
+   }
+  ]
+ },
+ "submitted": {
+  "total": 30,
+  "outOf": 40,
+  "submittedAt": "2026-10-11T18:09:35.728Z",
+  "sectionMarks": {
+   "1A": 2,
+   "1B": 1,
+   "1C": 4,
+   "2A": 6,
+   "2B": 3,
+   "2C": 4,
+   "3A": 3,
+   "3B": 4,
+   "3C": 3
+  },
+  "answers": {
+   "1A-Q1": "[answer to 1A-Q1, not kept]",
+   "1A-Q2": "[answer to 1A-Q2, not kept]",
+   "1A-Q3": "[answer to 1A-Q3, not kept]",
+   "1A-Q4": "[answer to 1A-Q4, not kept]",
+   "1B-Q1": "[answer to 1B-Q1, not kept]",
+   "1B-Q2": "[answer to 1B-Q2, not kept]",
+   "1B-Q3": "[answer to 1B-Q3, not kept]",
+   "1B-Q4": "[answer to 1B-Q4, not kept]",
+   "1C-Q1": "[answer to 1C-Q1, not kept]",
+   "1C-Q2": "[answer to 1C-Q2, not kept]",
+   "1C-Q3": "[answer to 1C-Q3, not kept]",
+   "1C-Q4": "[answer to 1C-Q4, not kept]",
+   "1C-Q5": "[answer to 1C-Q5, not kept]",
+   "2A-Q1": "[answer to 2A-Q1, not kept]",
+   "2A-Q10": "[answer to 2A-Q10, not kept]",
+   "2A-Q11": "[answer to 2A-Q11, not kept]",
+   "2A-Q12": "[answer to 2A-Q12, not kept]",
+   "2A-Q13": "[answer to 2A-Q13, not kept]",
+   "2A-Q14": "[answer to 2A-Q14, not kept]",
+   "2A-Q15": "[answer to 2A-Q15, not kept]",
+   "2A-Q16": "[answer to 2A-Q16, not kept]",
+   "2A-Q17": "[answer to 2A-Q17, not kept]",
+   "2A-Q18": "[answer to 2A-Q18, not kept]",
+   "2A-Q19": "[answer to 2A-Q19, not kept]",
+   "2A-Q2": "[answer to 2A-Q2, not kept]",
+   "2A-Q20": "[answer to 2A-Q20, not kept]",
+   "2A-Q21": "[answer to 2A-Q21, not kept]",
+   "2A-Q22": "[answer to 2A-Q22, not kept]",
+   "2A-Q23": "[answer to 2A-Q23, not kept]",
+   "2A-Q24": "[answer to 2A-Q24, not kept]",
+   "2A-Q25": "[answer to 2A-Q25, not kept]",
+   "2A-Q26": "[answer to 2A-Q26, not kept]",
+   "2A-Q27": "[answer to 2A-Q27, not kept]",
+   "2A-Q28": "[answer to 2A-Q28, not kept]",
+   "2A-Q29": "[answer to 2A-Q29, not kept]",
+   "2A-Q3": "[answer to 2A-Q3, not kept]",
+   "2A-Q30": "[answer to 2A-Q30, not kept]",
+   "2A-Q4": "[answer to 2A-Q4, not kept]",
+   "2A-Q5": "[answer to 2A-Q5, not kept]",
+   "2A-Q6": "[answer to 2A-Q6, not kept]",
+   "2A-Q7": "[answer to 2A-Q7, not kept]",
+   "2A-Q8": "[answer to 2A-Q8, not kept]",
+   "2A-Q9": "[answer to 2A-Q9, not kept]",
+   "2B-Q1": "[answer to 2B-Q1, not kept]",
+   "2B-Q2": "[answer to 2B-Q2, not kept]",
+   "2B-Q3": "[answer to 2B-Q3, not kept]",
+   "2C-Q1": "[answer to 2C-Q1, not kept]",
+   "2C-Q2": "[answer to 2C-Q2, not kept]",
+   "2C-Q3": "[answer to 2C-Q3, not kept]",
+   "2C-Q4": "[answer to 2C-Q4, not kept]",
+   "3A-Q1": "[answer to 3A-Q1, not kept]",
+   "3A-Q2": "[answer to 3A-Q2, not kept]",
+   "3A-Q3": "[answer to 3A-Q3, not kept]",
+   "3B-Q1": "[answer to 3B-Q1, not kept]",
+   "3B-Q2": "[answer to 3B-Q2, not kept]",
+   "3B-Q3": "[answer to 3B-Q3, not kept]",
+   "3C-Q1": "[answer to 3C-Q1, not kept]",
+   "3C-Q2": "[answer to 3C-Q2, not kept]",
+   "3C-Q3": "[answer to 3C-Q3, not kept]"
+  },
+  "perQuestion": {
+   "1A-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1A-Q2": {
+    "marks": null,
+    "correct": null,
+    "markedBy": "parent",
+    "reason": "credit 1.60 of 2 but confidence only 0.48"
+   },
+   "1A-Q3": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1A-Q4": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "parent",
+    "reason": "awarded by a grown up"
+   },
+   "1B-Q1": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.01"
+   },
+   "1B-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1B-Q3": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "parent",
+    "reason": "awarded by a grown up"
+   },
+   "1B-Q4": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.02"
+   },
+   "1C-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1C-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1C-Q3": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1C-Q4": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "1C-Q5": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "jev",
+    "reason": "jev 0.96"
+   },
+   "2A-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q10": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q11": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q12": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.06"
+   },
+   "2A-Q13": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q14": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q15": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q16": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q17": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q18": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q19": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q20": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q21": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q22": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q23": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q24": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q25": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q26": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q27": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q28": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.05"
+   },
+   "2A-Q29": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q3": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.02"
+   },
+   "2A-Q30": {
+    "marks": null,
+    "correct": null,
+    "markedBy": "parent",
+    "reason": "uncertain, jev 0.41"
+   },
+   "2A-Q4": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q5": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q6": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q7": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.02"
+   },
+   "2A-Q8": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2A-Q9": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2B-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2B-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2B-Q3": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2C-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2C-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2C-Q3": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "2C-Q4": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3A-Q1": {
+    "marks": 0,
+    "correct": 0,
+    "markedBy": "jev",
+    "reason": "jev 0.03"
+   },
+   "3A-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3A-Q3": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3B-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3B-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3B-Q3": {
+    "marks": 2,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3C-Q1": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3C-Q2": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   },
+   "3C-Q3": {
+    "marks": 1,
+    "correct": 1,
+    "markedBy": "auto",
+    "reason": "matched the accepted list"
+   }
+  }
+ },
+ "note": "Structure only. Every question, mark scheme and typed answer has been replaced with a stub: the repo is public and the children's work is not. What the results screen is checked against is the arithmetic, so the ids, the marks, the band rules, who decided each answer and which are still undecided are real and nothing else is."
+}
