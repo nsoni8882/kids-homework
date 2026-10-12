@@ -131,7 +131,8 @@
       },
       "why": "Writing is 25 percent of the selective mark and had no slot in the week. It sits inside English's 20 rather than inflating the week: Mason 1A 6, 1B 5, 1C 5, 1D 4. Elysia's OC test in 2029 has no writing paper, so her 40 marks go to the three components she is actually sitting, and this slot opens for her from September 2029, once the OC test is behind her and the 2031 selective test is the target. The route exists and is dated rather than absent: all five writing families used to have no route on her ladders at all, which read as a plan that she would never write.",
       "marks": {
-        "mason": 4
+        "mason": 4,
+        "elysia": 4
       },
       "nswFamilies": [
         "W-brief",
@@ -144,10 +145,17 @@
         "elysia": "2029-09-01"
       },
       "marksNote": "Mason's 4 marks come out of English's 20 from week 25. Elysia's split is not decided yet and must be before September 2029: her English 15 has to make room without the week leaving 40.",
-      "plannedMarks": {
-        "elysia": 3
-      },
-      "plannedMarksNote": "A PROPOSAL for Nik, not a decision. When slot 1D opens for Elysia in September 2029 her English 15 has to make room without the week leaving 40, and the obvious split is 1A 4, 1B 4, 1C 4, 1D 3. Writing is a quarter of the selective mark, so 3 of 15 under-weights it, and the alternative is to take a mark from Maths or Thinking, which is a bigger call. Decide before the 2029 OC test, not after: the reason writing reached zero coverage for Mason is that it was never given marks, and anything not marked does not get done."
+      "plannedSplit": {
+        "decided": "2026-10-12",
+        "what": "When slot 1D opens for Elysia in September 2029 her week moves from 40 marks to 55 and adopts the same split as Mason: 1A 6, 1B 5, 1C 5, 1D 4, Maths 20, Thinking 15.",
+        "why": "Squeezing 3 marks for writing out of her English 15 would permanently under-weight a component worth a quarter of the 2031 selective mark, and the reason writing reached zero coverage for Mason is precisely that it was never given marks. Raising the week is the honest answer rather than the convenient one: her 40 is sized for a Year 3 child and by September 2029 she is in NSW Year 5 with the Year 6 selective test ahead of her, sitting the same paper Mason sat. It also leaves ONE weekly structure across both children instead of two.",
+        "mustChangeThen": [
+          "curriculum/spine.json goals.elysia.weeklyMarks",
+          "data/children/elysia/profile.json marksOutOf",
+          "assets/dashboard.js SUBJECT_MAX, which duplicates the spine and needs a Pages deploy"
+        ],
+        "watchFor": "Her weekly marks are checked against goals.elysia.weeklyMarks, so the three numbers above must move together. kh.py validate compares dashboard.js against the spine so the copy cannot be forgotten."
+      }
     },
     "2A": {
       "subject": "maths",

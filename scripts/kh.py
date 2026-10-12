@@ -650,6 +650,19 @@ def nsw_routes(spine, child):
     return routes
 
 
+def families_on_paper(spine, child):
+    """Every exam item family on the papers this child sits.
+
+    The denominator for any "how ready are they" count. `nsw_routes` is NOT that
+    denominator: the spec printed `{len(routes)} of {len(routes)}`, which reads
+    as full coverage whatever the truth is and could never report a shortfall."""
+    roadmap = read_json(ROADMAP) or {}
+    nsw = ((roadmap.get("tracks") or {}).get("nsw") or {})
+    sits = components_for(spine, child)
+    return {i["id"] for sec in nsw.get("sections") or [] for i in sec["items"]
+            if sec["label"] in sits}
+
+
 def components_for(spine, child):
     """The test components this child actually sits, across all their tests."""
     out = set()
@@ -676,7 +689,7 @@ def nsw_families(slot, child):
     return list(ids or [])
 
 
-def slots_for(spine, child, week=None):
+def slots_for(spine, child, week=None, when=None):
     """The slots that apply to this child, in spine order.
 
     A slot may carry `children`, naming the only children it applies to, and
@@ -703,7 +716,7 @@ def slots_for(spine, child, week=None):
         on = slot.get("fromDate")
         if isinstance(on, dict):
             on = on.get(child)
-        if on is not None and today() < on:
+        if on is not None and (when or today()) < on:
             continue
         out[sid] = slot
     return out
@@ -714,9 +727,9 @@ def nsw_state(spine, child, week, position, when=None):
 
     Derived, never stored, from three things only: which slots are live for the
     child this week, the rung each slot is recorded at, and the school term for
-    slot 2C. It returns (current, reachable, owner), where `current` is the
-    families the live rung delivers, `reachable` maps every family to the first
-    rung that delivers it, and `owner` maps a family to the slots that can.
+    slot 2C. It returns (current, reachable): `current` is the families the live
+    rung delivers, and `reachable` maps every family to the first rung that
+    delivers it.
 
     This exists because `assets/roadmap.json` used to hand-write which families
     were current, and on 11 Oct 2026 that map claimed 21 of them for Mason when
@@ -725,13 +738,9 @@ def nsw_state(spine, child, week, position, when=None):
     it claimed measurement and area while their own reasons said Autumn 2 and
     Spring 1. A map that records where each slot is heading, under a label that
     reads "in the weekly homework now", reports work that is not happening."""
-    live = slots_for(spine, child, week)
+    live = slots_for(spine, child, week, when)
     pos = ((position.get("children") or {}).get(child) or {}).get("slots") or {}
-    current, reachable, owner = set(), {}, {}
-
-    for sid, slot in sorted(spine["slots"].items()):
-        for fid in nsw_families(slot, child):
-            owner.setdefault(fid, []).append(sid)
+    current, reachable = set(), {}
 
     for sid, slot in sorted(live.items()):
         if slot.get("familiesFrom") == "schoolSync":
@@ -753,7 +762,7 @@ def nsw_state(spine, child, week, position, when=None):
                     reachable[fid] = r["id"]
                 if idx is not None and i <= idx:
                     current.add(fid)
-    return current, reachable, owner
+    return current, reachable
 
 def cmd_curriculum(args):
     """Print the brief: the map, where the child stands on it, what is blocking
@@ -801,22 +810,18 @@ def cmd_curriculum(args):
         roadmap = read_json(ROADMAP) or {}
         nsw = ((roadmap.get("tracks") or {}).get("nsw") or {})
         week_now = cur.get("weekNum")
-        live, reachable, _ = nsw_state(spine, child, week_now, position)
+        live, _ = nsw_state(spine, child, week_now, position)
         routes = nsw_routes(spine, child)
         if nsw:
             print("  NSW PAPERS, families in the week now / with a route / on the paper:")
             for sec in nsw["sections"]:
                 ids = [i["id"] for i in sec["items"]]
                 inweek = [f for f in ids if f in live]
-                routed = [f for f in ids if f in routes]
                 flag = "  <- nothing in the week" if not inweek else ""
-                print(f"    {sec['label']:26s} {len(inweek)} / {len(routed)} / {len(ids)}{flag}")
+                print(f"    {sec['label']:26s} {len(inweek)} / "
+                      f"{sum(f in routes for f in ids)} / {len(ids)}{flag}")
                 if inweek:
                     print(f"      in the week: {', '.join(inweek)}")
-            noroute = sorted(set(f for sec in nsw["sections"] for f in [i['id'] for i in sec['items']])
-                             - set(routes))
-            if noroute:
-                print(f"    NO ROUTE AT ALL: {', '.join(noroute)}")
         for lim in expiring_limits(spine, child):
             print(f"  BAN LIFTS : {lim['until']}, {lim['rule'][:70]}")
         print()
@@ -854,14 +859,8 @@ def cmd_curriculum(args):
                 for g in blocking:
                     print(f"                - [{g['status']}] {g['topic'][:70]}")
             if section and slot.get("fixed"):
-                fams = nsw_families(slot, child)
-            if fams:
-                rung_now = rungs[idx] if idx is not None else None
-                delivering = sorted(set(rung_now.get("nswFamilies") or []) if rung_now else [])
-                if slot.get("familiesFrom") == "schoolSync":
-                    delivering = (term.get("families") or {}).get(child) or []
-                print(f"       serves : {', '.join(fams)}")
-                print(f"       now    : {', '.join(delivering) if delivering else 'nothing yet, a step on the way'}")
+                print_slot_families(spine, child, slot, rungs[idx] if idx is not None else None,
+                                term, "       ")
             print(f"       fixed  : {slot['fixed']}")
             print()
 
@@ -903,6 +902,13 @@ def cmd_curriculum(args):
 ELYSIA_BANNED_TABLES = (7, 8, 9, 11, 12)
 
 
+LIMIT_WARN_DAYS = 120
+
+
+def all_limits(spine, child):
+    return list(spine["hardLimits"].get(child, [])) + list(spine["hardLimits"]["both"])
+
+
 def live_limits(spine, child, when=None):
     """The hard limits that still apply to this child today.
 
@@ -913,23 +919,16 @@ def live_limits(spine, child, when=None):
     ban with no expiry date is how a protective rule becomes the reason a child
     is not ready, so the dates are in the spine and enforcement stops on them."""
     when = when or today()
-    out = []
-    for lim in list(spine["hardLimits"].get(child, [])) + list(spine["hardLimits"]["both"]):
-        if lim.get("until") and when >= lim["until"]:
-            continue
-        out.append(lim)
-    return out
+    return [lim for lim in all_limits(spine, child)
+            if not (lim.get("until") and when >= lim["until"])]
 
 
-def expiring_limits(spine, child, when=None, within_days=120):
+def expiring_limits(spine, child, when=None):
     """Limits whose expiry date is close, so `plan` can count down to it."""
     when = when or today()
-    soon = (date.fromisoformat(when) + timedelta(days=within_days)).isoformat()
-    out = []
-    for lim in list(spine["hardLimits"].get(child, [])) + list(spine["hardLimits"]["both"]):
-        if lim.get("until") and when < lim["until"] <= soon:
-            out.append(lim)
-    return out
+    soon = (date.fromisoformat(when) + timedelta(days=LIMIT_WARN_DAYS)).isoformat()
+    return [lim for lim in all_limits(spine, child)
+            if lim.get("until") and when < lim["until"] <= soon]
 
 
 def check_curriculum(local, spine):
@@ -981,8 +980,6 @@ def check_curriculum(local, spine):
 
             # Elysia only: the three limits that have been broken before. Each
             # stops being enforced on its `until` date in the spine.
-            if "ely.tables" not in live and "ely.written-muldiv" not in live:
-                continue
             for a, b in re.findall(r"(\d{1,3})\s*(?:x|\u00d7|\*)\s*(\d{1,3})", texts):
                 for n in (int(a), int(b)):
                     if n in ELYSIA_BANNED_TABLES and "ely.tables" in live:
@@ -1036,6 +1033,13 @@ def cmd_plan(args):
         cur = local[child]["current"] or {}
         next_week = (cur.get("weekNum") or (weeks[-1]["week"] if weeks else 0)) + 1
         goal = spine["goals"][child]
+        # What the last SCORED week was out of, per section. Read once: it used to
+        # be re-read from disk inside the nine slot loop below.
+        scored_totals = {}
+        if weeks:
+            qset = read_json(os.path.join(
+                DATA, "children", child, "question-sets", f"w{weeks[-1]['week']}.json")) or {}
+            scored_totals = {x["id"]: x.get("totalMarks") for x in qset.get("sections", [])}
 
         print("=" * 78)
         print(f"SPEC FOR {child.upper()} WEEK {next_week}")
@@ -1053,9 +1057,11 @@ def cmd_plan(args):
             print(f"  TARGET: {t['name']}, {t['when']}, "
                   f"{len(t['components'])} components at {t['weightEach']} each")
         routes = nsw_routes(spine, child)
-        current, reachable, _ = nsw_state(spine, child, next_week, position)
+        current, _ = nsw_state(spine, child, next_week, position)
+        on_paper = families_on_paper(spine, child)
         print(f"  exam item families: {len(current)} in the week at week {next_week}, "
-              f"{len(routes)} with a route, of {len(routes)} on the papers they sit")
+              f"{len(on_paper & set(routes))} with a route, of {len(on_paper)} "
+              f"on the papers they sit")
         quota = exam_format_quota(spine)
         first_ef = ((spine.get("examFormat") or {}).get("fromWeek") or {}).get(child)
         if first_ef is not None and next_week >= first_ef:
@@ -1104,15 +1110,7 @@ def cmd_plan(args):
             # 6 out of 6 then read as 120 percent and the spec offered to advance
             # the rung off it. A score over 100 is the signal that the two came
             # from different weeks.
-            scored_out_of = None
-            if weeks:
-                qset = read_json(os.path.join(
-                    DATA, "children", child, "question-sets", f"w{weeks[-1]['week']}.json"))
-                if qset:
-                    hit = next((x for x in qset.get("sections", []) if x["id"] == sid), None)
-                    if hit:
-                        scored_out_of = hit.get("totalMarks")
-            denom = scored_out_of if scored_out_of else out_of
+            denom = scored_totals.get(sid) or out_of
             pct = round(last_marks / denom * 100) if last_marks is not None and denom else None
 
             print(f"  [{sid}] {slot['purpose']}")
@@ -1123,25 +1121,7 @@ def cmd_plan(args):
             else:
                 print("       BUILD AT: rung not recorded. Set it before generating.")
             print(f"       format  : {slot['fixed']}")
-            # The point of the slot, in the test's own terms. A section that
-            # cannot name the item family it builds towards is the drift this
-            # whole file exists to stop.
-            fams = nsw_families(slot, child)
-            if fams:
-                here_now = sorted(set(rung.get("nswFamilies") or []) if rung else [])
-                ahead = [f for f in fams if f not in here_now]
-                print(f"       serves  : {', '.join(fams)}")
-                if here_now:
-                    print(f"       THIS RUNG DELIVERS: {', '.join(here_now)}")
-                elif slot.get("familiesFrom") == "schoolSync":
-                    tf = (term.get("families") or {}).get(child) or []
-                    print(f"       THIS TERM DELIVERS: {', '.join(tf) if tf else 'nothing, which is a gap'}")
-                else:
-                    print("       THIS RUNG DELIVERS: nothing yet, it is a step on the way")
-                if ahead:
-                    print(f"       still ahead on this slot: {', '.join(ahead)}")
-            else:
-                print(f"       serves  : no exam family directly. {slot.get('nswRole','support')[:70]}")
+            print_slot_families(spine, child, slot, rung, term, "       ", verbose=True)
 
             must = []
             if blocking:
@@ -1190,8 +1170,7 @@ def cmd_plan(args):
         for lim in live_limits(spine, child):
             until = f"  [lifts {lim['until']}]" if lim.get("until") else ""
             print(f"    - {lim['rule']}{until}")
-        lifted = [l for l in (list(spine["hardLimits"].get(child, []))
-                              + list(spine["hardLimits"]["both"]))
+        lifted = [l for l in all_limits(spine, child)
                   if l.get("until") and today() >= l["until"]]
         for lim in lifted:
             print(f"    - LIFTED on {lim['until']}, no longer enforced: {lim['rule'][:70]}")
@@ -1253,7 +1232,7 @@ def check_nsw_alignment(spine, local=None):
         claimed = dict(prog.get("current") or {})
         cleared = set(prog.get("cleared") or [])
         week = (local[child]["current"] or {}).get("weekNum") if local else None
-        current, reachable, _ = nsw_state(spine, child, week, position)
+        current, reachable = nsw_state(spine, child, week, position)
 
         for fid in sorted(set(claimed) & cleared):
             problems.append(f"{child}: the roadmap has {fid!r} both cleared and current")
@@ -1278,6 +1257,10 @@ def check_nsw_alignment(spine, local=None):
             problems.append(f"{child}: spine goals name no tests, so nothing can be checked "
                             f"against the components they sit")
             continue
+        for comp in sorted(sits):
+            if comp not in set(comp_of.values()):
+                problems.append(f"{child}: spine says they sit {comp!r}, which is not a section "
+                                f"label in assets/roadmap.json, so their readiness would read zero")
         routes = nsw_routes(spine, child)
         for fid, comp in sorted(fam_comp.items()):
             if comp in sits and fid not in routes:
@@ -1299,11 +1282,56 @@ def check_nsw_alignment(spine, local=None):
                 problems.append(f"roadmap item {item['id']!r} lists slots {got} but the spine has "
                                 f"{want} serving it")
 
+    # Sixth: assets/dashboard.js keeps its OWN copy of the weekly marks, because
+    # the page reads the API and not the spine. A duplicated constant that must
+    # move in three places at once is how this project drifts, and Elysia's week
+    # is planned to go from 40 to 55 in September 2029, so the copy is checked.
+    js = os.path.join(ROOT, "assets", "dashboard.js")
+    if os.path.exists(js):
+        src = open(js, encoding="utf-8").read()
+        for child in CHILDREN:
+            want = spine["goals"][child]["weeklyMarks"]
+            m = re.search(rf"{child}:\s*\{{([^}}]*)\}}", src)
+            if not m:
+                problems.append(f"assets/dashboard.js has no weekly marks row for {child}")
+                continue
+            got = {k: int(v) for k, v in re.findall(r"(\w+):\s*(\d+)", m.group(1))}
+            for key in ("english", "maths", "thinking", "total"):
+                if got.get(key) != want.get(key):
+                    problems.append(f"assets/dashboard.js says {child} {key} is {got.get(key)}, "
+                                    f"the spine says {want.get(key)}")
+
     if term_table_exhausted(spine):
         last = spine["schoolSync"]["terms"][-1]
         problems.append(f"schoolSync ran out on {last['ends']}, so slot 2C is pinned to "
                         f"{last['term']!r} for ever. Extend the table.")
     return problems
+
+
+def print_slot_families(spine, child, slot, rung, term, pad, verbose=False):
+    """What this slot builds towards, in the test's own terms.
+
+    Both the brief and the spec print this and they printed it twice, which is
+    how two renderings of the same fact start to disagree. A section that cannot
+    name the item family it serves is the drift the spine exists to stop."""
+    fams = nsw_families(slot, child)
+    if not fams:
+        print(f"{pad}serves : no exam family directly. {slot.get('nswRole', 'support')[:70]}")
+        return
+    from_term = slot.get("familiesFrom") == "schoolSync"
+    now = ((term.get("families") or {}).get(child) or []) if from_term else sorted(
+        set(rung.get("nswFamilies") or []) if rung else [])
+    print(f"{pad}serves : {', '.join(fams)}")
+    word = "term" if from_term else "rung"
+    if now:
+        print(f"{pad}now    : this {word} delivers {', '.join(now)}")
+    elif from_term:
+        print(f"{pad}now    : this term delivers nothing, which is a gap")
+    else:
+        print(f"{pad}now    : nothing yet, this rung is a step on the way")
+    ahead = [f for f in fams if f not in now]
+    if ahead and verbose:
+        print(f"{pad}ahead  : {', '.join(ahead)}")
 
 
 def exam_format_quota(spine, when=None):
@@ -1318,14 +1346,10 @@ def exam_format_quota(spine, when=None):
     when = when or today()
     policy = spine.get("examFormat") or {}
     n = 0
-    for step in policy.get("ramp") or []:
+    for step in sorted(policy.get("ramp") or [], key=lambda x: x["from"]):
         if when >= step["from"]:
             n = step["sections"]
     return n
-
-
-def exam_format_sections(week):
-    return [s for s in (week.get("sections") or []) if s.get("examFormat")]
 
 
 def check_coverage(local, spine):
@@ -1428,7 +1452,7 @@ def check_coverage(local, spine):
         first = ((spine.get("examFormat") or {}).get("fromWeek") or {}).get(child)
         if first is not None and week is not None and week < first:
             quota = 0
-        got = exam_format_sections(cur)
+        got = [x for x in cur.get("sections") or [] if x.get("examFormat")]
         if len(got) < quota:
             problems.append(f"{child} W{week}: {len(got)} section(s) in exam format, the spine's ramp "
                             f"asks for {quota} by today. Set examFormat true on a section built on a "
