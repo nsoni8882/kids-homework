@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-10-11",
+  "updated": "2026-10-12",
   "purpose": "The fixed map the weekly homework is generated against. Read this BEFORE designing a week. It exists so the pathway is decided once and then followed, instead of being re-derived from scratch every week, which is how the content drifts. This file holds the map only. Where each child currently stands on it is data/curriculum/position.json, which the weekly cycle updates. Do not restate, summarise or re-invent this file in a weekly plan: cite the rung ids.",
   "howToUse": [
     "Run scripts/kh.py curriculum <child> to get this map merged with the child's current position, open gaps and the school topic for today. That printout is the brief.",
@@ -164,7 +164,8 @@
       "fixed": "Always scoreBand true with scoreBandRules. Always the child's current Kumon arithmetic operation.",
       "inferredRule": false,
       "nswFamilies": [],
-      "nswRole": "Support, not an item family. 35 maths questions in 40 minutes with no calculator is out of reach without arithmetic fluency, so this slot buys the time the reasoning items need."
+      "nswRole": "Support, not an item family. 35 maths questions in 40 minutes with no calculator is out of reach without arithmetic fluency, so this slot buys the time the reasoning items need.",
+      "holdPolicy": "A rung whose advanceWhen is a Kumon level holds until the level moves, and that is not a stalled slot. Decided by Nik on 12 Oct 2026 after 2A.5 had held three cycles at 29 of 30: stop raising it and wait for the level to move on its own. Do not ask again, and do not advance on the score. Nik also allowed a PROBE: where readiness for the next rung is genuinely in doubt, one question at the next rung may be set to check understanding. It must not sit inside the banded drill, because a probe that costs a band mark is a test dressed as a question, so it goes in its own one mark item outside the band, and the week says it is a probe."
     },
     "2B": {
       "subject": "maths",
@@ -406,12 +407,14 @@
           {
             "id": "2A.5",
             "skill": "2-digit x 2-digit",
-            "advanceWhen": "Kumon Level D1 to D4"
+            "advanceWhen": "Kumon Level D1 to D4",
+            "advanceBy": "kumon"
           },
           {
             "id": "2A.6",
             "skill": "Division by a 2-digit divisor",
-            "advanceWhen": "Kumon Level D5 onward"
+            "advanceWhen": "Kumon Level D5 onward",
+            "advanceBy": "kumon"
           }
         ]
       },
@@ -440,12 +443,14 @@
           {
             "id": "2B.4",
             "skill": "3-digit divided by 1-digit written method",
-            "advanceWhen": "two clean weeks, completes Kumon Level C"
+            "advanceWhen": "two clean weeks, completes Kumon Level C",
+            "advanceBy": "both"
           },
           {
             "id": "2B.5",
             "skill": "Division with a 2-digit divisor",
-            "advanceWhen": "Kumon Level D"
+            "advanceWhen": "Kumon Level D",
+            "advanceBy": "kumon"
           },
           {
             "id": "2B.6",
@@ -453,7 +458,8 @@
             "advanceWhen": "Kumon Level D9 onward",
             "nswFamilies": [
               "M-frac"
-            ]
+            ],
+            "advanceBy": "kumon"
           },
           {
             "id": "2B.7",
@@ -848,12 +854,14 @@
           {
             "id": "2A.5",
             "skill": "Mixed addition and subtraction, 2 and 3 digit, vertical",
-            "advanceWhen": "two weeks in the top band, completes Kumon Level B"
+            "advanceWhen": "two weeks in the top band, completes Kumon Level B",
+            "advanceBy": "both"
           },
           {
             "id": "2A.6",
             "skill": "Times tables 2, 5 and 10 recall",
-            "advanceWhen": "Kumon Level C AND the school has taught them, see hardLimits"
+            "advanceWhen": "Kumon Level C AND the school has taught them, see hardLimits",
+            "advanceBy": "kumon"
           }
         ]
       },
@@ -879,12 +887,14 @@
           {
             "id": "2B.4",
             "skill": "Vertical 3-digit addition and subtraction",
-            "advanceWhen": "two clean weeks, completes Kumon Level B"
+            "advanceWhen": "two clean weeks, completes Kumon Level B",
+            "advanceBy": "both"
           },
           {
             "id": "2B.5",
             "skill": "Equal groups and arrays as repeated addition",
-            "advanceWhen": "Kumon Level C"
+            "advanceWhen": "Kumon Level C",
+            "advanceBy": "kumon"
           },
           {
             "id": "2B.6",

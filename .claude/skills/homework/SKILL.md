@@ -265,6 +265,13 @@ advanced or held and which `advanceWhen` condition decided it. A hold cites the 
 that has held three cycles running is reported as a problem to solve, not a steady state. He should
 never have to ask for this again.
 
+**A rung that waits on a Kumon level is the exception.** Those carry `advanceBy: "kumon"` in the
+spine and `kh.py plan` prints HOLD BY DESIGN for them. No score in the week can satisfy the
+condition, so a perfect section is not a candidate to advance and a long hold is not a stalled
+slot. Do not report it and do not ask Nik to confirm the level: standing decision, 12 Oct 2026,
+he raises it when Kumon raises it. A probe at the next rung is allowed where readiness is genuinely
+in doubt, as its own one mark item OUTSIDE the banded drill, never inside it.
+
 Apply his accepted mark changes and gap closures first, then:
 
 ```bash

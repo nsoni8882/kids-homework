@@ -1141,6 +1141,17 @@ def cmd_plan(args):
             if just_advanced:
                 must.append(f"rung {rung['id'] if rung else '?'} was set this week and has not "
                             "been sat yet, so build AT it and do not advance again")
+            elif (rung or {}).get("advanceBy") == "kumon":
+                # The rung's advanceWhen is a Kumon level, so no score in the week can
+                # satisfy it and a perfect section is not a candidate to advance. Nik
+                # decided on 12 Oct 2026 to stop being asked: 2A.5 had held three
+                # cycles at 29 of 30 and the only thing that moves it is the level.
+                # Saying so here is what stops the spec nagging every week and stops
+                # a long hold being reported as a stalled slot.
+                must.append(f"HOLD BY DESIGN: advanceWhen is \"{rung['advanceWhen']}\", which is a "
+                            "Kumon level and not a score. Not a candidate to advance however high "
+                            "the section scores, and a long hold here is NOT a stalled slot. Raise "
+                            "it only when Nik says the level has moved.")
             elif pct is not None and pct >= 95 and not blocking and not was_hinted:
                 nxt = rungs[idx + 1] if idx is not None and idx + 1 < len(rungs) else None
                 must.append(f"last score {pct}% and nothing blocking: this is a candidate to "
