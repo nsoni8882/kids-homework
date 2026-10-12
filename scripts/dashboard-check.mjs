@@ -139,8 +139,16 @@ if (!patched) {
   // component counts a family only once the child's recorded rung delivers it.
   ok(/Thinking Skills\s+2 of 10/.test(html),
     "Mason's Thinking Skills component does not show 2 of 10, the two re-pointed rungs he is on");
-  ok((html.match(/Writing\s+0 of 5/g) || []).length === 2,
-    'Writing should be 0 of 5 for BOTH children: slot 1D starts at Mason week 25');
+  // Mason's slot 1D opened at week 25, so his Writing is 2 of 5 from 12 Oct
+  // 2026: rung 1D.1 delivers W-brief and W-type and nothing above them yet.
+  // Elysia has no 1D until September 2029, so hers must still read 0 of 5.
+  // Asserting a flat 0 of 5 for both was right the day it was written and
+  // became wrong the moment the slot opened, which is the point of checking a
+  // number rather than a shape.
+  ok(/Writing\s+2 of 5/.test(html),
+    "Mason's Writing component does not show 2 of 5, which rung 1D.1 delivers");
+  ok((html.match(/Writing\s+0 of 5/g) || []).length === 1,
+    'Elysia should still be 0 of 5 on Writing: she has no slot 1D until September 2029');
   ok((html.match(/Reading\s+0 of 5/g) || []).length === 2,
     'Reading should be 0 of 5 for both children, several rungs below every item type');
   ok(/Mathematical Reasoning\s+3 of 12/.test(html),
@@ -156,7 +164,7 @@ if (!patched) {
     'an untouched test component is not badged "Not started"');
   ok(open === 13, `expected 5 Kumon levels and 8 test components open, got ${open}`);
   const current = (html.match(/kl kl-current/g) || []).length;
-  ok(current === 16, `expected 16 current sub-topics (7 Kumon, 9 test), got ${current}`);
+  ok(current === 18, `expected 18 current sub-topics (7 Kumon, 11 test), got ${current}`);
 } else {
   // a level part cleared with nothing current in it must not read "To come"
   const c = html.slice(html.indexOf('>Level C<'), html.indexOf('>Level D<'));
