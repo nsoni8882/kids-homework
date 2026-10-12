@@ -118,8 +118,11 @@ async function handleWeek(request, env, child) {
     const marks = await env.DB.prepare(
       'SELECT section_id, marks FROM section_mark WHERE child_id = ? AND week = ?',
     ).bind(child, week).all();
+    // jev_reason comes back too: it is why a question was referred, and the
+    // parent marking screen is reachable from a reopened week, not only from
+    // the submit that produced it.
     const answers = await env.DB.prepare(
-      'SELECT question_id, given, marks, correct, marked_by FROM answer WHERE child_id = ? AND week = ?',
+      'SELECT question_id, given, marks, correct, marked_by, jev_reason FROM answer WHERE child_id = ? AND week = ?',
     ).bind(child, week).all();
     submitted = {
       total: row.total,
@@ -128,7 +131,7 @@ async function handleWeek(request, env, child) {
       sectionMarks: Object.fromEntries(marks.results.map((r) => [r.section_id, r.marks])),
       answers: Object.fromEntries(answers.results.map((r) => [r.question_id, r.given])),
       perQuestion: Object.fromEntries(answers.results.map((r) => [r.question_id, {
-        marks: r.marks, correct: r.correct, markedBy: r.marked_by,
+        marks: r.marks, correct: r.correct, markedBy: r.marked_by, reason: r.jev_reason,
       }])),
     };
   }

@@ -36,6 +36,7 @@ let reviewMode = false;
 let timerId = null;
 let serverResult = null;
 let draft = null;               // this browser's unfinished attempt, if any
+let savedMsg = '';             // what the last successful save said, kept across a re-render
 let typingTimer = null;        // debounce for the save while typing
 const sectionSecs = {};        // how long each section actually took
 let sectionStarted = Date.now();
@@ -130,6 +131,7 @@ function showWelcome() {
     </li>`).join('');
 
   let banner = '';
+  let pending = 0;
   if (savedEntry) {
     const pct = Math.round(savedEntry.total / savedEntry.outOf * 100);
     const marks = savedEntry.sectionMarks || {};
@@ -139,11 +141,20 @@ function showWelcome() {
     });
     const parts = Object.entries(bySubject)
       .map(([s, m]) => `${m} ${s}`).join(' · ');
+    // How many answers the server referred and nobody has marked. Until they
+    // are marked the total is short by whatever they are worth, so the banner
+    // says so rather than presenting an unfinished score as the score.
+    const waiting = pendingQuestions();
+    const atStake = waiting.reduce((t, i) => t + (i.section.scoreBand ? 0 : i.q.marks), 0);
     banner = `<div class="banner">
       <div class="banner-title">${icon('checkCircle')} Week ${savedEntry.week} already submitted</div>
       <div class="banner-score">${savedEntry.total} / ${savedEntry.outOf} <span style="font-size:.9rem;font-weight:400">(${pct}%)</span></div>
       <div class="banner-sub">${esc(parts)}</div>
+      ${waiting.length ? `<div class="banner-sub" style="margin-top:var(--s2);color:var(--warn);font-weight:700">
+        ${icon('clock', 'i i-sm')} ${waiting.length} ${waiting.length === 1 ? 'answer' : 'answers'} still to mark, worth up to ${atStake} ${plural(atStake)}
+      </div>` : ''}
     </div>`;
+    pending = waiting.length;
   }
 
   const answered = draftAnswered(draft);
@@ -151,7 +162,10 @@ function showWelcome() {
   let actions;
   if (savedEntry) {
     actions = `<div class="welcome-actions">
-         <button class="btn btn-primary btn-lg" data-act="review">${icon('eye')} Review ${esc(NAME)}'s answers</button>
+         ${pending ? `<button class="btn btn-primary btn-lg" data-act="mark-rest">
+           ${icon('clipboard')} Mark the last ${pending} ${pending === 1 ? 'answer' : 'answers'}
+         </button>` : ''}
+         <button class="btn ${pending ? 'btn-secondary' : 'btn-primary btn-lg'}" data-act="review">${icon('eye')} Review ${esc(NAME)}'s answers</button>
          <button class="btn btn-secondary" data-act="fresh">Start again with a blank sheet</button>
        </div>`;
   } else if (answered) {
@@ -185,6 +199,8 @@ function showWelcome() {
   if (rev) rev.addEventListener('click', startReview);
   const res = app.querySelector('[data-act="resume"]');
   if (res) res.addEventListener('click', resumeDraft);
+  const rest = app.querySelector('[data-act="mark-rest"]');
+  if (rest) rest.addEventListener('click', markPending);
 }
 
 function startReview() {
@@ -505,7 +521,7 @@ async function submitToServer() {
 
 /** Say why this one reached a human, so the choice is informed rather than blind. */
 function jevNote(qid) {
-  const p = serverResult && serverResult.perQuestion && serverResult.perQuestion[qid];
+  const p = verdicts()[qid];
   if (!p || !p.reason) return '';
   return `<p class="helper" style="color:var(--text-3);margin-top:var(--s3)">
     ${icon('sparkle', 'i i-sm')} Checked automatically first and it was not confident enough to
@@ -568,6 +584,149 @@ function showMarkScreen() {
 
 /* ---------------------------------------------------------------- results */
 
+/* Whichever way this screen was reached, the verdicts come from the server: the
+   submit response when the week was just sat, the stored rows when it is being
+   reviewed later. The browser never decides a mark. */
+function verdicts() {
+  if (serverResult && serverResult.perQuestion) return serverResult.perQuestion;
+  return (savedEntry && savedEntry.perQuestion) || {};
+}
+
+function givenAnswers() {
+  if (Object.keys(answers).length) return answers;
+  return (savedEntry && savedEntry.archive) || {};
+}
+
+/** Every question the server could not settle and nobody has awarded yet.
+
+    These are worth marks that are neither won nor lost. Leaving them out of the
+    arithmetic is exactly what made the score and the list of wrong answers
+    disagree: week 24 showed 18 marks missing and explained 6 of them. */
+function pendingQuestions() {
+  const v = verdicts();
+  const out = [];
+  week.sections.forEach((sec) => sec.questions.forEach((q) => {
+    if (q.inputType === 'none') return;
+    const p = v[q.id];
+    if (p && p.marks === null) out.push({ section: sec, q, marksAwarded: null });
+  }));
+  return out;
+}
+
+/* A drill is banded on the count correct, so one wrong item inside it can cost
+   nothing at all. Recomputed with the same rules the Worker uses, and only
+   where a grown up has just awarded something in that section: everywhere else
+   the stored band stands. */
+function bandFor(sec, awarded) {
+  const v = verdicts();
+  const items = sec.questions.filter((q) => q.autoMark);
+  const correct = items.filter((q) => {
+    if (q.id in awarded) return awarded[q.id] > 0;
+    const p = v[q.id];
+    return p && p.correct === 1;
+  }).length;
+  let marks = 0;
+  for (const [lo, hi, m] of sec.scoreBandRules || []) {
+    if (correct >= lo && correct <= hi) { marks = m; break; }
+  }
+  return { marks, correct, outOf: items.length };
+}
+
+/**
+ * One pass over the week that produces every number the results screen shows.
+ *
+ * The score and the list of wrong answers used to be worked out separately and
+ * they disagreed. A question the server referred to a grown up has a mark of
+ * null: the total counted those marks as missing, and the list then skipped the
+ * question, because it tested for a LOW mark rather than for no mark at all. A
+ * wrong item inside a drill was the same mistake the other way round, listed as
+ * a loss when the band had already given the section full marks.
+ *
+ * Both now come from here, and `missing` has to equal the four strands that
+ * follow it. Anything left over is reported as not traced rather than hidden,
+ * because a page that quietly swallows a mark is how this was missed for a week.
+ */
+function ledger(readOnly) {
+  const v = verdicts();
+  const ans = givenAnswers();
+  const awarded = {};
+  toMark.forEach((i) => { if (i.marksAwarded !== null) awarded[i.q.id] = i.marksAwarded; });
+
+  const base = (readOnly && savedEntry && savedEntry.sectionMarks)
+    ? { ...savedEntry.sectionMarks } : { ...sectionMarks };
+
+  const items = [];
+  const sections = [];
+  let pendingMarks = 0;
+  let decidedLost = 0;
+  let bandLost = 0;
+
+  week.sections.forEach((sec) => {
+    const touched = sec.questions.some((q) => q.id in awarded);
+    let marks = base[sec.id] || 0;
+    let band = null;
+    if (sec.scoreBand) {
+      band = bandFor(sec, awarded);
+      if (touched) marks = band.marks;
+    } else if (touched) {
+      sec.questions.forEach((q) => { if (q.id in awarded) marks += awarded[q.id]; });
+    }
+
+    sec.questions.forEach((q) => {
+      if (q.inputType === 'none') return;
+      const p = v[q.id];
+      // No verdict means the server has no row for this question, so there is
+      // nothing to report either way. Guessing one in the browser is how the
+      // page and the database came to disagree in the first place.
+      if (!p) return;
+      const mk = (q.id in awarded) ? awarded[q.id] : p.marks;
+      if (mk !== null && mk >= q.marks) return;
+
+      const common = {
+        section: sec, q, readOnly,
+        given: String(ans[q.id] == null ? '' : ans[q.id]).trim(),
+        markedBy: (q.id in awarded) ? 'parent' : p.markedBy,
+        reason: p.reason || '',
+        correct: (q.accepted && q.accepted.length) ? q.accepted[0] : (q.markScheme || '-'),
+      };
+
+      if (mk === null) {
+        // Inside a drill the marks ride on the band, so a pending item is worth
+        // nothing on its own and must not be counted twice.
+        const atStake = sec.scoreBand ? 0 : q.marks;
+        pendingMarks += atStake;
+        items.push({ ...common, kind: 'pending', awarded: null, lost: 0, atStake });
+      } else if (sec.scoreBand) {
+        items.push({ ...common, kind: 'slip', awarded: mk, lost: 0, atStake: 0 });
+      } else {
+        decidedLost += q.marks - mk;
+        items.push({ ...common, kind: 'lost', awarded: mk, lost: q.marks - mk, atStake: 0 });
+      }
+    });
+
+    if (sec.scoreBand) bandLost += sec.totalMarks - marks;
+    sections.push({ sec, marks, band });
+  });
+
+  const bySubj = {};
+  const maxBySubj = {};
+  sections.forEach(({ sec, marks }) => {
+    bySubj[sec.subject] = (bySubj[sec.subject] || 0) + marks;
+    maxBySubj[sec.subject] = (maxBySubj[sec.subject] || 0) + sec.totalMarks;
+  });
+
+  const total = sections.reduce((t, s) => t + s.marks, 0);
+  const maxTotal = week.sections.reduce((t, s) => t + s.totalMarks, 0);
+  const missing = maxTotal - total;
+  const pendingCount = items.filter((i) => i.kind === 'pending').length;
+
+  return {
+    items, sections, bySubj, maxBySubj, total, maxTotal, missing,
+    pendingMarks, decidedLost, bandLost, pendingCount,
+    untraced: missing - pendingMarks - decidedLost - bandLost,
+  };
+}
+
 /* One line of plain praise under the score, keyed off the same bands as the
    trophy so the picture and the words never disagree. */
 function cheer(pct) {
@@ -618,40 +777,34 @@ function confetti() {
 }
 
 function showResults(readOnly) {
-  let finalMarks;
-  if (readOnly && savedEntry && savedEntry.sectionMarks) {
-    finalMarks = { ...savedEntry.sectionMarks };
-  } else {
-    // The server owns the marks. Anything awarded here is added for display and
-    // then sent, after which the server recomputes and is the authority.
-    finalMarks = { ...sectionMarks };
-    toMark.forEach((item) => {
-      if (item.marksAwarded !== null) {
-        finalMarks[item.section.id] = (finalMarks[item.section.id] || 0) + item.marksAwarded;
-      }
-    });
-  }
+  const L = ledger(readOnly);
+  // A week with answers still waiting on a grown up has no final score yet, so
+  // it does not get a verdict, a percentage band or confetti. Saying "good
+  // effort, 37 of 55" over a sheet that is 12 marks short of being marked is
+  // the page telling the child something untrue.
+  const open = L.pendingCount > 0;
+  const pct = Math.round(L.total / L.maxTotal * 100);
 
-  const bySubj = {};
-  const maxBySubj = {};
-  week.sections.forEach((sec) => {
-    bySubj[sec.subject] = (bySubj[sec.subject] || 0) + (finalMarks[sec.id] || 0);
-    maxBySubj[sec.subject] = (maxBySubj[sec.subject] || 0) + sec.totalMarks;
-  });
-  const total = Object.values(bySubj).reduce((a, b) => a + b, 0);
-  const maxTotal = Object.values(maxBySubj).reduce((a, b) => a + b, 0);
-  const pct = Math.round(total / maxTotal * 100);
-
-  const trophy = pct >= 90 ? '🏆' : pct >= 75 ? '⭐' : pct >= 60 ? '👍' : '💪';
-  const msg = pct >= 90 ? 'Outstanding' : pct >= 75 ? 'Great work' : pct >= 60 ? 'Good effort' : 'Keep practising';
+  const trophy = open ? '📝' : pct >= 90 ? '🏆' : pct >= 75 ? '⭐' : pct >= 60 ? '👍' : '💪';
+  const msg = open ? 'Nearly marked'
+    : pct >= 90 ? 'Outstanding' : pct >= 75 ? 'Great work' : pct >= 60 ? 'Good effort' : 'Keep practising';
+  const line = open
+    ? `${L.pendingCount} ${L.pendingCount === 1 ? 'answer' : 'answers'} still need a grown up, worth up to ${L.pendingMarks} ${plural(L.pendingMarks)}. Everything else is marked.`
+    : cheer(pct);
   const labels = { english: 'English', maths: 'Maths', thinking: 'Thinking skills' };
 
-  const rows = Object.entries(bySubj).map(([s, m], i) => `
+  const rows = Object.entries(L.bySubj).map(([s, m], i) => `
     <div class="subj-row" style="--i:${i}">
       <span class="subj-name subj-${s}">${icon(SUBJECT_ICON[s] || 'square', 'i i-sm')}
         <span style="color:var(--text)">${labels[s] || esc(s)}</span></span>
-      <span class="subj-marks">${m} / ${maxBySubj[s]}</span>
+      <span class="subj-marks">${m} / ${L.maxBySubj[s]}</span>
     </div>`).join('');
+
+  const markRest = open
+    ? `<button class="btn btn-primary btn-lg" data-act="mark-rest">
+         ${icon('clipboard')} Mark the last ${L.pendingCount} ${L.pendingCount === 1 ? 'answer' : 'answers'}
+       </button>`
+    : '';
 
   const footer = readOnly
     ? `<button class="btn btn-secondary" data-act="home">${icon('arrowLeft')} Back to the start</button>`
@@ -664,17 +817,20 @@ function showResults(readOnly) {
 
   render(`<div class="page page-narrow">
     <div class="results">
-      ${pct >= 75 ? confetti() : ''}
-      ${readOnly ? `<p class="review-step">${icon('eye', 'i i-sm')} Saved results for week ${week.weekNum}</p>` : ''}
+      ${!open && pct >= 75 ? confetti() : ''}
+      ${readOnly ? `<p class="review-step">${icon(savedMsg ? 'checkCircle' : 'eye', 'i i-sm')} ${
+        esc(savedMsg || `Saved results for week ${week.weekNum}`)}</p>` : ''}
       <div class="trophy" role="img" aria-label="${msg}">${trophy}</div>
       <h1>${msg}</h1>
-      <div class="total-score" id="total-score">${total} / ${maxTotal}</div>
-      <p class="cheer">${esc(cheer(pct))}</p>
+      <div class="total-score" id="total-score">${L.total} / ${L.maxTotal}</div>
+      ${open ? `<p class="score-note">${icon('clock', 'i i-sm')} marked so far</p>` : ''}
+      <p class="cheer">${esc(line)}</p>
       <div class="pct-track" role="img" aria-label="${pct} percent">
         <div class="pct-fill" id="pct-fill"></div>
       </div>
       <div class="subj-rows">${rows}</div>
-      ${wrongAnswers(readOnly)}
+      ${markRest}
+      ${marksPanel(L)}
       ${footer}
     </div>
   </div>`);
@@ -683,16 +839,36 @@ function showResults(readOnly) {
     const fill = document.getElementById('pct-fill');
     if (fill) fill.style.width = `${pct}%`;
   });
-  countUp(total, maxTotal);
+  countUp(L.total, L.maxTotal);
 
   const home = app.querySelector('[data-act="home"]');
   if (home) home.addEventListener('click', showWelcome);
+  const rest = app.querySelector('[data-act="mark-rest"]');
+  if (rest) rest.addEventListener('click', markPending);
 
+  // Only the live path has awards of its own to send. Review mode saves when a
+  // grown up finishes the marking, not every time the screen is opened.
   if (!readOnly) sendAwards();
 }
 
+/** Pick up the questions the server referred and never got an answer for.
+    Reachable from the welcome screen and from the results, because the marking
+    screen is easy to walk away from and those marks are then stuck: week 24
+    sat at 37 of 55 with seven answers nobody had looked at. */
+function markPending() {
+  const pending = pendingQuestions();
+  if (!pending.length) { showResults(true); return; }
+  if (!Object.keys(answers).length) answers = { ...((savedEntry && savedEntry.archive) || {}) };
+  if (!Object.keys(sectionMarks).length) {
+    sectionMarks = { ...((savedEntry && savedEntry.sectionMarks) || {}) };
+  }
+  toMark = pending;
+  markIdx = 0;
+  showMarkScreen();
+}
+
 /** The answers are already saved. This only sends the marks a grown up awarded
-    for the few Jev referred. */
+    for the few that were referred. */
 async function sendAwards() {
   const box = document.getElementById('save-status');
   const text = document.getElementById('save-text');
@@ -719,6 +895,30 @@ async function sendAwards() {
     const r = await apiAward(child, awards);
     if (box) box.className = 'save-status is-ok';
     if (text) text.textContent = `Week ${week.weekNum} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
+    // The server recomputed the totals from its own rows, so the page takes
+    // them rather than keeping its own running sum. A drill band can move when
+    // a referred drill item is awarded, and the server is the authority on it.
+    // Re-rendering from the server's numbers is also what makes the screen
+    // settle on a finished score, with the trophy and the ledger agreeing.
+    if (r && r.sectionMarks) {
+      const merged = { ...verdicts() };
+      Object.entries(awards).forEach(([qid, m]) => {
+        merged[qid] = { marks: m, correct: m > 0 ? 1 : 0, markedBy: 'parent' };
+      });
+      savedEntry = {
+        week: week.weekNum, total: r.total, outOf: r.outOf,
+        sectionMarks: { ...r.sectionMarks },
+        archive: { ...givenAnswers() },
+        perQuestion: merged,
+      };
+      serverResult = null;
+      sectionMarks = { ...r.sectionMarks };
+      toMark = [];
+      markIdx = 0;
+      reviewMode = true;
+      savedMsg = `Week ${week.weekNum} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
+      showResults(true);
+    }
   } catch (err) {
     if (box) box.className = 'save-status is-bad';
     if (text) text.textContent = `The answers are saved, but the marks you awarded did not go through (${err.message}).`;
@@ -729,69 +929,64 @@ async function sendAwards() {
   }
 }
 
-function wrongAnswers(readOnly) {
-  const ans = readOnly && savedEntry ? { ...(savedEntry.archive || {}) } : answers;
-  // Whichever way this screen was reached, the verdicts come from the server:
-  // the submit response when the week was just sat, the stored rows when it is
-  // being reviewed later.
-  const verdicts = (readOnly && savedEntry)
-    ? (savedEntry.perQuestion || {})
-    : ((serverResult && serverResult.perQuestion) || {});
-  const items = [];
-
-  week.sections.forEach((sec) => {
-    sec.questions.forEach((q) => {
-      if (q.inputType === 'none') return;
-      const given = (ans[q.id] || '').trim();
-      const verdict = verdicts[q.id];
-
-      // No verdict means the server has no row for this question, so there is
-      // nothing to report either way. Guessing one in the browser is how the
-      // page and the database came to disagree.
-      if (!verdict) return;
-
-      // Show anything that did not get full marks, and say who decided, because
-      // "a machine judged your wording" is a different thing from "this did not
-      // match the answer".
-      const found = readOnly ? null : toMark.find((i) => i.q.id === q.id);
-      const finalMarks = (found && found.marksAwarded !== null)
-        ? found.marksAwarded : verdict.marks;
-      if (finalMarks === null || finalMarks >= q.marks) return;
-
-      items.push({
-        type: verdict.markedBy === 'auto' ? 'auto' : 'parent',
-        section: sec, q, given, awarded: finalMarks, readOnly,
-        markedBy: verdict.markedBy,
-        correct: (q.accepted && q.accepted.length) ? q.accepted[0] : (q.markScheme || '-'),
-      });
-    });
-  });
-
-  if (!items.length) {
+/* Where the marks went, and it has to add up. The ledger is printed above the
+   cards on purpose: the list of cards alone never explained the gap between the
+   score and the total, which is the whole reason this screen was not trusted. */
+function marksPanel(L) {
+  if (!L.items.length && !L.missing) {
     return `<div class="wrong-panel"><div class="banner">
-      <div class="banner-title">${icon('checkCircle')} Every auto marked question is correct</div>
+      <div class="banner-title">${icon('checkCircle')} Every question is correct</div>
     </div></div>`;
   }
 
+  const strands = [
+    [L.decidedLost, 'marked wrong, shown below'],
+    [L.pendingMarks, `waiting on ${L.pendingCount} ${L.pendingCount === 1 ? 'answer' : 'answers'} a grown up has to mark`],
+    [L.bandLost, 'from the drill band, which scores on how many were right'],
+    [L.untraced, 'not traced'],
+  ].filter(([n]) => n > 0);
+
+  // One strand on its own just repeats the total, so the breakdown is dropped.
+  const ledgerRows = (strands.length < 2 ? [] : strands).map(([n, what]) => `
+    <div class="ledger-row">
+      <span class="ledger-marks">${n} ${plural(n)}</span>
+      <span class="ledger-what">${esc(what)}</span>
+    </div>`).join('');
+
+  const summary = `
+    <div class="ledger">
+      <div class="ledger-row ledger-total">
+        <span class="ledger-marks">${L.missing} ${plural(L.missing)}</span>
+        <span class="ledger-what">not collected, out of ${L.maxTotal}</span>
+      </div>
+      ${ledgerRows}
+    </div>`;
+
+  // Pending first: those are the marks still in play, and they are the ones a
+  // grown up has to act on.
+  const order = { pending: 0, lost: 1, slip: 2 };
   const groups = new Map();
-  items.forEach((it) => {
-    if (!groups.has(it.section.id)) groups.set(it.section.id, { section: it.section, items: [] });
-    groups.get(it.section.id).items.push(it);
+  [...L.items].sort((a, b) => order[a.kind] - order[b.kind]).forEach((it) => {
+    const key = `${it.kind}:${it.section.id}`;
+    if (!groups.has(key)) groups.set(key, { section: it.section, kind: it.kind, items: [] });
+    groups.get(key).items.push(it);
   });
 
-  const body = [...groups.values()].map(({ section, items: list }) => `
+  const heading = { pending: 'Waiting for a grown up', lost: 'Lost marks', slip: 'Wrong, but no mark lost' };
+  const body = [...groups.values()].map(({ section, kind, items }) => `
     <div class="wrong-group">
-      <h3 class="wrong-group-label">${esc(section.title)}</h3>
-      ${list.map((it) => wrongCard(it)).join('')}
+      <h3 class="wrong-group-label">${esc(section.title)} · ${esc(heading[kind])}</h3>
+      ${items.map((it) => markCard(it)).join('')}
     </div>`).join('');
 
   return `<div class="wrong-panel">
     <h2 style="display:flex;align-items:center;gap:var(--s2)">${icon('search')} Where did the marks go?</h2>
+    ${summary}
     ${body}
   </div>`;
 }
 
-function wrongCard(it) {
+function markCard(it) {
   const q = it.q;
   const text = q.text.length > 200 ? `${q.text.slice(0, 197)}…` : q.text;
   const givenCell = `<div>
@@ -799,32 +994,55 @@ function wrongCard(it) {
     <div class="wa-val ${it.given ? 'kid-wrong' : 'kid-blank'}">${
       it.given ? esc(it.given) : 'Left blank'}</div>
   </div>`;
+  // A written answer has a mark scheme. An auto marked one only has the key, so
+  // the label says which it is rather than calling a single word a scheme.
+  const schemeCell = `<div>
+    <div class="wa-label">${q.markScheme ? 'Mark scheme' : 'Expected answer'}</div>
+    <div class="wa-val scheme">${esc(q.markScheme || it.correct)}</div>
+  </div>`;
 
-  if (it.type === 'parent') {
-    const who = it.markedBy === 'jev' ? 'checked for meaning'
-      : it.markedBy === 'parent' ? 'decided by a grown up' : 'parent marked';
-    const tag = (!it.readOnly && it.awarded !== null)
-      ? `${it.awarded} of ${q.marks} ${plural(q.marks)}, ${who}` : who;
-    return `<article class="wrong-card parent-card">
-      <span class="badge badge-warn">${icon('sparkle')} ${esc(q.id)} · ${esc(tag)}</span>
+  if (it.kind === 'pending') {
+    const why = it.reason
+      ? `<p class="helper" style="color:var(--text-3);margin-top:var(--s3)">${icon('sparkle', 'i i-sm')} ${esc(it.reason)}</p>`
+      : '';
+    return `<article class="wrong-card pending-card">
+      <span class="badge badge-warn">${icon('clock')} ${esc(q.id)} · up to ${it.atStake || q.marks} ${plural(it.atStake || q.marks)} still to decide</span>
       <p class="wrong-q-text">${esc(text)}</p>
-      <div class="wrong-grid single">${givenCell}</div>
-      <div style="margin-top:var(--s3)">
-        <div class="wa-label">Mark scheme</div>
-        <div class="wa-val scheme">${esc(q.markScheme || '-')}</div>
+      <div class="wrong-grid">${givenCell}${schemeCell}</div>
+      ${why}
+    </article>`;
+  }
+
+  if (it.kind === 'slip') {
+    return `<article class="wrong-card slip-card">
+      <span class="badge badge-neutral">${icon('cross')} ${esc(q.id)} · no mark lost</span>
+      <p class="wrong-q-text">${esc(text)}</p>
+      <div class="wrong-grid">
+        ${givenCell}
+        <div>
+          <div class="wa-label">Correct answer</div>
+          <div class="wa-val correct">${esc(it.correct)}</div>
+        </div>
       </div>
     </article>`;
   }
 
-  return `<article class="wrong-card">
-    <span class="badge badge-bad">${icon('cross')} ${esc(q.id)}</span>
+  // A machine judging the wording is a different thing from an answer that did
+  // not match, so the card says which it was and how many marks it cost.
+  const who = it.markedBy === 'jev' ? 'checked for meaning'
+    : it.markedBy === 'parent' ? 'decided by a grown up' : 'did not match the answer';
+  const lost = `${it.lost} ${plural(it.lost)} lost`;
+  const written = !q.autoMark || it.markedBy !== 'auto';
+  return `<article class="wrong-card ${written ? 'parent-card' : ''}">
+    <span class="badge ${written ? 'badge-warn' : 'badge-bad'}">
+      ${icon(written ? 'sparkle' : 'cross')} ${esc(q.id)} · ${esc(lost)}, ${esc(who)}</span>
     <p class="wrong-q-text">${esc(text)}</p>
-    <div class="wrong-grid">
+    <div class="wrong-grid${written ? '' : ''}">
       ${givenCell}
-      <div>
+      ${written ? schemeCell : `<div>
         <div class="wa-label">Correct answer</div>
         <div class="wa-val correct">${esc(it.correct)}</div>
-      </div>
+      </div>`}
     </div>
   </article>`;
 }

@@ -846,6 +846,36 @@ label.field-label { display: block; font-size: .82rem; font-weight: 700; color: 
 .wa-val.correct { background: var(--ok-wash); color: var(--ok); font-weight: 700; }
 .wa-val.scheme { background: var(--info-wash); color: var(--text-2); }
 
+/* A score that is still short of being marked says so next to the number. */
+.score-note {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  font-size: .82rem; font-weight: 700; color: var(--warn);
+}
+
+/* The ledger. Every mark that did not come in, split by reason, with the total
+   first so the strands under it can be checked against it by eye. The list of
+   cards on its own never explained the gap between the score and the maximum,
+   which is what made the page disagree with the saved total. */
+.ledger {
+  display: grid; gap: var(--s1); width: 100%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: var(--s3) var(--s4);
+}
+.ledger-row { display: flex; gap: var(--s3); align-items: baseline; font-size: .9rem; }
+.ledger-marks { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 5.5rem; }
+.ledger-what { color: var(--text-2); }
+.ledger-total {
+  font-family: var(--font-head); font-weight: 800; font-size: 1rem;
+  padding-bottom: var(--s2); margin-bottom: var(--s1);
+  border-bottom: 1px solid var(--border);
+}
+.ledger-total .ledger-what { color: var(--text-2); font-family: var(--font-body); font-weight: 600; }
+
+/* Still to be decided, and a slip that cost nothing, are not the same thing as
+   a lost mark, so neither borrows the red edge. */
+.wrong-card.pending-card { border-left-color: var(--warn); }
+.wrong-card.slip-card { border-left-color: var(--neutral); }
+
 .save-status {
   display: flex; align-items: center; gap: var(--s2); justify-content: center;
   font-size: .9rem; font-weight: 700; color: var(--text-2);
