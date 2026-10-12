@@ -19,6 +19,12 @@ const esc = (s) => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const plural = (n) => (n === 1 ? 'mark' : 'marks');
 
+/* A child reads motion before words, so the worksheet leans on it. Anyone who
+   has asked their system for less of it gets none: this is the one switch the
+   decorative animations are checked against, and it is read live rather than
+   captured, so changing the system setting mid week is honoured. */
+const calmly = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 let week = null;           // { weekNum, sections[] }
 let savedEntry = null;     // the week's entry in the bin, if already submitted
 let sectionIdx = 0;
@@ -116,11 +122,11 @@ function showWelcome() {
   clearInterval(timerId);
   const total = week.sections.reduce((s, sec) => s + sec.totalMarks, 0);
 
-  const chips = week.sections.map((s) => `
-    <li class="section-chip">
+  const chips = week.sections.map((s, i) => `
+    <li class="section-chip" style="--i:${i}">
       <span class="subj-${s.subject}">${icon(SUBJECT_ICON[s.subject] || 'square', 'i i-sm')}</span>
       <span>${esc(s.title)}</span>
-      <span class="chip-marks">${s.totalMarks}m</span>
+      <span class="chip-marks">${s.totalMarks} ${plural(s.totalMarks)}</span>
     </li>`).join('');
 
   let banner = '';
@@ -168,7 +174,7 @@ function showWelcome() {
     <div class="welcome-mark">${icon(PROFILE.icon, 'i')}</div>
     <h1>${esc(NAME)}'s homework</h1>
     <div class="week-badge">Week ${week.weekNum}</div>
-    <p class="welcome-meta">${total} marks across ${week.sections.length} sections</p>
+    <p class="welcome-meta">${week.sections.length} sections, ${total} marks to collect</p>
     <ul class="section-chips" style="list-style:none;padding:0;margin:0">${chips}</ul>
     ${banner}
     ${actions}
@@ -243,6 +249,7 @@ function showSection() {
       <div class="progress-fill" style="width:${sectionIdx / count * 100}%"></div>
     </div>
     <div class="page page-narrow" style="padding-top:var(--s5)">
+      ${stepDots(count)}
       ${reviewMode ? `<div class="mode-bar">${icon('eye')} Reviewing saved answers for week ${week.weekNum}</div>` : ''}
       <div class="section-top">
         <span class="section-count">Section ${sectionIdx + 1} of ${count}</span>
@@ -252,6 +259,7 @@ function showSection() {
       </div>
       <h1>${esc(sec.title)}</h1>
       <div class="section-meta">${meta}</div>
+      ${reviewMode ? '' : `<div class="answered-chip" id="answered" role="status" aria-live="polite"></div>`}
       ${passage}
       <div>${sec.scoreBand ? drillSection(sec) : regularSection(sec)}</div>
       <div class="section-nav">
@@ -282,9 +290,40 @@ function showSection() {
         typingTimer = setTimeout(collect, 1000);
       });
     });
+    app.querySelectorAll('[data-qid]').forEach((el) => {
+      el.addEventListener('input', updateAnswered);
+    });
+    updateAnswered();
     sectionStarted = Date.now();
     startTimer(sec);
   }
+}
+
+/* Where the child is in the week, as dots rather than a number. The thin bar
+   above already carries the progressbar role, so these are decoration and are
+   hidden from screen readers to avoid saying the same thing twice. */
+function stepDots(count) {
+  const dots = Array.from({ length: count }, (_, i) => {
+    const cls = i < sectionIdx ? 'step-dot is-done' : i === sectionIdx ? 'step-dot is-now' : 'step-dot';
+    return `<span class="${cls}"></span>`;
+  }).join('');
+  return `<div class="step-dots" aria-hidden="true">${dots}</div>`;
+}
+
+/* How many boxes have something in them. Deliberately NOT how many are right:
+   nothing is marked until the week is submitted, and telling a child "4 correct"
+   before the server has seen it would be a lie they would believe. */
+function updateAnswered() {
+  const box = document.getElementById('answered');
+  if (!box) return;
+  const fields = [...app.querySelectorAll('[data-qid]')];
+  if (!fields.length) { box.hidden = true; return; }
+  box.hidden = false;
+  const done = fields.filter((el) => el.value.trim() !== '').length;
+  const full = done === fields.length;
+  box.className = full ? 'answered-chip is-full' : 'answered-chip';
+  box.innerHTML = `${icon(full ? 'checkCircle' : 'pencil', 'i i-sm')} ${
+    full ? `All ${fields.length} answered` : `${done} of ${fields.length} answered`}`;
 }
 
 function startTimer(sec) {
@@ -314,11 +353,11 @@ function drillSection(sec) {
       const instr = first.includes('S,') || first.includes('S, M')
         ? 'Identify each phrase. S = Simile, M = Metaphor, P = Personification.'
         : 'Write N for Noun or V for Verb next to each word.';
-      const items = grid.map((q) => {
+      const items = grid.map((q, gi) => {
         const word = q.text
           .replace(/^Write S, M or P for:\s*/i, '')
           .replace(/^Write N or V for( the word)?:\s*/i, '');
-        return `<div class="letter-item">
+        return `<div class="letter-item" style="--i:${gi}">
           <span class="letter-word" id="lbl-${q.id}">${esc(word)}</span>
           <input class="letter-input" type="text" maxlength="2" data-qid="${q.id}"
             aria-labelledby="lbl-${q.id}" placeholder="?"
@@ -330,7 +369,7 @@ function drillSection(sec) {
     } else {
       const items = grid.map((q, i) => {
         const label = `${i + 1}. ${esc(q.text).replace(/\s*=\s*\?.*$/, ' =')} ?`;
-        return `<div class="number-item">
+        return `<div class="number-item" style="--i:${i}">
           <label for="in-${q.id}">${label}</label>
           <input class="number-input" id="in-${q.id}" type="number" data-qid="${q.id}"
             inputmode="numeric" placeholder="?" autocomplete="off">
@@ -378,7 +417,7 @@ function questionCard(q, num) {
     ? `<p class="helper">${icon('sparkle', 'i i-sm')} A grown up marks this one (${q.marks} ${plural(q.marks)})</p>`
     : '';
 
-  return `<section class="q-card${needsParent ? ' q-card-parent' : ''}">
+  return `<section class="q-card${needsParent ? ' q-card-parent' : ''}" style="--i:${num - 1}">
     <div class="q-top">
       <span class="q-num">Q${num}</span>
       <span class="q-marks">${q.marks} ${plural(q.marks)}</span>
@@ -529,6 +568,55 @@ function showMarkScreen() {
 
 /* ---------------------------------------------------------------- results */
 
+/* One line of plain praise under the score, keyed off the same bands as the
+   trophy so the picture and the words never disagree. */
+function cheer(pct) {
+  if (pct >= 95) return 'Almost every single one. That is a brilliant week.';
+  if (pct >= 90) return 'A really strong week. Go and tell someone.';
+  if (pct >= 75) return 'Lots right and a few to look at together.';
+  if (pct >= 60) return 'A solid go. The ones below are the ones worth a second look.';
+  return 'Hard sections this week. Walk through the ones below with a grown up.';
+}
+
+/* The score counts itself up, which gives the number a moment of its own
+   instead of just appearing. The element keeps tabular figures, so nothing
+   reflows as the digits change. */
+function countUp(total, maxTotal) {
+  const el = document.getElementById('total-score');
+  if (!el || calmly() || total === 0) return;
+  const dur = 700;
+  const t0 = performance.now();
+  const tick = (now) => {
+    const p = Math.min(1, (now - t0) / dur);
+    const eased = 1 - (1 - p) ** 3;
+    el.textContent = `${Math.round(total * eased)} / ${maxTotal}`;
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  el.textContent = `0 / ${maxTotal}`;
+  requestAnimationFrame(tick);
+}
+
+/* Decoration, and nothing but: aria-hidden, built only above 75 percent, and
+   skipped entirely for anyone who asked for less motion. The CSS hides it too,
+   so a setting changed after the page loaded still wins. */
+function confetti() {
+  if (calmly()) return '';
+  const colours = ['--play-1', '--play-2', '--play-3', '--play-4', '--play-5', '--play-6'];
+  const bits = Array.from({ length: 26 }, (_, i) => {
+    const left = Math.round(i / 26 * 100 + (Math.random() * 6 - 3));
+    const style = [
+      `left:${Math.max(0, Math.min(98, left))}%`,
+      `--c:var(${colours[i % colours.length]})`,
+      `--dx:${Math.round(Math.random() * 80 - 40)}px`,
+      `--spin:${Math.round(360 + Math.random() * 720)}deg`,
+      `--dur:${(1.8 + Math.random() * 1.6).toFixed(2)}s`,
+      `--delay:${(Math.random() * 0.5).toFixed(2)}s`,
+    ].join(';');
+    return `<i style="${style}"></i>`;
+  }).join('');
+  return `<div class="confetti" aria-hidden="true">${bits}</div>`;
+}
+
 function showResults(readOnly) {
   let finalMarks;
   if (readOnly && savedEntry && savedEntry.sectionMarks) {
@@ -558,8 +646,8 @@ function showResults(readOnly) {
   const msg = pct >= 90 ? 'Outstanding' : pct >= 75 ? 'Great work' : pct >= 60 ? 'Good effort' : 'Keep practising';
   const labels = { english: 'English', maths: 'Maths', thinking: 'Thinking skills' };
 
-  const rows = Object.entries(bySubj).map(([s, m]) => `
-    <div class="subj-row">
+  const rows = Object.entries(bySubj).map(([s, m], i) => `
+    <div class="subj-row" style="--i:${i}">
       <span class="subj-name subj-${s}">${icon(SUBJECT_ICON[s] || 'square', 'i i-sm')}
         <span style="color:var(--text)">${labels[s] || esc(s)}</span></span>
       <span class="subj-marks">${m} / ${maxBySubj[s]}</span>
@@ -576,10 +664,12 @@ function showResults(readOnly) {
 
   render(`<div class="page page-narrow">
     <div class="results">
+      ${pct >= 75 ? confetti() : ''}
       ${readOnly ? `<p class="review-step">${icon('eye', 'i i-sm')} Saved results for week ${week.weekNum}</p>` : ''}
       <div class="trophy" role="img" aria-label="${msg}">${trophy}</div>
       <h1>${msg}</h1>
-      <div class="total-score">${total} / ${maxTotal}</div>
+      <div class="total-score" id="total-score">${total} / ${maxTotal}</div>
+      <p class="cheer">${esc(cheer(pct))}</p>
       <div class="pct-track" role="img" aria-label="${pct} percent">
         <div class="pct-fill" id="pct-fill"></div>
       </div>
@@ -593,6 +683,7 @@ function showResults(readOnly) {
     const fill = document.getElementById('pct-fill');
     if (fill) fill.style.width = `${pct}%`;
   });
+  countUp(total, maxTotal);
 
   const home = app.querySelector('[data-act="home"]');
   if (home) home.addEventListener('click', showWelcome);

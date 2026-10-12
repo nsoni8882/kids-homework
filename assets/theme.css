@@ -7,6 +7,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap');
 
+/* Baloo 2 is the kid mode heading face. Only the two worksheet pages use it;
+   the dashboard stays on Nunito, so a parent screen never reads as a toy. */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap');
+
 /* --------------------------------------------------------------------------
    Tokens
    -------------------------------------------------------------------------- */
@@ -1074,3 +1078,480 @@ label.field-label { display: block; font-size: .82rem; font-weight: 700; color: 
 .data-table { display: none; }
 .data-table[data-open="true"] { display: block; }
 .chart-wrap[data-open="false"] { display: none; }
+
+
+/* ==========================================================================
+   KID MODE
+   Everything below is scoped to html[data-app="worksheet"], which is set on
+   mason/index.html and elysia/index.html and nowhere else. The dashboard is a
+   parent screen and must keep reading as one, so it never sees a rule here.
+
+   The direction is claymorphism: soft inflated surfaces, fat corners, a light
+   from above, and a squish on press. It is the style the research names for
+   children's education, and it suits a 7 to 9 year old because every control
+   looks pressable before it is pressed.
+
+   Three rules hold across the whole layer:
+   1. Decoration never carries meaning. --play-* are backgrounds and confetti,
+      never the only signal. Status still comes from --ok/--warn/--bad plus an
+      icon and a word.
+   2. Text colour, status colour and subject ink are NOT redefined here, so
+      every contrast ratio checked for the dashboard still holds.
+   3. Every animation is transform or opacity, 150 to 400ms, and switched off
+      by the global prefers-reduced-motion block near the top of this file.
+   ========================================================================== */
+
+html[data-app="worksheet"] {
+  --font-head: 'Baloo 2', 'Nunito', ui-rounded, system-ui, sans-serif;
+
+  /* fatter corners than the dashboard: clay has no sharp edges */
+  --r-sm: 12px; --r-md: 18px; --r-lg: 26px; --r-xl: 34px;
+
+  /* a bigger tap target than the 44px floor, because the hands are smaller */
+  --tap: 48px;
+
+  /* Play colours, for washes and confetti only. Each is a mid tone chosen to
+     sit under --text in light mode and under a dark scrim in dark mode. */
+  --play-1: #FDBA2D;  /* sunshine */
+  --play-2: #2FC08A;  /* mint */
+  --play-3: #5B9DF9;  /* sky */
+  --play-4: #F06FB0;  /* bubblegum */
+  --play-5: #A98BF5;  /* grape */
+  --play-6: #FB7185;  /* coral */
+
+  /* clay depth: ambient drop, a tight contact shadow, and a light from above */
+  --clay: 0 10px 24px -8px rgba(74, 56, 32, .22), 0 2px 5px rgba(74, 56, 32, .10),
+          inset 0 2px 0 rgba(255, 255, 255, .75);
+  --clay-sm: 0 5px 14px -6px rgba(74, 56, 32, .20), 0 1px 3px rgba(74, 56, 32, .09),
+             inset 0 1px 0 rgba(255, 255, 255, .7);
+  --clay-in: inset 0 3px 7px rgba(74, 56, 32, .16), inset 0 -1px 0 rgba(255, 255, 255, .6);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-app="worksheet"]:not([data-theme="light"]) {
+    --play-1: #F2B23C; --play-2: #3FCF98; --play-3: #76ADFF;
+    --play-4: #F58BC2; --play-5: #BBA2FF; --play-6: #FF8FA0;
+    --clay: 0 12px 28px -10px rgba(0, 0, 0, .65), 0 2px 6px rgba(0, 0, 0, .5),
+            inset 0 1px 0 rgba(255, 255, 255, .10);
+    --clay-sm: 0 6px 16px -8px rgba(0, 0, 0, .6), 0 1px 3px rgba(0, 0, 0, .45),
+               inset 0 1px 0 rgba(255, 255, 255, .08);
+    --clay-in: inset 0 3px 8px rgba(0, 0, 0, .55), inset 0 -1px 0 rgba(255, 255, 255, .06);
+  }
+}
+html[data-app="worksheet"][data-theme="dark"] {
+  --play-1: #F2B23C; --play-2: #3FCF98; --play-3: #76ADFF;
+  --play-4: #F58BC2; --play-5: #BBA2FF; --play-6: #FF8FA0;
+  --clay: 0 12px 28px -10px rgba(0, 0, 0, .65), 0 2px 6px rgba(0, 0, 0, .5),
+          inset 0 1px 0 rgba(255, 255, 255, .10);
+  --clay-sm: 0 6px 16px -8px rgba(0, 0, 0, .6), 0 1px 3px rgba(0, 0, 0, .45),
+             inset 0 1px 0 rgba(255, 255, 255, .08);
+  --clay-in: inset 0 3px 8px rgba(0, 0, 0, .55), inset 0 -1px 0 rgba(255, 255, 255, .06);
+}
+
+/* -------------------------------------------------------------- the page */
+
+/* Two very soft blobs behind everything, drifting slowly. They are fixed and
+   behind the content, so they never move text and never cost a reflow. */
+html[data-app="worksheet"] body { position: relative; }
+html[data-app="worksheet"] body::before,
+html[data-app="worksheet"] body::after {
+  content: ''; position: fixed; z-index: -1; pointer-events: none;
+  width: 58vmax; height: 58vmax; border-radius: 50%;
+  filter: blur(74px); opacity: .32;
+}
+html[data-app="worksheet"] body::before {
+  top: -22vmax; left: -18vmax;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 68%);
+  animation: blobDriftA 26s ease-in-out infinite;
+}
+html[data-app="worksheet"] body::after {
+  bottom: -26vmax; right: -20vmax;
+  background: radial-gradient(circle, var(--play-1) 0%, transparent 68%);
+  animation: blobDriftB 31s ease-in-out infinite;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-app="worksheet"]:not([data-theme="light"]) body::before,
+  html[data-app="worksheet"]:not([data-theme="light"]) body::after { opacity: .22; }
+}
+html[data-app="worksheet"][data-theme="dark"] body::before,
+html[data-app="worksheet"][data-theme="dark"] body::after { opacity: .22; }
+
+@keyframes blobDriftA {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(3vmax, 2vmax, 0) scale(1.08); }
+}
+@keyframes blobDriftB {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.06); }
+  50%      { transform: translate3d(-3vmax, -2vmax, 0) scale(1); }
+}
+
+html[data-app="worksheet"] h1 { font-size: clamp(1.7rem, 6vw, 2.3rem); letter-spacing: 0; }
+html[data-app="worksheet"] h2 { letter-spacing: 0; }
+
+/* ----------------------------------------------------------------- topbar */
+
+html[data-app="worksheet"] .topbar { border-bottom: 0; box-shadow: var(--clay-sm); }
+html[data-app="worksheet"] .brand-mark {
+  width: 42px; height: 42px; border-radius: 16px;
+  background: linear-gradient(160deg, var(--accent) 0%, var(--accent-ink) 100%);
+  color: var(--on-accent); border: 0; box-shadow: var(--clay-sm);
+  transition: transform var(--t-base) var(--spring);
+}
+html[data-app="worksheet"] .brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
+html[data-app="worksheet"] .brand-title { font-size: 1.1rem; }
+html[data-app="worksheet"] .btn-icon {
+  border-radius: 16px; background: var(--surface); box-shadow: var(--clay-sm);
+  border: 0; min-width: var(--tap); min-height: var(--tap);
+}
+html[data-app="worksheet"] .btn-icon:active { transform: scale(.92); box-shadow: var(--clay-in); }
+
+/* --------------------------------------------------------------- buttons */
+
+html[data-app="worksheet"] .btn {
+  border: 0; border-radius: var(--r-md); font-family: var(--font-head);
+  font-weight: 700; letter-spacing: .01em;
+  transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease),
+              background-color var(--t-fast) var(--ease);
+}
+html[data-app="worksheet"] .btn-primary {
+  background: linear-gradient(170deg,
+    color-mix(in srgb, var(--accent) 88%, white) 0%, var(--accent) 55%, var(--accent-ink) 100%);
+  box-shadow: var(--clay);
+}
+html[data-app="worksheet"] .btn-secondary { background: var(--surface); box-shadow: var(--clay-sm); }
+html[data-app="worksheet"] .btn:active:not(:disabled) {
+  transform: translateY(2px) scale(.96); box-shadow: var(--clay-in);
+}
+html[data-app="worksheet"] .btn-lg {
+  min-height: 62px; font-size: 1.2rem; border-radius: var(--r-lg); padding: var(--s4) var(--s8);
+}
+/* The one primary action on the welcome screen breathes, so a child knows
+   where to press without reading anything. */
+html[data-app="worksheet"] .welcome-actions .btn-primary.btn-lg { animation: breathe 2.8s ease-in-out infinite; }
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.025); }
+}
+html[data-app="worksheet"] .welcome-actions .btn-primary.btn-lg:active { animation: none; }
+
+/* --------------------------------------------------------------- welcome */
+
+html[data-app="worksheet"] .welcome { gap: var(--s5); }
+html[data-app="worksheet"] .welcome-mark {
+  width: 104px; height: 104px; border-radius: 38px; border: 0;
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--accent) 70%, white) 0%, var(--accent) 100%);
+  color: var(--on-accent); box-shadow: var(--clay);
+  animation: bob 4.5s ease-in-out infinite;
+}
+html[data-app="worksheet"] .welcome-mark svg { width: 54px; height: 54px; stroke-width: 2; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-7px) rotate(3deg); }
+}
+
+html[data-app="worksheet"] .week-badge {
+  border: 0; box-shadow: var(--clay-sm); font-size: 1.05rem; padding: var(--s2) var(--s6);
+  background: linear-gradient(160deg, var(--play-1) 0%,
+    color-mix(in srgb, var(--play-1) 70%, #B45309) 100%);
+  color: #2A1C00;
+}
+html[data-app="worksheet"] .welcome-meta { font-size: 1.02rem; }
+
+/* The nine sections become tiles, two across, each tinted by its subject so
+   the week reads as a map rather than a list. */
+html[data-app="worksheet"] .section-chips {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s3);
+}
+html[data-app="worksheet"] .section-chip {
+  flex-direction: column; align-items: flex-start; gap: var(--s1);
+  border: 0; border-radius: var(--r-md); padding: var(--s4);
+  box-shadow: var(--clay-sm); font-weight: 600;
+  animation: popIn 320ms var(--spring) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 45ms);
+  transition: transform var(--t-base) var(--spring);
+}
+html[data-app="worksheet"] .section-chip:hover { transform: translateY(-3px) rotate(-1deg); }
+html[data-app="worksheet"] .section-chip .chip-marks {
+  margin-left: 0; color: var(--text-2);
+  background: var(--surface-2); border-radius: var(--r-full);
+  padding: 2px var(--s2); font-size: .76rem;
+}
+html[data-app="worksheet"] .section-chip svg { width: 26px; height: 26px; stroke-width: 2; }
+html[data-app="worksheet"] .section-chip:has(.subj-english) { background: color-mix(in srgb, var(--play-5) 14%, var(--surface)); }
+html[data-app="worksheet"] .section-chip:has(.subj-maths)   { background: color-mix(in srgb, var(--play-2) 14%, var(--surface)); }
+html[data-app="worksheet"] .section-chip:has(.subj-thinking){ background: color-mix(in srgb, var(--play-1) 16%, var(--surface)); }
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(12px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+html[data-app="worksheet"] .banner { border: 0; box-shadow: var(--clay-sm); }
+
+/* ------------------------------------------------------- progress stepper */
+
+/* The thin bar stays for screen readers and for the sticky sense of place.
+   The dots are what a child reads: how many stops are left. */
+html[data-app="worksheet"] .progress-track { height: 8px; background: var(--surface-3); }
+html[data-app="worksheet"] .progress-fill {
+  background: linear-gradient(90deg, var(--play-2), var(--accent), var(--play-4));
+}
+
+.step-dots {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--s2); flex-wrap: wrap; margin: var(--s4) 0 var(--s2);
+}
+.step-dot {
+  width: 13px; height: 13px; border-radius: var(--r-full);
+  background: var(--surface-3); box-shadow: var(--clay-in); flex: none;
+  transition: transform var(--t-base) var(--spring), background-color var(--t-base) var(--ease);
+}
+.step-dot.is-done { background: var(--play-2); box-shadow: var(--clay-sm); }
+.step-dot.is-now {
+  width: 30px; border-radius: var(--r-full);
+  background: var(--accent); box-shadow: var(--clay-sm);
+  animation: dotPop 380ms var(--spring) both;
+}
+@keyframes dotPop { from { transform: scale(.5); } to { transform: none; } }
+
+/* ------------------------------------------------- section head and timer */
+
+html[data-app="worksheet"] .section-count {
+  background: var(--surface); box-shadow: var(--clay-sm);
+  padding: var(--s1) var(--s3); border-radius: var(--r-full);
+  text-transform: none; letter-spacing: 0; font-size: .82rem; color: var(--text-2);
+}
+html[data-app="worksheet"] .chip-subject {
+  border: 0; box-shadow: var(--clay-sm); text-transform: capitalize; font-weight: 700;
+}
+html[data-app="worksheet"] .section-meta {
+  gap: var(--s3); font-size: .92rem; flex-wrap: wrap;
+}
+html[data-app="worksheet"] .section-meta > span {
+  background: var(--surface); box-shadow: var(--clay-sm);
+  padding: var(--s2) var(--s3); border-radius: var(--r-full); gap: var(--s2);
+}
+html[data-app="worksheet"] .timer { font-family: var(--font-head); font-size: 1rem; }
+html[data-app="worksheet"] .timer-over {
+  background: var(--warn-wash); color: var(--warn); animation: nudge 2s ease-in-out infinite;
+}
+@keyframes nudge {
+  0%, 92%, 100% { transform: none; }
+  96%           { transform: scale(1.06); }
+}
+
+/* How many answers are in so far. It counts boxes with something typed in
+   them, which is not the same as correct, so it says "answered". */
+.answered-chip {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  padding: var(--s2) var(--s3); border-radius: var(--r-full);
+  background: var(--surface); box-shadow: var(--clay-sm);
+  font-size: .88rem; font-weight: 700; color: var(--text-2);
+}
+.answered-chip.is-full { background: var(--accent-wash); color: var(--accent-ink); }
+.answered-chip svg { width: 17px; height: 17px; }
+
+html[data-app="worksheet"] .passage {
+  border: 0; border-radius: var(--r-lg); box-shadow: var(--clay-sm);
+  background: color-mix(in srgb, var(--play-1) 10%, var(--surface));
+}
+html[data-app="worksheet"] .passage p { font-size: 1.05rem; line-height: 1.8; }
+html[data-app="worksheet"] .mode-bar { border: 0; box-shadow: var(--clay-sm); }
+
+/* --------------------------------------------------------- question cards */
+
+html[data-app="worksheet"] .q-card {
+  border: 0; border-radius: var(--r-lg); box-shadow: var(--clay-sm);
+  padding: var(--s5); margin-bottom: var(--s4);
+  animation: popIn 340ms var(--spring) both;
+  /* capped, so a 30 item drill does not keep the last tile waiting a second */
+  animation-delay: calc(min(var(--i, 0), 10) * 40ms);
+}
+html[data-app="worksheet"] .q-card-parent {
+  border-left: 0;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(160deg, var(--play-1), var(--play-6)) border-box;
+  border: 3px solid transparent;
+}
+html[data-app="worksheet"] .q-num {
+  width: 38px; height: 38px; border-radius: 14px;
+  display: inline-grid; place-items: center; font-size: .92rem;
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--accent) 72%, white), var(--accent));
+  color: var(--on-accent); box-shadow: var(--clay-sm);
+  font-family: var(--font-head); font-weight: 800;
+}
+html[data-app="worksheet"] .q-marks {
+  background: var(--surface-2); border-radius: var(--r-full);
+  padding: 2px var(--s3); color: var(--text-2);
+}
+html[data-app="worksheet"] .q-text { font-size: 1.1rem; line-height: 1.65; }
+html[data-app="worksheet"] .helper {
+  background: var(--warn-wash); color: var(--warn);
+  border-radius: var(--r-md); padding: var(--s2) var(--s3); font-weight: 600;
+}
+
+/* -------------------------------------------------------------- the boxes */
+
+html[data-app="worksheet"] .input,
+html[data-app="worksheet"] .textarea {
+  border: 0; border-radius: var(--r-md); box-shadow: var(--clay-in);
+  background: var(--surface-2); font-size: 1.1rem; font-weight: 600;
+  min-height: 54px; padding: var(--s3) var(--s4);
+  transition: box-shadow var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+html[data-app="worksheet"] .textarea { min-height: 128px; font-weight: 400; }
+html[data-app="worksheet"] .input:focus,
+html[data-app="worksheet"] .textarea:focus {
+  background: var(--surface);
+  box-shadow: var(--clay-in), 0 0 0 4px var(--accent-edge);
+}
+/* Something has been typed. The edge takes the ACCENT, never the success
+   green: nothing is marked until the week is submitted, and a green box next
+   to an answer is read by an eight year old as "that one is right". Green is
+   kept for the results screen, where it has been earned. */
+html[data-app="worksheet"] .input:not(:placeholder-shown),
+html[data-app="worksheet"] .textarea:not(:placeholder-shown) {
+  box-shadow: var(--clay-in), 0 0 0 3px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Letter and number drills become candy tiles. A drill is 30 items, so the
+   grid is what has to feel quick: one tap, one number, straight on. */
+html[data-app="worksheet"] .letter-grid,
+html[data-app="worksheet"] .number-grid { gap: var(--s3); }
+html[data-app="worksheet"] .letter-item,
+html[data-app="worksheet"] .number-item {
+  border: 0; border-radius: var(--r-md); box-shadow: var(--clay-sm);
+  padding: var(--s3); background: var(--surface);
+  animation: popIn 300ms var(--spring) both;
+  animation-delay: calc(min(var(--i, 0), 24) * 16ms);
+  transition: transform var(--t-fast) var(--spring);
+}
+html[data-app="worksheet"] .number-item { background: color-mix(in srgb, var(--play-2) 11%, var(--surface)); }
+html[data-app="worksheet"] .letter-item { background: color-mix(in srgb, var(--play-5) 11%, var(--surface)); }
+html[data-app="worksheet"] .letter-item:focus-within,
+html[data-app="worksheet"] .number-item:focus-within { transform: translateY(-2px) scale(1.02); }
+html[data-app="worksheet"] .number-item label { font-size: 1.02rem; }
+html[data-app="worksheet"] .letter-word { font-size: 1.02rem; font-weight: 600; }
+html[data-app="worksheet"] .letter-input,
+html[data-app="worksheet"] .number-input {
+  border: 0; border-radius: 14px; box-shadow: var(--clay-in);
+  background: var(--surface-2); min-height: var(--tap); min-width: 56px;
+  font-family: var(--font-head); font-weight: 800; font-size: 1.15rem;
+  transition: box-shadow var(--t-fast) var(--ease);
+}
+html[data-app="worksheet"] .letter-input:focus,
+html[data-app="worksheet"] .number-input:focus {
+  background: var(--surface); box-shadow: var(--clay-in), 0 0 0 4px var(--accent-edge);
+}
+html[data-app="worksheet"] .letter-input:not(:placeholder-shown),
+html[data-app="worksheet"] .number-input:not(:placeholder-shown) {
+  /* a solid mix, not the transparent wash: the wash would blend with the
+     tile tint underneath and the filled box would read as muddy grey */
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent-ink);
+  box-shadow: var(--clay-in), 0 0 0 3px color-mix(in srgb, var(--accent) 50%, transparent);
+  animation: tilePop 260ms var(--spring);
+}
+@keyframes tilePop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+html[data-app="worksheet"] .drill-instr {
+  background: color-mix(in srgb, var(--play-3) 13%, var(--surface));
+  border: 0; box-shadow: var(--clay-sm); border-radius: var(--r-md);
+  padding: var(--s3) var(--s4); font-size: 1rem; font-weight: 600;
+}
+
+/* ----------------------------------------------------------- parent marks */
+
+html[data-app="worksheet"] .card { border: 0; border-radius: var(--r-lg); box-shadow: var(--clay-sm); }
+html[data-app="worksheet"] .mark-btn {
+  width: 58px; height: 58px; border: 0; border-radius: 20px;
+  background: var(--surface); box-shadow: var(--clay-sm);
+  font-family: var(--font-head); font-weight: 800; font-size: 1.25rem;
+  transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease);
+}
+html[data-app="worksheet"] .mark-btn:active { transform: translateY(2px) scale(.94); box-shadow: var(--clay-in); }
+html[data-app="worksheet"] .mark-btn[aria-pressed="true"] {
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--accent) 72%, white), var(--accent));
+  animation: tilePop 280ms var(--spring);
+}
+html[data-app="worksheet"] .answer-block,
+html[data-app="worksheet"] .scheme-block { border-radius: var(--r-md); }
+
+/* --------------------------------------------------------------- results */
+
+html[data-app="worksheet"] .trophy {
+  font-size: 4.6rem; animation: trophyIn 620ms var(--spring) both, bob 4s ease-in-out 620ms infinite;
+}
+@keyframes trophyIn {
+  from { opacity: 0; transform: scale(.3) rotate(-25deg); }
+  to   { opacity: 1; transform: none; }
+}
+html[data-app="worksheet"] .total-score {
+  font-size: clamp(3rem, 15vw, 4.4rem);
+  animation: popIn 420ms var(--spring) 180ms both;
+}
+html[data-app="worksheet"] .pct-track { height: 20px; box-shadow: var(--clay-in); background: var(--surface-3); }
+html[data-app="worksheet"] .pct-fill {
+  background: linear-gradient(90deg, var(--play-2), var(--accent), var(--play-4));
+  transition: width 900ms var(--ease);
+}
+html[data-app="worksheet"] .subj-row {
+  border: 0; border-radius: var(--r-md); box-shadow: var(--clay-sm); padding: var(--s4);
+  font-size: 1.02rem;
+  animation: popIn 320ms var(--spring) both;
+  animation-delay: calc(320ms + var(--i, 0) * 70ms);
+}
+html[data-app="worksheet"] .subj-row:has(.subj-english) { background: color-mix(in srgb, var(--play-5) 13%, var(--surface)); }
+html[data-app="worksheet"] .subj-row:has(.subj-maths)   { background: color-mix(in srgb, var(--play-2) 13%, var(--surface)); }
+html[data-app="worksheet"] .subj-row:has(.subj-thinking){ background: color-mix(in srgb, var(--play-1) 15%, var(--surface)); }
+html[data-app="worksheet"] .subj-row .subj-marks { font-family: var(--font-head); font-size: 1.1rem; }
+html[data-app="worksheet"] .wrong-card { border-radius: var(--r-md); box-shadow: var(--clay-sm); }
+html[data-app="worksheet"] .save-status { border: 0; box-shadow: var(--clay-sm); border-radius: var(--r-md); }
+
+/* A line of encouragement under the score. Words, not just a colour. */
+.cheer {
+  font-family: var(--font-head); font-weight: 700; font-size: 1.05rem;
+  color: var(--text-2); animation: popIn 360ms var(--spring) 260ms both;
+}
+
+/* Confetti. Pure decoration, aria-hidden, and gone the moment a viewer asks
+   for less motion: there is nothing in it to miss. */
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.confetti i {
+  position: absolute; top: -12px; width: 10px; height: 14px; border-radius: 3px;
+  background: var(--c, var(--play-1));
+  animation: fall var(--dur, 2.4s) linear var(--delay, 0s) forwards;
+}
+@keyframes fall {
+  from { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  to   { transform: translate3d(var(--dx, 0), 105vh, 0) rotate(var(--spin, 540deg)); opacity: 1; }
+}
+html[data-app="worksheet"] .results { position: relative; }
+html[data-app="worksheet"] .results > :not(.confetti) { position: relative; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  html[data-app="worksheet"] body::before,
+  html[data-app="worksheet"] body::after { animation: none; }
+}
+
+/* ------------------------------------------------------------ small print */
+
+html[data-app="worksheet"] .center-state .spinner {
+  width: 46px; height: 46px; border-width: 5px; border-color: var(--surface-3);
+  border-top-color: var(--accent);
+}
+html[data-app="worksheet"] .error-card { border: 0; box-shadow: var(--clay-sm); }
+
+/* One hand reaches the Next button on a phone, so the bar sits wide and fat. */
+@media (max-width: 560px) {
+  html[data-app="worksheet"] .section-nav { gap: var(--s3); }
+  html[data-app="worksheet"] .section-nav .btn { min-height: 58px; font-size: 1.1rem; }
+}
