@@ -1381,7 +1381,8 @@ def check_coverage(local, spine):
         sections = {s["id"]: s for s in cur.get("sections", [])}
         goal = spine["goals"][child]["weeklyMarks"]
         slots = (((position.get("children") or {}).get(child) or {}).get("slots")) or {}
-        gaps = [g for g in local[child]["gaps"] if g.get("status") in ("new", "persists")]
+        # improving is still open: a hinted pass keeps a gap IMPROVING, and it must still be re-tested
+        gaps = [g for g in local[child]["gaps"] if g.get("status") not in ("resolved", "parked")]
         # a parked gap names a skill the child has not been taught, so it is not
         # work that is owed and must not be forced into next week
 
