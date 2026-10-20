@@ -382,12 +382,13 @@ function decisionsHtml(kid, w, gaps, data) {
       && seen > 0 && tail.length >= 6 && tail.every(untested);
   });
   for (const g of stale) items.push(`"${g.topic}" has not been tested for six weeks. Retest or close it.`);
-  if (w.hintedSections && w.hintedSections.length) {
-    items.push(`Sections ${w.hintedSections.join(', ')} were hinted, so they are not clean evidence.`);
-  }
-  if (!items.length) return '';
-  return `<section>
-    <div class="decision">
+  // A hinted section is information, not a decision, so it gets its own line.
+  const hinted = w.hintedSections && w.hintedSections.length
+    ? `<p style="margin:var(--s2) 0 0;font-size:.86rem;color:var(--text-2)">Sections ${esc(w.hintedSections.join(', '))} were hinted, so they are not clean evidence.</p>`
+    : '';
+  if (!items.length && !hinted) return '';
+  const decide = items.length
+    ? `<div class="decision">
       ${icon('clipboard')}
       <div>
         <div style="font-weight:700;margin-bottom:var(--s1)">${items.length} thing${items.length === 1 ? '' : 's'} for you to decide</div>
@@ -395,7 +396,11 @@ function decisionsHtml(kid, w, gaps, data) {
           ${items.map((i) => `<li>${esc(i)}</li>`).join('')}
         </ul>
       </div>
-    </div>
+    </div>`
+    : '';
+  return `<section>
+    ${decide}
+    ${hinted}
   </section>`;
 }
 
