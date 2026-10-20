@@ -602,3 +602,89 @@ export async function scoreWriting(jev, { child, prompt, genre, text }) {
       || need(answers, 'off_prompt', 'noul') > POLICY.qualityConcern,
   };
 }
+
+/* ---------------------------------------------------------- gap observations */
+
+/* Weekly cycle step 5 records one observation per active gap: 1 the child got
+   it right, 0 wrong, null not tested. Done by eye, one skipped gap shifts that
+   gap's whole history a week. Jev proposes the entry and a human confirms it. */
+export const GAP_POLICY = {
+  tested: 0.5,    // below this the section did not test the gap, so the entry is null
+  right: 0.85,    // at or above this on the items that did test it, the entry is 1
+  wrong: 0.15,    // at or below this, the entry is 0. Between the two it is referred.
+};
+
+/**
+ * Propose this week's observation for one gap.
+ *
+ * `items` is the slot's section as the child sat it: { id, text, given, expected,
+ * markScheme, engineCorrect }. engineCorrect is the marking engine's verdict for
+ * an auto marked item and undefined otherwise, so Jev is not left to re-derive
+ * what a string match already settled.
+ *
+ * Returns { proposal: 1 | 0 | null | 'refer', testedP, rightP, confidence, reason }.
+ * 'refer' means a human decides. A hinted section can still score 1, but the
+ * caller must keep the gap IMPROVING, never resolve it, so `hinted` is carried.
+ */
+export async function observeGap(jev, { child, gap, section, items }) {
+  const shown = items.slice(0, 40).map((i) => ({
+    id: i.id,
+    question: i.text,
+    childAnswer: i.given || '(blank)',
+    expected: i.expected || null,
+    markScheme: i.markScheme || null,
+    markingEngineSaysCorrect: i.engineCorrect === undefined ? null : i.engineCorrect,
+  }));
+
+  const answers = await jev.ask(
+    {
+      gapTopic: gap.topic,
+      gapDescription: String(gap.detail || '').slice(0, 300),
+      sectionTitle: section.title,
+      childAge: AGE[child] || 8,
+      items: shown,
+    },
+    {
+      tests_gap: {
+        type: 'noul',
+        instructions:
+          'Does at least one of `items` genuinely exercise the skill named in `gapTopic`? '
+          + 'A passing resemblance does not count: the item must need that skill to be answered.',
+        criteria: {
+          true: 'At least one item needs the skill in gapTopic',
+          false: 'No item needs that skill, so this section says nothing about the gap',
+        },
+      },
+      right_on_gap: {
+        type: 'noul',
+        instructions:
+          'Look only at the items that exercise `gapTopic`. Do the `childAnswer`s show the '
+          + 'child using that skill correctly? Where `markingEngineSaysCorrect` is given it has '
+          + 'already decided right or wrong. Ignore items that test something else.',
+        criteria: {
+          true: 'On the items that test the skill, the child showed it correctly',
+          false: 'On the items that test the skill, the child got it wrong or left it blank',
+        },
+      },
+    },
+  );
+
+  const testedP = need(answers, 'tests_gap', 'noul');
+  const rightP = need(answers, 'right_on_gap', 'noul');
+  const hinted = !!section.hinted;
+
+  if (testedP < GAP_POLICY.tested) {
+    return { proposal: null, testedP, rightP, hinted, confidence: 1 - testedP,
+      reason: `not tested here, jev ${testedP.toFixed(2)}` };
+  }
+  if (rightP >= GAP_POLICY.right) {
+    return { proposal: 1, testedP, rightP, hinted, confidence: rightP,
+      reason: `right on the items that test it, jev ${rightP.toFixed(2)}` };
+  }
+  if (rightP <= GAP_POLICY.wrong) {
+    return { proposal: 0, testedP, rightP, hinted, confidence: 1 - rightP,
+      reason: `wrong on the items that test it, jev ${rightP.toFixed(2)}` };
+  }
+  return { proposal: 'refer', testedP, rightP, hinted, confidence: Math.max(rightP, 1 - rightP),
+    reason: `uncertain, jev ${rightP.toFixed(2)}` };
+}
