@@ -2,7 +2,7 @@
 /* Tests for the Jev decision helpers, against a stub so no network is used.
  *   node scripts/jev-helpers.test.mjs
  */
-import { observeGap } from '../worker/src/jev.js';
+import { observeGap, reviewAward } from '../worker/src/jev.js';
 
 let passed = 0;
 const failures = [];
@@ -48,6 +48,34 @@ const reply = (tested, right) => ({ tests_gap: { noul: tested, confidence: 1 }, 
   let threw = false;
   try { await observeGap(stub({}), { child: 'mason', gap, section, items }); } catch { threw = true; }
   ok('a reply missing an answer throws rather than guessing', threw);
+}
+
+/* award review */
+const one = { id: 'q', text: 't', marks: 1, accepted: ['west'] };
+const two = { id: 'q', text: 't', marks: 2, markScheme: 'two things' };
+const yes = { essentially_correct: { noul: 0.99, confidence: 1 } };
+const no = { essentially_correct: { noul: 0.01, confidence: 1 } };
+{
+  const r = await reviewAward(stub(no), { child: 'mason', question: one, given: 'east', awarded: 1 });
+  ok('an award Jev would not give is flagged', r.flagged && r.suggested === 0);
+}
+{
+  const r = await reviewAward(stub(yes), { child: 'mason', question: one, given: 'west', awarded: 1 });
+  ok('an award Jev agrees with is not flagged', !r.flagged);
+}
+{
+  const r = await reviewAward(stub({ essentially_correct: { noul: 0.5, confidence: 1 } }), { child: 'mason', question: one, given: 'x', awarded: 1 });
+  ok('an uncertain second opinion is not a flag', !r.flagged);
+}
+{
+  const r = await reviewAward(stub({ essentially_correct: { noul: 1, confidence: 1 }, credit: { score: 1, confidence: 0.95 } }),
+    { child: 'mason', question: two, given: 'one thing', awarded: 2 });
+  ok('an over award on a two mark question is flagged', r.flagged && r.suggested === 1);
+}
+{
+  let threw = false;
+  try { await reviewAward(stub({}), { child: 'mason', question: one, given: 'x', awarded: 1 }); } catch { threw = true; }
+  ok('a broken reply throws so the caller can skip the review', threw);
 }
 
 if (failures.length) {

@@ -688,3 +688,29 @@ export async function observeGap(jev, { child, gap, section, items }) {
   return { proposal: 'refer', testedP, rightP, hinted, confidence: Math.max(rightP, 1 - rightP),
     reason: `uncertain, jev ${rightP.toFixed(2)}` };
 }
+
+/* ------------------------------------------------------------ award review */
+
+/**
+ * A second opinion on a mark a grown up awarded.
+ *
+ * Marks the answer the way the app would and compares. It never changes the
+ * award: it returns { flagged, suggested, reason } and the caller raises a
+ * decision for the parent. Uncertain from Jev is not a flag, because a second
+ * opinion that cries wolf is switched off within a week.
+ */
+export async function reviewAward(jev, { child, question, given, awarded }) {
+  const r = await markAnswer(jev, { child, question, given });
+  if (r.outcome === 'refer') {
+    return { flagged: false, suggested: null, confidence: r.confidence, reason: r.reason };
+  }
+  const differs = r.marks !== awarded;
+  return {
+    flagged: differs,
+    suggested: r.marks,
+    confidence: r.confidence,
+    reason: differs
+      ? `awarded ${awarded} of ${question.marks || 1}, jev would give ${r.marks} (${r.reason})`
+      : `agrees (${r.reason})`,
+  };
+}

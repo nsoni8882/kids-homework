@@ -926,6 +926,9 @@ async function sendAwards() {
       markIdx = 0;
       reviewMode = true;
       savedMsg = `Week ${week.weekNum} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
+      if (r.reviews && r.reviews.length) {
+        savedMsg += ` A second look disagrees on ${r.reviews.map((x) => x.questionId).join(', ')}, which is on the dashboard to check.`;
+      }
       showResults(true);
     }
   } catch (err) {

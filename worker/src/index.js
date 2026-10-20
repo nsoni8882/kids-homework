@@ -18,7 +18,7 @@
  */
 
 import { answersMatch } from '../../assets/marking.js';
-import { Jev, markAnswer, scoreWriting } from './jev.js';
+import { Jev, markAnswer, scoreWriting, reviewAward } from './jev.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 
@@ -428,13 +428,14 @@ async function handleAward(request, env, child, ctx) {
   // grown up has already awarded (to correct a slip). Without this, anyone who
   // could reach the route could give full marks to an auto marked question.
   const existing = await env.DB.prepare(
-    'SELECT question_id, marks, marked_by, jev_reason FROM answer WHERE child_id = ? AND week = ?',
+    'SELECT question_id, given, marks, marked_by, jev_reason FROM answer WHERE child_id = ? AND week = ?',
   ).bind(child, week).all();
   const rowOf = Object.fromEntries(existing.results.map((r) => [r.question_id, r]));
   const awardable = (r) => r && r.marked_by === 'parent'
     && (r.marks === null || r.jev_reason === 'awarded by a grown up');
 
   const statements = [];
+  const validated = [];
   for (const [qid, raw] of Object.entries(awards)) {
     const q = byId[qid];
     if (!q) return fail(`unknown question ${qid}`, request, env);
@@ -445,6 +446,7 @@ async function handleAward(request, env, child, ctx) {
     if (!Number.isInteger(marks) || marks < 0 || marks > q.marks) {
       return fail(`${qid} must be a whole number between 0 and ${q.marks}`, request, env);
     }
+    validated.push({ qid, q, marks });
     statements.push(env.DB.prepare(
       `UPDATE answer SET marks = ?, correct = ?, marked_by = 'parent', jev_reason = 'awarded by a grown up'
        WHERE child_id = ? AND week = ? AND question_id = ? AND marked_by = 'parent'`,
@@ -453,6 +455,37 @@ async function handleAward(request, env, child, ctx) {
       `UPDATE decision SET status = 'accepted', resolved_at = ?
        WHERE child_id = ? AND week = ? AND question_id = ? AND kind = 'mark' AND status = 'open'`,
     ).bind(nowIso(), child, week, qid));
+  }
+
+  // A second opinion on each award. Advisory only: the award stands, and a
+  // disagreement becomes a decision for the parent on the dashboard. A Jev
+  // failure is not an award failure, so it is swallowed.
+  const reviews = [];
+  if (env.JEV_API_KEY) {
+    const jev = new Jev(env.JEV_API_KEY);
+    const judged = await Promise.all(validated.map(async ({ qid, q, marks }) => {
+      try {
+        const r = await reviewAward(jev, {
+          child, question: q, given: (rowOf[qid] && rowOf[qid].given) || '', awarded: marks,
+        });
+        return { qid, q, marks, ...r };
+      } catch { return null; }
+    }));
+    for (const r of judged) {
+      if (!r) continue;
+      statements.push(env.DB.prepare(
+        "DELETE FROM decision WHERE child_id = ? AND week = ? AND question_id = ? AND kind = 'award'",
+      ).bind(child, week, r.qid));
+      if (!r.flagged) continue;
+      reviews.push({ questionId: r.qid, awarded: r.marks, suggested: r.suggested, reason: r.reason });
+      statements.push(env.DB.prepare(
+        `INSERT INTO decision (child_id, week, kind, question_id, summary, detail, recommend, created_at)
+         VALUES (?, ?, 'award', ?, ?, ?, NULL, ?)`,
+      ).bind(child, week, r.qid,
+        `Check the mark on ${r.qid}: awarded ${r.marks}, a second look suggests ${r.suggested}`,
+        `${r.q.text}\n\nAnswer given: ${(rowOf[r.qid] && rowOf[r.qid].given) || '(blank)'}\n\n${r.reason}`,
+        nowIso()));
+    }
   }
   if (statements.length) await env.DB.batch(statements);
 
@@ -496,7 +529,7 @@ async function handleAward(request, env, child, ctx) {
 
   ctx.waitUntil(audit(env, 'browser', 'award', child, week,
     `${Object.keys(awards).length} awarded, total now ${total}/${outOf}`));
-  return json({ child, week, total, outOf, sectionMarks }, request, env);
+  return json({ child, week, total, outOf, sectionMarks, reviews }, request, env);
 }
 
 /* ---------------------------------------------------------------- dashboard */
