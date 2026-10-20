@@ -90,7 +90,10 @@ function norm(kid, raw) {
   const max = MAX[kid];
   const sm = raw.sectionMarks || {};
   const has = Object.keys(sm).length > 0;
-  const sum = (...ids) => ids.reduce((t, id) => t + (sm[id] || 0), 0);
+  // By the leading digit of the section id, so a new slot such as Mason's 1D
+  // (writing, inside English's 20) is counted without this list being edited.
+  const sum = (digit) => Object.entries(sm)
+    .reduce((t, [id, m]) => t + (id[0] === digit ? (m || 0) : 0), 0);
   const outOf = raw.outOf || max.total;
   const total = raw.total;
   return {
@@ -99,9 +102,9 @@ function norm(kid, raw) {
     outOf,
     // null, not 0, where a week has no section marks: the chart then leaves a
     // gap rather than drawing a misleading zero
-    english: has ? sum('1A', '1B', '1C') : null,
-    maths: has ? sum('2A', '2B', '2C') : null,
-    thinking: has ? sum('3A', '3B', '3C') : null,
+    english: has ? sum('1') : null,
+    maths: has ? sum('2') : null,
+    thinking: has ? sum('3') : null,
     englishMax: max.english,
     mathsMax: max.maths,
     thinkingMax: max.thinking,

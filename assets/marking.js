@@ -78,10 +78,14 @@ export function answersMatch(kidRaw, acceptedRaw, inputType) {
   if (accNorm.includes(kidNorm)) return true;
 
   // A trailing unit or word after a number, for example "43 cm" when "43" is accepted.
-  const kidNumMatch = kidNorm.replace(/,/g, '').match(/^-?\d+(\.\d+)?/);
+  // Only a unit may follow the number: "43 cm" yes, but "7 8", "3/4", "2:30" and
+  // "5 - 3" are different answers that merely start with a number the key has.
+  // Commas are dropped only as thousands separators, so "1,5" is not 15.
+  const stripThousands = (s) => (/^-?\d{1,3}(,\d{3})+(?!\d)/.test(s) ? s.replace(/,/g, '') : s);
+  const kidNumMatch = stripThousands(kidNorm).match(/^(-?\d+(?:\.\d+)?)(?:\s*([a-z][a-z\s.]*))?$/);
   if (kidNumMatch) {
-    const kidNum = kidNumMatch[0];
-    if (accNorm.some((a) => a.replace(/,/g, '') === kidNum)) return true;
+    const kidNum = kidNumMatch[1];
+    if (accNorm.some((a) => stripThousands(a) === kidNum)) return true;
   }
 
   // A leading filler word or phrase, for example "for 2 hours" when "2 hours" is accepted.
@@ -100,7 +104,12 @@ export function answersMatch(kidRaw, acceptedRaw, inputType) {
 
   // Punctuation and "and" differences, and a few extra words around a correct text
   // answer. Never applied when the answer is negated or names both true and false.
+  // A minus sign and a decimal point are part of the number, so "-5" is not 5
+  // and "3 5" is not 3.5. Both become words before the punctuation is removed.
   const toks = (s) => (s || '').toString().toLowerCase()
+    .replace(/(^|\s)-(?=\d)/g, '$1neg')
+    .replace(/(^|\s)\.(?=\d)/g, '$1dot')
+    .replace(/(\d)\.(?=\d)/g, '$1dot')
     .split(/\s+/).map(stripApostrophe).join(' ')
     .replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
     .filter((t) => t && t !== 'and');
@@ -116,7 +125,12 @@ export function answersMatch(kidRaw, acceptedRaw, inputType) {
     if (!at.length) continue;
     if (kt.join(' ') === at.join(' ')) return true;
     const textAnswer = at.some((t) => /[a-z]/.test(t));
-    if (textAnswer && !negated && kt.length <= at.length + 3) {
+    // Two extra words at most: "north east south west" is a child listing every
+    // option, not an answer. What this refuses goes to Jev, which is cheap, rather
+    // than being marked right unseen.
+    const room = 2;
+    const hedged = /\bor\b/.test(kidLower) && !at.includes('or');
+    if (textAnswer && !negated && !hedged && kt.length <= at.length + room) {
       for (let i = 0; i + at.length <= kt.length; i++) {
         if (at.every((t, j) => kt[i + j] === t)) return true;
       }

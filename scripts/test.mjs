@@ -98,6 +98,15 @@ function unitTests() {
   ok('naming both true and false is wrong', !match('true or false', ['true']));
   ok('far too many extra words is wrong',
     !match('one two three four five Monday', ['Monday']));
+  ok('listing every option is not an answer', !match('north east south west', ['west']));
+  ok('hedging with or is not an answer', !match('red or blue', ['red']));
+  ok('minus sign matters', !match('-5', ['5']) && !match('5', ['-5']) && match('-5', ['-5']));
+  ok('only a unit may follow a number',
+    match('43 cm', ['43']) && !match('7 8', ['7']) && !match('3/4', ['3'])
+    && !match('2:30', ['2']) && !match('5 - 3', ['5']));
+  ok('comma is a thousands separator only',
+    match('1,020', ['1020']) && match('1020', ['1,020']) && !match('1,5', ['15']));
+  ok('decimal point is part of the number', !match('3 5', ['3.5']) && match('3.5', ['3.5']));
   ok('containment needs the whole phrase in order',
     !match('Monday evening', ['Monday morning']));
 

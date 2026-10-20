@@ -212,6 +212,11 @@ function startReview() {
 }
 
 function startFresh() {
+  // A submitted week is marked and possibly awarded. Starting again replaces all
+  // of it, so ask first: one stray tap used to be enough.
+  if (savedEntry && !confirm(
+    `Week ${savedEntry.week} is already marked. Starting again will replace its marks `
+    + 'with the new attempt. Are you sure?')) return;
   reviewMode = false;
   answers = {};
   sectionMarks = {};
@@ -490,11 +495,15 @@ async function submitToServer() {
     serverResult = await apiSubmit(child, {
       week: week.weekNum,
       answers,
+      resit: !!savedEntry,
       elapsedSecs: Math.round((Date.now() - startedAt) / 1000),
       sectionSecs,
     });
     clearDraft(child, week.weekNum);
     draft = null;
+    // The sheet was loaded without its key. Now that it is submitted the server
+    // will hand the key over, and the marking screen needs the mark schemes.
+    try { week = (await apiWeek(child)).questions; } catch { /* the screens degrade without a scheme */ }
     sectionMarks = serverResult.sectionMarks;
     // Only what Jev could not settle needs a grown up.
     toMark = Object.entries(serverResult.perQuestion)

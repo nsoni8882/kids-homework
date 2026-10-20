@@ -41,6 +41,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 import urllib.error
 import urllib.request
@@ -246,6 +247,17 @@ def cmd_pull(args):
     snap = os.path.join(DATA, "snapshots", now_stamp())
     write_json(os.path.join(snap, "export.json"), export)
     print(f"raw snapshot -> {os.path.relpath(snap, ROOT)}")
+
+    # pull replaces the local copy wholesale, so anything written there and never
+    # pushed (a week's notes, a rung advance) would be lost. Keep it beside the
+    # export. Snapshots are inside data/, which is gitignored.
+    for part in ("children", "current"):
+        src = os.path.join(DATA, part)
+        if os.path.isdir(src):
+            shutil.copytree(src, os.path.join(snap, "local-before-pull", part), dirs_exist_ok=True)
+    if os.path.exists(POSITION):
+        os.makedirs(os.path.join(snap, "local-before-pull"), exist_ok=True)
+        shutil.copy2(POSITION, os.path.join(snap, "local-before-pull", "position.json"))
 
     qrows = api_query(c, "SELECT child_id, week, payload FROM question_set ORDER BY child_id, week")
     arows = api_query(c, "SELECT child_id, week, question_id, given FROM answer")
@@ -518,6 +530,29 @@ def cmd_push(args):
     write_json(os.path.join(snap, "export.json"), api_export(c))
     print(f"pre-push snapshot -> {os.path.relpath(snap, ROOT)}")
 
+    before = api_export(c)
+    stored = {(r["child_id"], r["week"]): r["payload"] for r in api_query(
+        c, "SELECT child_id, week, payload FROM question_set")}
+    for child in CHILDREN:
+        d = local[child]
+        cur = d["current"]
+        api_week_no = ((before.get(child) or {}).get("profile") or {}).get("current_week")
+        if cur and api_week_no and cur["weekNum"] < api_week_no:
+            die(f"{child}: the local current week is W{cur['weekNum']} but the API is already on "
+                f"W{api_week_no}. data/ is stale, run kh.py pull. Nothing written.")
+        submitted = {w["week"] for w in (before.get(child) or {}).get("weeks") or []
+                     if w.get("submittedAt")}
+        sets = dict(d["questionSets"])
+        if cur:
+            sets[cur["weekNum"]] = cur
+        for wk, payload in sets.items():
+            old_payload = stored.get((child, wk))
+            if wk in submitted and old_payload and not args.rewrite_submitted \
+                    and json.loads(old_payload) != payload:
+                die(f"{child} W{wk}: the question set differs from the stored one and the week has "
+                    "been submitted, so the saved answers would no longer line up with the "
+                    "questions. Nothing written. Use --rewrite-submitted if that is the intent.")
+
     for k in order:
         if plan[k]:
             api_sql(c, plan[k], label=k)
@@ -534,6 +569,12 @@ def cmd_push(args):
         got_gaps = len((after.get(child) or {}).get("gaps") or [])
         if got_gaps != want_gaps:
             die(f"{child}: {got_gaps} gaps read back, expected {want_gaps}")
+        # gap statements are written in chunks that are not one transaction, so a
+        # failure between two of them leaves gaps with no history. Count that too.
+        want_obs = sum(len(g.get("weeks") or []) for g in local[child]["gaps"])
+        got_obs = sum(len(g.get("weeks") or []) for g in (after.get(child) or {}).get("gaps") or [])
+        if got_obs != want_obs:
+            die(f"{child}: {got_obs} gap observations read back, expected {want_obs}")
     print("read back: current week and gap counts match for both children")
     print("done")
 
@@ -583,10 +624,16 @@ def validate(local=None):
                                 f"not one of {', '.join(known)}")
             if g.get("status") not in ("new", "persists", "improving", "resolved", "parked"):
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': bad status {g.get('status')!r}")
+            if sum(1 for x in d["gaps"] if x.get("topic") == g.get("topic")) > 1:
+                problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': topic appears more than "
+                                "once, and push matches observations by topic")
             if not g.get("topic") or not isinstance(g.get("weeks"), list):
                 problems.append(f"{child} gap '{str(g.get('topic'))[:40]}': needs a topic and a weeks list")
         cur = d["current"]
         if cur:
+            ids = [q.get("id") for sec in cur.get("sections", []) for q in sec.get("questions", [])]
+            for dup in sorted({i for i in ids if ids.count(i) > 1}):
+                problems.append(f"{child} current week: question id {dup} is used more than once")
             for sec in cur.get("sections", []):
                 qsum = sum(q.get("marks", 0) for q in sec.get("questions", []))
                 if not sec.get("scoreBand") and qsum != sec.get("totalMarks"):
@@ -1632,6 +1679,8 @@ def main():
     sp.add_argument("--include-scores", action="store_true",
                     help="also overwrite scores and section marks from the local copy. "
                          "Only for repairing a week by hand: normally the Worker owns these.")
+    sp.add_argument("--rewrite-submitted", action="store_true",
+                    help="allow replacing the question set of a week that has been submitted")
     sp.set_defaults(fn=cmd_push)
 
     spn = sub.add_parser("plan", help="the spec for NEXT week, built from the rungs and open gaps")

@@ -136,7 +136,20 @@ async function handleWeek(request, env, child) {
     };
   }
 
-  return json({ child, week, questions: set, submitted }, request, env);
+  return json({ child, week, questions: submitted ? set : withoutKey(set), submitted }, request, env);
+}
+
+/** The question set minus the answers. A week nobody has submitted yet has no
+    reason to carry its key to the browser, where anyone can read it in the
+    network tab. The page asks again once the week is submitted. */
+function withoutKey(set) {
+  return {
+    ...set,
+    sections: set.sections.map((s) => ({
+      ...s,
+      questions: s.questions.map(({ accepted, markScheme, ...q }) => q),
+    })),
+  };
 }
 
 /* ------------------------------------------------------------------ marking */
@@ -282,6 +295,16 @@ async function handleSubmit(request, env, child, ctx) {
   ).bind(child, week, isoMinusSecs(60)).first();
   if (recent) return fail('that week was just submitted, try again in a minute', request, env, 429);
 
+  // A submitted week is only replaced on purpose. A resit says so with `resit`,
+  // which the page sends only after the grown up confirms: a stray tap on "start
+  // again" used to overwrite every mark, including the ones a grown up awarded.
+  const already = await env.DB.prepare(
+    'SELECT submitted_at FROM week WHERE child_id = ? AND week = ? AND submitted_at IS NOT NULL',
+  ).bind(child, week).first();
+  if (already && body.resit !== true) {
+    return fail('this week is already submitted. Reload the page to see it.', request, env, 409);
+  }
+
   const set = await getQuestionSet(env, child, week);
   if (!set) return fail(`no questions stored for ${child} week ${week}`, request, env, 404);
 
@@ -291,19 +314,27 @@ async function handleSubmit(request, env, child, ctx) {
 
   const stamp = nowIso();
   const elapsed = Number.isFinite(body.elapsedSecs) ? Math.round(body.elapsedSecs) : null;
-  const sectionTimes = (body.sectionSecs && typeof body.sectionSecs === 'object')
-    ? body.sectionSecs : {};
+  // Only finite numbers reach the database: anything else makes the bind throw
+  // after Jev has already been paid for.
+  const sectionTimes = {};
+  if (body.sectionSecs && typeof body.sectionSecs === 'object') {
+    for (const [k, v] of Object.entries(body.sectionSecs)) {
+      if (Number.isFinite(v)) sectionTimes[k] = Math.round(v);
+    }
+  }
   const unanswered = set.sections.reduce((t, s) => t + s.questions.filter(
     (q) => q.inputType !== 'none' && !asAnswer(answers[q.id]),
   ).length, 0);
 
+  // adjusted_at is cleared: the awards it recorded belong to the sitting being
+  // replaced, so leaving it set would claim a human changed these marks.
   const statements = [
     env.DB.prepare(`INSERT INTO week (child_id, week, total, out_of, submitted_at, elapsed_secs, unanswered)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(child_id, week) DO UPDATE SET
          total = excluded.total, out_of = excluded.out_of,
          submitted_at = excluded.submitted_at, elapsed_secs = excluded.elapsed_secs,
-         unanswered = excluded.unanswered`)
+         unanswered = excluded.unanswered, adjusted_at = NULL`)
       .bind(child, week, marked.total, marked.outOf, stamp, elapsed, unanswered),
   ];
 
@@ -393,17 +424,30 @@ async function handleAward(request, env, child, ctx) {
   if (!set) return fail('no questions stored for this week', request, env, 404);
   const byId = indexQuestions(set);
 
+  // Only a question the server referred to a grown up can be awarded, or one a
+  // grown up has already awarded (to correct a slip). Without this, anyone who
+  // could reach the route could give full marks to an auto marked question.
+  const existing = await env.DB.prepare(
+    'SELECT question_id, marks, marked_by, jev_reason FROM answer WHERE child_id = ? AND week = ?',
+  ).bind(child, week).all();
+  const rowOf = Object.fromEntries(existing.results.map((r) => [r.question_id, r]));
+  const awardable = (r) => r && r.marked_by === 'parent'
+    && (r.marks === null || r.jev_reason === 'awarded by a grown up');
+
   const statements = [];
   for (const [qid, raw] of Object.entries(awards)) {
     const q = byId[qid];
     if (!q) return fail(`unknown question ${qid}`, request, env);
+    if (!awardable(rowOf[qid])) {
+      return fail(`${qid} was not referred to a grown up, so it cannot be awarded`, request, env, 403);
+    }
     const marks = Number(raw);
     if (!Number.isInteger(marks) || marks < 0 || marks > q.marks) {
       return fail(`${qid} must be a whole number between 0 and ${q.marks}`, request, env);
     }
     statements.push(env.DB.prepare(
       `UPDATE answer SET marks = ?, correct = ?, marked_by = 'parent', jev_reason = 'awarded by a grown up'
-       WHERE child_id = ? AND week = ? AND question_id = ?`,
+       WHERE child_id = ? AND week = ? AND question_id = ? AND marked_by = 'parent'`,
     ).bind(marks, marks > 0 ? 1 : 0, child, week, qid));
     statements.push(env.DB.prepare(
       `UPDATE decision SET status = 'accepted', resolved_at = ?

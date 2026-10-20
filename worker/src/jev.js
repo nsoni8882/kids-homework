@@ -77,7 +77,6 @@ export class Jev {
           body: JSON.stringify({ model: this.model, state, questions }),
           signal: ctrl.signal,
         });
-        clearTimeout(timer);
 
         if (res.status === 429 || res.status === 529 || res.status >= 500) {
           throw new Error(`Jev transient ${res.status}`);
@@ -90,7 +89,10 @@ export class Jev {
           err.permanent = true;
           throw err;
         }
+        // The timer stays armed through the body read: it used to be cleared as
+        // soon as the headers arrived, so a stalled body hung the whole submit.
         const body = await res.json();
+        clearTimeout(timer);
         if (!body || !body.answers) throw new Error('Jev returned no answers');
         this.usage.requests++;
         this.usage.inputTokens += (body.usage && body.usage.input_tokens) || 0;
