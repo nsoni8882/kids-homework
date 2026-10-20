@@ -2,7 +2,7 @@
 /* Tests for the Jev decision helpers, against a stub so no network is used.
  *   node scripts/jev-helpers.test.mjs
  */
-import { observeGap, reviewAward, assessEvidence, writingFeedback, scoreWriting, suggestAccepted } from '../worker/src/jev.js';
+import { observeGap, reviewAward, assessEvidence, writingFeedback, scoreWriting, suggestAccepted, suggestVerdict } from '../worker/src/jev.js';
 import { markWeek } from '../worker/src/index.js';
 
 let passed = 0;
@@ -137,6 +137,18 @@ const ev = (a, b) => ({ shortcut_possible: { noul: a, confidence: 1 }, answers_n
   let threw = false;
   try { await suggestAccepted(stub({}), { child: 'mason', question: qq, candidate: 'x' }); } catch { threw = true; }
   ok('a broken reply throws rather than reading as safe', threw);
+}
+
+/* verdict */
+{
+  const v = (choice, confidence) => ({ verdict: { choice, confidence, probabilities: { [choice]: confidence } } });
+  const facts = { pct: 90, recentPcts: [88, 91] };
+  ok('a confident verdict is returned', (await suggestVerdict(stub(v('strong', 0.9)), { child: 'mason', facts })).verdict === 'strong');
+  const shaky = await suggestVerdict(stub(v('dip', 0.4)), { child: 'mason', facts });
+  ok('an unsure verdict is referred, with the lean kept', shaky.verdict === 'refer' && shaky.suggested === 'dip');
+  let threw = false;
+  try { await suggestVerdict(stub(v('brilliant', 0.99)), { child: 'mason', facts }); } catch { threw = true; }
+  ok('a label outside the four is refused', threw);
 }
 
 if (failures.length) {

@@ -848,3 +848,50 @@ export async function suggestAccepted(jev, { child, question, candidate }) {
   const unsafeP = need(answers, 'unsafe_to_accept', 'noul');
   return { safe: unsafeP <= ACCEPT_POLICY.unsafe, unsafeP };
 }
+
+/* ------------------------------------------------------------ week verdict */
+
+export const VERDICT_KINDS = {
+  strong: 'A strong week: a high score, steady or better than recent weeks, nothing alarming',
+  steady: 'A steady week: close to the recent run, no clear move either way',
+  dip: 'A dip: noticeably below the recent run, or a subject has fallen away',
+  concern: 'A concern: low, or a pattern across weeks that needs attention soon',
+};
+
+export const VERDICT_POLICY = { minConfidence: 0.6 };
+
+/**
+ * Which of strong, steady, dip and concern fits this week?
+ *
+ * The write-up's `verdict` is a label chosen by eye every week. This proposes it
+ * from the numbers, and a low confidence is returned as `refer` rather than a
+ * guess. Jev picks a label only: the one or two sentence `summary` is prose, and
+ * stays written by a person.
+ * `facts` is { pct, recentPcts, subjects, newGaps, openGaps, errorCount, designIssueCount, hintedSections }.
+ */
+export async function suggestVerdict(jev, { child, facts }) {
+  const answers = await jev.ask(
+    { childAge: AGE[child] || 8, ...facts },
+    {
+      verdict: {
+        type: 'choice',
+        instructions:
+          'Judge this week for the parent. Compare `pct` with `recentPcts` (oldest first, this '
+          + 'week excluded), and look at `subjects` for any one that fell. Question faults '
+          + '(`designIssueCount`) are the setter\'s fault, not the child\'s, so do not count them '
+          + 'against the child. Choose the single label that fits.',
+        criteria: VERDICT_KINDS,
+      },
+    },
+  );
+  const a = answers.verdict;
+  if (!a || !a.choice || !VERDICT_KINDS[a.choice] || typeof a.confidence !== 'number') {
+    throw new Error('Jev did not answer verdict.choice');
+  }
+  if (a.confidence < VERDICT_POLICY.minConfidence) {
+    return { verdict: 'refer', suggested: a.choice, confidence: a.confidence,
+      probabilities: a.probabilities, reason: `unsure, leaning ${a.choice} at ${a.confidence.toFixed(2)}` };
+  }
+  return { verdict: a.choice, suggested: a.choice, confidence: a.confidence,
+    probabilities: a.probabilities, reason: `jev ${a.confidence.toFixed(2)}` };
+}
