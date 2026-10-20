@@ -160,6 +160,17 @@ Rules that do not bend:
 
 ## Step 5. Diagnose gaps and write the week up
 
+Three Jev helpers propose, and you confirm. None of them writes anything:
+
+```bash
+node scripts/gap-observe.mjs <child> <N>      # one entry per active gap, in gap order, ? where Jev is unsure
+node scripts/suggest-verdict.mjs <child> <N>  # strong / steady / dip / concern, with the facts it saw
+node scripts/suggest-accepted.mjs [child] [N] # rejected-but-right answers that are safe to accept
+```
+
+`gap-observe` is the guard against the positional trap below: it prints a line per active gap,
+so a skipped gap shows as a missing entry. A gap in a hinted section can take 1 but stays IMPROVING.
+
 Statuses: NEW, PERSISTS, IMPROVING, RESOLVED, PARKED. Append one observation to each gap's
 `weeks[]`: `1` the child got it right, `0` the child got it wrong, `null` it was not tested.
 
@@ -232,6 +243,10 @@ its reason to name the new slot and rung. This is the one part of the roadmap th
 and `kh.py validate` now refuses a push where the roadmap claims a child is working on a family
 that no slot of theirs serves. It is the map saying the work is happening when it is not, which is
 worse than an out of date map.
+
+```bash
+node scripts/advance-evidence.mjs <child> <N>  # per slot: the facts to hold on, plus Jev on shortcuts
+```
 
 Be the devil's advocate. Flag weak evidence and recommend hold:
 - submitted within 48 hours of the previous week
