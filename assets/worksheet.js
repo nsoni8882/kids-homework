@@ -839,6 +839,7 @@ function showResults(readOnly) {
       </div>
       <div class="subj-rows">${rows}</div>
       ${markRest}
+      ${writingCard()}
       ${marksPanel(L)}
       ${footer}
     </div>
@@ -939,6 +940,18 @@ async function sendAwards() {
       retry.onclick = sendAwards;
     }
   }
+}
+
+/* Feedback on the writing task, from the rubric's own wording. Only on the
+   results of the sitting that produced it: reviewing a saved week does not
+   carry it, and that is deliberate rather than a gap to paper over. */
+function writingCard() {
+  const lines = serverResult && serverResult.writingFeedback;
+  if (!lines || !lines.length) return '';
+  return `<div class="wrong-panel"><div class="banner">
+    <div class="banner-title">${icon('pencil')} About the writing</div>
+    ${lines.map((l) => `<div class="banner-sub">${esc(l)}</div>`).join('')}
+  </div></div>`;
 }
 
 /* Where the marks went, and it has to add up. The ledger is printed above the

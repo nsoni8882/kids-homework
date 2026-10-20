@@ -20,6 +20,10 @@
 import { answersMatch } from '../../assets/marking.js';
 import { Jev, markAnswer, scoreWriting, reviewAward } from './jev.js';
 
+/* The writing slot. Its question is marked against its mark scheme like any other,
+   and ALSO run through the four dimension rubric so the child gets feedback. */
+const WRITING_SLOT = '1D';
+
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 
 /* Every timestamp this Worker writes is an ISO 8601 string, because the rows it
@@ -223,6 +227,19 @@ async function markWeek(child, set, answers, jev) {
     };
   }
 
+  // Feedback on the writing task. Advisory: the mark above is the mark, and a
+  // failure here costs the child the feedback and nothing else.
+  let writing = null;
+  const wq = set.sections.filter((s) => s.id === WRITING_SLOT)
+    .flatMap((s) => s.questions).find((x) => x.inputType === 'multiline');
+  const wGiven = wq ? asAnswer(answers[wq.id]) : '';
+  if (wq && wGiven) {
+    try {
+      const w = await scoreWriting(jev, { child, prompt: wq.text, genre: 'advice', text: wGiven });
+      writing = { questionId: wq.id, prompt: wq.text, text: wGiven, ...w };
+    } catch { /* feedback is optional */ }
+  }
+
   // Section totals. A drill is banded on the count correct, not the sum.
   const sectionMarks = {};
   const sectionOutOf = {};
@@ -257,7 +274,7 @@ async function markWeek(child, set, answers, jev) {
 
   const total = Object.values(sectionMarks).reduce((a, b) => a + b, 0);
   const outOf = Object.values(sectionOutOf).reduce((a, b) => a + b, 0);
-  return { perQuestion, sectionMarks, sectionOutOf, total, outOf, needsParent, askedJev: toAsk.length };
+  return { perQuestion, sectionMarks, sectionOutOf, total, outOf, needsParent, askedJev: toAsk.length, writing };
 }
 
 /* ---------------------------------------------------------------- submitting */
@@ -384,6 +401,22 @@ async function handleSubmit(request, env, child, ctx) {
       stamp));
   }
 
+  if (marked.writing) {
+    const w = marked.writing;
+    statements.push(env.DB.prepare(
+      `INSERT INTO writing (child_id, week, prompt, genre, text, words, elapsed_secs, ideas, structure,
+         vocabulary, accuracy, total, scored_by, confidence, feedback, submitted_at)
+       VALUES (?, ?, ?, 'advice', ?, ?, ?, ?, ?, ?, ?, ?, 'jev', ?, ?, ?)
+       ON CONFLICT(child_id, week) DO UPDATE SET prompt = excluded.prompt, text = excluded.text,
+         words = excluded.words, ideas = excluded.ideas, structure = excluded.structure,
+         vocabulary = excluded.vocabulary, accuracy = excluded.accuracy, total = excluded.total,
+         scored_by = 'jev', confidence = excluded.confidence, feedback = excluded.feedback,
+         submitted_at = excluded.submitted_at`,
+    ).bind(child, week, w.prompt, w.text, w.text.split(/\s+/).filter(Boolean).length,
+      sectionTimes[WRITING_SLOT] ?? null, w.dims.ideas, w.dims.structure, w.dims.vocabulary,
+      w.dims.accuracy, w.total, w.confidence, w.feedback.lines.join('\n'), stamp));
+  }
+
   await env.DB.batch(statements);
   ctx.waitUntil(audit(env, 'browser', 'submit', child, week,
     `${marked.total}/${marked.outOf}, jev asked ${marked.askedJev}, referred ${marked.needsParent}`));
@@ -398,6 +431,7 @@ async function handleSubmit(request, env, child, ctx) {
     perQuestion: marked.perQuestion,
     needsParent: marked.needsParent,
     askedJev: marked.askedJev,
+    writingFeedback: marked.writing ? marked.writing.feedback.lines : null,
     submittedAt: stamp,
   }, request, env);
 }

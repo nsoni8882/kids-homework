@@ -555,6 +555,27 @@ const RUBRIC = {
   ],
 };
 
+/**
+ * Feedback for the child, built from the rubric's own wording rather than
+ * written by a model: Jev returns judgments, not prose, and a fixed sentence per
+ * level cannot invent praise. Names the strongest dimension as it stands and the
+ * weakest one's next level up as the thing to aim at.
+ * `levels` is { ideas, structure, vocabulary, accuracy }, each 0 to 3.
+ */
+export function writingFeedback(levels) {
+  const dims = Object.keys(RUBRIC);
+  const rank = [...dims].sort((a, b) => levels[b] - levels[a]);
+  const best = rank[0];
+  const worst = rank[rank.length - 1];
+  const lines = [`Strongest: ${best}. ${RUBRIC[best][levels[best]]}.`];
+  if (levels[worst] >= 3) {
+    lines.push('Every part is at the top level. Keep doing exactly this.');
+  } else {
+    lines.push(`Next step: ${worst}. Aim for: ${RUBRIC[worst][levels[worst] + 1]}.`);
+  }
+  return { strongest: best, next: levels[worst] >= 3 ? null : worst, lines };
+}
+
 /** Score a piece of writing out of 10, with written feedback for the child.
     The parent always confirms: this returns a proposal, not a final mark. */
 export async function scoreWriting(jev, { child, prompt, genre, text }) {
@@ -585,16 +606,21 @@ export async function scoreWriting(jev, { child, prompt, genre, text }) {
   const answers = await jev.ask(state, questions);
 
   const dims = {};
+  const levels = {};
   let confidence = 1;
   for (const dim of Object.keys(RUBRIC)) {
     // 0..3 on the rubric, reported out of 2.5 so the four dimensions total 10
-    dims[dim] = Math.round((need(answers, dim, 'score') / 3) * 2.5 * 2) / 2;
+    const raw = need(answers, dim, 'score');
+    levels[dim] = Math.max(0, Math.min(3, Math.round(raw)));
+    dims[dim] = Math.round((raw / 3) * 2.5 * 2) / 2;
     confidence = Math.min(confidence, need(answers, dim, 'confidence'));
   }
   const total = Math.round(Object.values(dims).reduce((a, b) => a + b, 0) * 2) / 2;
 
   return {
     dims,
+    levels,
+    feedback: writingFeedback(levels),
     total,
     confidence,
     offPrompt: need(answers, 'off_prompt', 'noul'),

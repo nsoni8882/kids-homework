@@ -2,7 +2,8 @@
 /* Tests for the Jev decision helpers, against a stub so no network is used.
  *   node scripts/jev-helpers.test.mjs
  */
-import { observeGap, reviewAward, assessEvidence } from '../worker/src/jev.js';
+import { observeGap, reviewAward, assessEvidence, writingFeedback, scoreWriting } from '../worker/src/jev.js';
+import { markWeek } from '../worker/src/index.js';
 
 let passed = 0;
 const failures = [];
@@ -97,6 +98,34 @@ const ev = (a, b) => ({ shortcut_possible: { noul: a, confidence: 1 }, answers_n
   let threw = false;
   try { await assessEvidence(stub({}), { child: 'mason', section, rung, items }); } catch { threw = true; }
   ok('a broken reply throws rather than reading as clean', threw);
+}
+
+/* writing feedback */
+{
+  const f = writingFeedback({ ideas: 3, structure: 2, vocabulary: 1, accuracy: 2 });
+  ok('feedback names the strongest and the weakest dimension',
+    f.strongest === 'ideas' && f.next === 'vocabulary' && f.lines.length === 2);
+  ok('the next step is the level above the current one', /Varied, with some well chosen words/.test(f.lines[1]));
+  const top = writingFeedback({ ideas: 3, structure: 3, vocabulary: 3, accuracy: 3 });
+  ok('a top level piece has no next step', top.next === null && /top level/.test(top.lines[1]));
+}
+{
+  const sc = (n) => ({ score: n, confidence: 0.95 });
+  const reply = { ideas: sc(2), structure: sc(2), vocabulary: sc(1), accuracy: sc(3), off_prompt: { noul: 0.02, confidence: 1 } };
+  const r = await scoreWriting(stub(reply), { child: 'mason', prompt: 'p', genre: 'advice', text: 'some words here' });
+  ok('scoreWriting returns the raw levels and feedback', r.levels.vocabulary === 1 && r.feedback.next === 'vocabulary');
+}
+{
+  const wset = { weekNum: 1, sections: [{ id: '1D', subject: 'english', title: 'W', timerMins: 5, totalMarks: 4,
+    questions: [{ id: '1D-Q1', text: 'brief', marks: 4, inputType: 'multiline', autoMark: false, markScheme: 'x' }] }] };
+  const sc = (n) => ({ score: n, confidence: 0.95 });
+  const reply = { essentially_correct: { noul: 1, confidence: 1 }, credit: { score: 3, confidence: 0.95 },
+    ideas: sc(2), structure: sc(2), vocabulary: sc(1), accuracy: sc(3), off_prompt: { noul: 0.02, confidence: 1 } };
+  const r = await markWeek('mason', wset, { '1D-Q1': 'a paragraph of advice' }, stub(reply));
+  ok('the 1D mark still comes from its mark scheme', r.perQuestion['1D-Q1'].marks === 3);
+  ok('the 1D task also returns writing feedback', r.writing && r.writing.feedback.lines.length === 2);
+  const blank = await markWeek('mason', wset, {}, stub(reply));
+  ok('a blank 1D gets no feedback call', blank.writing === null);
 }
 
 if (failures.length) {
