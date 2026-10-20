@@ -281,6 +281,28 @@ svg.i-lg { width: 28px; height: 28px; }
 .brand-sub { font-size: .78rem; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--s2); }
 
+/* Homework links in the dashboard topbar. Each pill takes its child's colour. */
+.hw-links { display: flex; align-items: center; gap: var(--s2); }
+.hw-label { font-size: .78rem; font-weight: 700; color: var(--text-3); margin-right: var(--s1); }
+.hw-link {
+  min-height: var(--tap); padding: var(--s2) var(--s3); border-radius: var(--r-full);
+  display: inline-flex; align-items: center; gap: var(--s2);
+  font-family: var(--font-head); font-weight: 800; font-size: .9rem; text-decoration: none;
+  color: var(--kid-ink); background: var(--surface); border: 1px solid var(--kid);
+  transition: background-color var(--t-fast) var(--ease);
+}
+.hw-link:hover { background: var(--surface-2); }
+.hw-link:focus-visible { outline: 2px solid var(--kid); outline-offset: 2px; }
+.hw-link .dot { width: 10px; height: 10px; border-radius: var(--r-full); background: var(--kid); flex: none; }
+.hw-link[data-kid="mason"]  { --kid: var(--child-mason);  --kid-ink: var(--child-mason-ink); }
+.hw-link[data-kid="elysia"] { --kid: var(--child-elysia); --kid-ink: var(--child-elysia-ink); }
+@media (max-width: 640px) {
+  .brand-sub, .hw-label { display: none; }
+  .hw-link { padding: var(--s2); font-size: .85rem; }
+  .hw-link svg { display: none; }
+}
+@media (max-width: 400px) { .brand-text { display: none; } }
+
 .stack { display: grid; gap: var(--s4); }
 .stack-lg { display: grid; gap: var(--s6); }
 .row { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
