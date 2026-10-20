@@ -137,3 +137,21 @@ export function questionsToCheck(set) {
 export const costLine = (jev) => `${jev.usage.requests} requests, `
   + `${jev.usage.inputTokens.toLocaleString()} input tokens, `
   + `about $${(jev.usage.inputTokens / 1e6 * COST_PER_MTOK).toFixed(4)}`;
+
+/** The Worker admin route, for the scripts that need what the app marked. The token
+    and URL come from CLAUDE.md like the Jev key, and never from the repo. */
+export async function adminQuery(sql, params = []) {
+  const md = join(ROOT, 'CLAUDE.md');
+  if (!existsSync(md)) throw new Error('CLAUDE.md not found. It holds the admin token and is never committed.');
+  const txt = readFileSync(md, 'utf8');
+  const api = (txt.match(/^\| API \| (https:\/\/\S+?)\s*\|/m) || [])[1];
+  const token = (txt.match(/Worker admin token:\s*`([^`]+)`/) || [])[1];
+  if (!api || !token) throw new Error('no API url or admin token in CLAUDE.md');
+  const res = await fetch(`${api}/admin/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+  });
+  if (!res.ok) throw new Error(`admin query failed: HTTP ${res.status}`);
+  return (await res.json()).results;
+}

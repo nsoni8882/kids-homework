@@ -2,7 +2,7 @@
 /* Tests for the Jev decision helpers, against a stub so no network is used.
  *   node scripts/jev-helpers.test.mjs
  */
-import { observeGap, reviewAward, assessEvidence, writingFeedback, scoreWriting } from '../worker/src/jev.js';
+import { observeGap, reviewAward, assessEvidence, writingFeedback, scoreWriting, suggestAccepted } from '../worker/src/jev.js';
 import { markWeek } from '../worker/src/index.js';
 
 let passed = 0;
@@ -126,6 +126,17 @@ const ev = (a, b) => ({ shortcut_possible: { noul: a, confidence: 1 }, answers_n
   ok('the 1D task also returns writing feedback', r.writing && r.writing.feedback.lines.length === 2);
   const blank = await markWeek('mason', wset, {}, stub(reply));
   ok('a blank 1D gets no feedback call', blank.writing === null);
+}
+
+/* accepted answer suggestions */
+{
+  const mk = (p) => ({ unsafe_to_accept: { noul: p, confidence: 1 } });
+  const qq = { text: 't', accepted: ['west'] };
+  ok('a specific candidate is safe', (await suggestAccepted(stub(mk(0.05)), { child: 'mason', question: qq, candidate: 'to the west' })).safe);
+  ok('a broad candidate is not safe', !(await suggestAccepted(stub(mk(0.8)), { child: 'mason', question: qq, candidate: 'a direction' })).safe);
+  let threw = false;
+  try { await suggestAccepted(stub({}), { child: 'mason', question: qq, candidate: 'x' }); } catch { threw = true; }
+  ok('a broken reply throws rather than reading as safe', threw);
 }
 
 if (failures.length) {

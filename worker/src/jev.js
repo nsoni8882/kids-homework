@@ -806,3 +806,45 @@ export async function assessEvidence(jev, { child, section, rung, items }) {
   flags.sort((a, b) => b.probability - a.probability);
   return { flags, weak: flags.length > 0 };
 }
+
+/* ------------------------------------------------------ accepted answer suggestions */
+
+export const ACCEPT_POLICY = { unsafe: 0.3 };
+
+/**
+ * Is this answer, which a grown up or Jev already marked right, safe to add to
+ * the question's accepted list as it stands?
+ *
+ * The candidate is a real answer a child typed, not something generated, so the
+ * only judgment left is the risk: an exact string in the list marks every child
+ * who types it right with no further look. Too broad, or right only because of
+ * what surrounded it, and it should stay a case for Jev.
+ * Returns { safe, unsafeP }. It never edits the list.
+ */
+export async function suggestAccepted(jev, { child, question, candidate }) {
+  const answers = await jev.ask(
+    {
+      question: question.text,
+      acceptedAnswers: question.accepted || [],
+      markScheme: question.markScheme || null,
+      candidateAnswer: candidate,
+      childAge: AGE[child] || 8,
+    },
+    {
+      unsafe_to_accept: {
+        type: 'noul',
+        instructions:
+          'A child typed `candidateAnswer` and it was judged correct. If that exact text were '
+          + 'added to `acceptedAnswers`, would it risk marking WRONG answers right? It is risky '
+          + 'if it is vague, only right because of extra context, contains a contradicting or '
+          + 'additional claim, or would let an answer that misses the required idea through.',
+        criteria: {
+          true: 'Accepting this exact text could mark a wrong answer right',
+          false: 'This text is specific enough to be accepted on its own',
+        },
+      },
+    },
+  );
+  const unsafeP = need(answers, 'unsafe_to_accept', 'noul');
+  return { safe: unsafeP <= ACCEPT_POLICY.unsafe, unsafeP };
+}
