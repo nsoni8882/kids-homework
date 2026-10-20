@@ -714,3 +714,69 @@ export async function reviewAward(jev, { child, question, given, awarded }) {
       : `agrees (${r.reason})`,
   };
 }
+
+/* ---------------------------------------------------------- advancement evidence */
+
+export const EVIDENCE_THRESHOLDS = { shortcut: 0.6, thin: 0.6 };
+
+/**
+ * Is this week's result in one slot strong enough to move a rung on?
+ *
+ * The deterministic reasons to hold (hinted, a gap still open, two weeks inside
+ * 48 hours, repeated answers) are the caller's: they are facts. This asks only
+ * what a string rule cannot: whether a pattern or a guess could have scored the
+ * marks, and whether what the child actually wrote shows the skill. It returns
+ * flags and never a decision. `advanceWhen` itself stays deterministic.
+ */
+export async function assessEvidence(jev, { child, section, rung, items }) {
+  const answers = await jev.ask(
+    {
+      sectionTitle: section.title,
+      currentSkill: rung.skill,
+      rungGoal: rung.advanceWhen,
+      childAge: AGE[child] || 8,
+      items: items.slice(0, 40).map((i) => ({
+        question: i.text,
+        childAnswer: i.given || '(blank)',
+        expected: i.expected || null,
+      })),
+    },
+    {
+      shortcut_possible: {
+        type: 'noul',
+        instructions:
+          'Looking at `items` as a set, could a child who does NOT have `currentSkill` still score '
+          + 'full marks by a pattern, a guess or a shortcut (for example the answers following a '
+          + 'visible order, or one option being obviously different)?',
+        criteria: {
+          true: 'A guess or a pattern would score well without the skill',
+          false: 'The skill is needed to answer; no shortcut gets the marks',
+        },
+      },
+      answers_not_showing_skill: {
+        type: 'noul',
+        instructions:
+          'Read the `childAnswer`s against `rungGoal`. Do they fail to show that the child can use '
+          + '`currentSkill` for themselves, for example because right answers could be copied from '
+          + 'the question, or the wrong ones show the method was never there?',
+        criteria: {
+          true: 'The answers do not demonstrate the skill, whatever the score',
+          false: 'The answers show the child using the skill themselves',
+        },
+      },
+    },
+  );
+
+  const LABELS = {
+    shortcut_possible: 'a guess or pattern could have scored this without the skill',
+    answers_not_showing_skill: 'the answers do not show the skill, whatever the score',
+  };
+  const flags = [];
+  for (const [key, bar] of [['shortcut_possible', EVIDENCE_THRESHOLDS.shortcut],
+    ['answers_not_showing_skill', EVIDENCE_THRESHOLDS.thin]]) {
+    const p = need(answers, key, 'noul');
+    if (p >= bar) flags.push({ key, label: LABELS[key], probability: p, threshold: bar });
+  }
+  flags.sort((a, b) => b.probability - a.probability);
+  return { flags, weak: flags.length > 0 };
+}

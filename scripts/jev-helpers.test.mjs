@@ -2,7 +2,7 @@
 /* Tests for the Jev decision helpers, against a stub so no network is used.
  *   node scripts/jev-helpers.test.mjs
  */
-import { observeGap, reviewAward } from '../worker/src/jev.js';
+import { observeGap, reviewAward, assessEvidence } from '../worker/src/jev.js';
 
 let passed = 0;
 const failures = [];
@@ -76,6 +76,27 @@ const no = { essentially_correct: { noul: 0.01, confidence: 1 } };
   let threw = false;
   try { await reviewAward(stub({}), { child: 'mason', question: one, given: 'x', awarded: 1 }); } catch { threw = true; }
   ok('a broken reply throws so the caller can skip the review', threw);
+}
+
+/* advancement evidence */
+const rung = { skill: 'a skill', advanceWhen: 'two clean weeks' };
+const ev = (a, b) => ({ shortcut_possible: { noul: a, confidence: 1 }, answers_not_showing_skill: { noul: b, confidence: 1 } });
+{
+  const r = await assessEvidence(stub(ev(0.1, 0.1)), { child: 'mason', section, rung, items });
+  ok('clean evidence raises nothing', !r.weak && r.flags.length === 0);
+}
+{
+  const r = await assessEvidence(stub(ev(0.8, 0.1)), { child: 'mason', section, rung, items });
+  ok('a possible shortcut is flagged', r.weak && r.flags[0].key === 'shortcut_possible');
+}
+{
+  const r = await assessEvidence(stub(ev(0.7, 0.9)), { child: 'mason', section, rung, items });
+  ok('flags come out strongest first', r.flags.length === 2 && r.flags[0].key === 'answers_not_showing_skill');
+}
+{
+  let threw = false;
+  try { await assessEvidence(stub({}), { child: 'mason', section, rung, items }); } catch { threw = true; }
+  ok('a broken reply throws rather than reading as clean', threw);
 }
 
 if (failures.length) {
