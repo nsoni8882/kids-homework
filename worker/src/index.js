@@ -694,61 +694,14 @@ async function handleProgress(request, env, child) {
   }, request, env);
 }
 
-/* ------------------------------------------------------------------ writing */
-
-async function handleWriting(request, env, child, ctx) {
-  const week = await getCurrentWeek(env, child);
-  if (!week) return fail(`no week set up for ${child}`, request, env, 404);
-
-  let body;
-  try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
-  if (!body || typeof body !== 'object') return fail('body must be a JSON object', request, env);
-  const text = typeof body.text === 'string' ? body.text.trim() : '';
-  if (!text) return fail('nothing written', request, env);
-  if (text.length > 20000) return fail('that is too long', request, env, 413);
-
-  const row = await env.DB.prepare(
-    'SELECT prompt, genre, minutes FROM writing WHERE child_id = ? AND week = ?',
-  ).bind(child, week).first();
-  if (!row) return fail('no writing task set for this week', request, env, 404);
-
-  const jev = new Jev(env.JEV_API_KEY);
-  let scored;
-  try {
-    scored = await scoreWriting(jev, { child, prompt: row.prompt, genre: row.genre, text });
-  } catch (err) {
-    scored = { dims: {}, total: null, confidence: 0, needsParent: true, error: err.message };
-  }
-
-  const words = text.split(/\s+/).filter(Boolean).length;
-  await env.DB.prepare(
-    `UPDATE writing SET text = ?, words = ?, elapsed_secs = ?, ideas = ?, structure = ?,
-       vocabulary = ?, accuracy = ?, total = ?, scored_by = ?, confidence = ?, submitted_at = ?
-     WHERE child_id = ? AND week = ?`,
-  ).bind(text, words, Number.isFinite(body.elapsedSecs) ? Math.round(body.elapsedSecs) : null,
-    scored.dims.ideas ?? null, scored.dims.structure ?? null,
-    scored.dims.vocabulary ?? null, scored.dims.accuracy ?? null,
-    scored.total, scored.total == null ? null : 'jev', scored.confidence ?? null,
-    nowIso(), child, week).run();
-
-  if (scored.needsParent) {
-    // One open confirmation per week, so resubmitting a piece does not stack up
-    // a queue of identical decisions for the same writing task.
-    await env.DB.prepare(
-      `DELETE FROM decision WHERE child_id = ? AND week = ? AND kind = 'writing' AND status = 'open'`,
-    ).bind(child, week).run();
-    await env.DB.prepare(
-      `INSERT INTO decision (child_id, week, kind, summary, detail, recommend, created_at)
-       VALUES (?, ?, 'writing', ?, ?, NULL, ?)`,
-    ).bind(child, week, `Confirm the writing score for week ${week}`,
-      scored.total == null
-        ? `Jev could not score this one: ${scored.error || 'unavailable'}. ${words} words.`
-        : `Jev proposed ${scored.total} out of 10 with confidence ${(scored.confidence || 0).toFixed(2)}.`,
-      nowIso()).run();
-  }
-
-  ctx.waitUntil(audit(env, 'browser', 'writing', child, week, `${words} words, ${scored.total} of 10`));
-  return json({ child, week, words, ...scored }, request, env);
+/** Compare two secrets without leaking, through timing, how much of one matched. */
+function sameSecret(a, b) {
+  const x = new TextEncoder().encode(String(a));
+  const y = new TextEncoder().encode(String(b));
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
 }
 
 /* -------------------------------------------------------------------- admin */
@@ -757,7 +710,7 @@ async function handleWriting(request, env, child, ctx) {
 async function handleAdmin(request, env, path, ctx) {
   const auth = request.headers.get('Authorization') || '';
   const token = auth.replace(/^Bearer\s+/i, '');
-  if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+  if (!env.ADMIN_TOKEN || !sameSecret(token, env.ADMIN_TOKEN)) {
     return fail('unauthorised', request, env, 401);
   }
 
@@ -845,12 +798,6 @@ export default {
       if (prog && request.method === 'GET') {
         if (!isChild(prog[1])) return fail('unknown child', request, env, 404);
         return await handleProgress(request, env, prog[1]);
-      }
-
-      const writing = path.match(/^\/api\/writing\/([a-z]+)$/);
-      if (writing && request.method === 'POST') {
-        if (!isChild(writing[1])) return fail('unknown child', request, env, 404);
-        return await handleWriting(request, env, writing[1], ctx);
       }
 
       return fail('not found', request, env, 404);

@@ -1,0 +1,24 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Marking engine and Worker tests
+        run: node scripts/test.mjs
+      - name: Jev helper tests
+        run: node scripts/jev-helpers.test.mjs
+      - name: Syntax check the browser and Worker code
+        run: |
+          for f in assets/*.js worker/src/*.js; do node --check "$f"; done

@@ -54,7 +54,6 @@ only reason that was detectable afterwards.
 | `POST /api/week/:child/award` | the marks a grown up awarded for the referred questions |
 | `GET /api/dashboard` | the parent payload for both children, including open decisions |
 | `GET /api/progress/:child` | the child's own page: weeks done, streak, best, rungs cleared |
-| `POST /api/writing/:child` | the writing task, scored against a rubric |
 | `/admin/export`, `/admin/query`, `/admin/sql` | behind `ADMIN_TOKEN`, for `scripts/kh.py` |
 
 Anti-abuse on the open routes: CORS origin allowlist, submissions accepted only for the current
