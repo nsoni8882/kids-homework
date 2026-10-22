@@ -22,7 +22,7 @@ const DEFAULT_MODEL = 'jev-latest';
    The middle band is deliberately wide: an uncertain answer is worth a parent's
    ten seconds, and getting a mark wrong in either direction is worse than asking. */
 export const POLICY = {
-  autoCorrect: 0.90,       // noul at or above this, and confident, marks it right
+  autoCorrect: 0.80,       // noul at or above this marks it right. Was 0.90. Measured 22 Oct 2026 on past answers: wrong ones sat at 0.13 or below bar one at 0.63, right ones at 0.78 or above
   autoWrong: 0.10,         // noul at or below this marks it wrong
   minConfidence: 0.80,     // below this the credit score is not trusted on its own
   qualityConcern: 0.60,    // default bar for raising a question-quality flag
@@ -143,13 +143,20 @@ export async function markAnswer(jev, { child, question, given }) {
     childAge: AGE[child] || 8,
   };
 
+  // On a spelling item the spelling IS the answer. Telling Jev to ignore it let
+  // 'Frenid' for 'friend' land at 0.85, which is a referral at best and an
+  // automatic mark of correct at worst.
+  const spellingTested = /\bspell|spelt|spelling|spelled correctly/i.test(question.text || '');
   const essentiallyCorrect = {
     type: 'noul',
-    instructions:
-      'Does `childAnswer` give the essential idea that `markScheme` and `acceptedAnswers` '
-      + 'require? Judge the meaning, not the wording. Ignore spelling, punctuation, '
-      + 'capitalisation and grammar: the child is `childAge` years old and is typing. '
-      + 'An answer that states the opposite, or that denies the required idea, is not correct.',
+    instructions: spellingTested
+      ? 'Spelling is the thing being tested. Is `childAnswer` the word in `acceptedAnswers`, '
+        + 'spelled exactly right? Ignore only capital letters and spaces around the word. '
+        + 'A wrong, missing, extra or swapped letter means it is not correct.'
+      : 'Does `childAnswer` give the essential idea that `markScheme` and `acceptedAnswers` '
+        + 'require? Judge the meaning, not the wording. Ignore spelling, punctuation, '
+        + 'capitalisation and grammar: the child is `childAge` years old and is typing. '
+        + 'An answer that states the opposite, or that denies the required idea, is not correct.',
     criteria: {
       true: 'Conveys what the mark scheme requires, however it is phrased or spelled',
       false: 'Misses the required idea, states something different or opposite, or is blank',
