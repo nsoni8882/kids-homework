@@ -296,6 +296,7 @@ function showSection() {
     if (answers[el.dataset.qid] !== undefined) el.value = answers[el.dataset.qid];
     if (reviewMode) el.readOnly = true;
   });
+  wireChoices();
 
   app.querySelector('[data-nav="next"]').addEventListener('click', nextSection);
   const prev = app.querySelector('[data-nav="prev"]');
@@ -412,10 +413,56 @@ function regularSection(sec) {
   return sec.questions.map((q, i) => questionCard(q, i + 1)).join('');
 }
 
+/* A letter question whose text lists "A) ..." lines is multiple choice. Split the
+   stem from the options, and drop the "Write the LETTER" line the radios replace. */
+function parseChoices(q) {
+  if (q.inputType !== 'letter') return null;
+  const lines = q.text.split('\n');
+  const options = [];
+  const stem = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*([A-E])\)\s+(.+)$/);
+    if (m) options.push({ letter: m[1], text: m[2] });
+    else if (!/^\s*\(?write the letter/i.test(line)) stem.push(line);
+  }
+  if (options.length < 3) return null;
+  return { stem: stem.join('\n').trim(), options };
+}
+
+function choiceControl(q, num, choices) {
+  const radios = choices.options.map((o) => `
+    <label class="choice">
+      <input type="radio" name="ch-${q.id}" value="${o.letter}" data-choice="${q.id}">
+      <span class="choice-letter" aria-hidden="true">${o.letter}</span>
+      <span class="choice-text">${esc(o.text)}</span>
+    </label>`).join('');
+  return `<input type="hidden" data-qid="${q.id}" id="in-${q.id}">
+    <div class="choices" role="radiogroup" aria-label="Answer to question ${num}">${radios}</div>`;
+}
+
+/* Keep each radio group and its hidden answer field in step, both ways. */
+function wireChoices() {
+  app.querySelectorAll('input[data-choice]').forEach((r) => {
+    const hidden = app.querySelector(`input[type="hidden"][data-qid="${r.dataset.choice}"]`);
+    r.checked = hidden.value === r.value;
+    r.disabled = reviewMode;
+    r.addEventListener('change', () => {
+      hidden.value = r.value;
+      hidden.dispatchEvent(new Event('input'));
+    });
+  });
+}
+
 function questionCard(q, num) {
   const needsParent = !q.autoMark && q.inputType !== 'none';
+  const choices = parseChoices(q);
+  // Anything a grown up marks is a written answer, so it gets a proper box.
+  const multiline = q.inputType === 'multiline' ||
+    (needsParent && (q.inputType === 'text' || q.inputType === 'number'));
   let input = '';
-  if (q.inputType === 'multiline') {
+  if (choices) {
+    input = choiceControl(q, num, choices);
+  } else if (multiline) {
     input = `<label class="sr-only" for="in-${q.id}">Answer to question ${num}</label>
       <textarea class="textarea" id="in-${q.id}" data-qid="${q.id}" rows="5"
         placeholder="Write your answer here"></textarea>`;
@@ -443,7 +490,7 @@ function questionCard(q, num) {
       <span class="q-num">Q${num}</span>
       <span class="q-marks">${q.marks} ${plural(q.marks)}</span>
     </div>
-    <p class="q-text">${esc(q.text)}</p>
+    <p class="q-text">${esc(choices ? choices.stem : q.text)}</p>
     ${input}${helper}
   </section>`;
 }

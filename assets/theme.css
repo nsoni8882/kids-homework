@@ -1607,3 +1607,26 @@ html[data-app="worksheet"] .error-card { border: 0; box-shadow: var(--clay-sm); 
   html[data-app="worksheet"] .section-nav { gap: var(--s3); }
   html[data-app="worksheet"] .section-nav .btn { min-height: 58px; font-size: 1.1rem; }
 }
+
+
+/* Multiple choice: one big tappable row per option, backed by a radio. */
+.choices { display: grid; gap: var(--s2); }
+.choice {
+  display: flex; align-items: center; gap: var(--s3);
+  min-height: 48px; padding: var(--s2) var(--s3);
+  border: 1.5px solid var(--border); border-radius: var(--r-md, 12px);
+  background: var(--surface); cursor: pointer;
+  transition: border-color .15s, background-color .15s;
+}
+.choice:hover { border-color: var(--border-strong); }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice-letter {
+  flex: none; width: 32px; height: 32px; border-radius: 999px;
+  display: grid; place-items: center; font-weight: 700;
+  border: 1.5px solid var(--border-strong); color: var(--text-2);
+}
+.choice-text { line-height: 1.45; }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--surface-2, var(--surface)); }
+.choice:has(input:checked) .choice-letter { background: var(--accent); border-color: var(--accent); color: #fff; }
+.choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choice:has(input:disabled) { cursor: default; }
