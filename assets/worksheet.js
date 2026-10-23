@@ -417,7 +417,8 @@ function regularSection(sec) {
    stem from the options, and drop the "Write the LETTER" line the radios replace. */
 function parseChoices(q) {
   if (q.inputType !== 'letter') return null;
-  const lines = q.text.split('\n');
+  // Older weeks put every option on one line: "A) dis   B) re   C) un".
+  const lines = q.text.split('\n').flatMap((l) => (/^\s*A\)/.test(l) ? l.split(/\s{2,}(?=[B-E]\))/) : [l]));
   const options = [];
   const stem = [];
   for (const line of lines) {
