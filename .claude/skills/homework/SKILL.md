@@ -2,6 +2,7 @@
 name: homework
 description: Run the weekly homework cycle after one or both children submit. Marks the week properly, diagnoses gaps, updates the dashboard, and builds next week against the NSW placement test plan. Use when Nik says the kids have finished, or types /homework.
 trigger: /homework
+model: opus
 ---
 
 # /homework
@@ -126,6 +127,11 @@ Note that the per question record already says who decided each mark and why: `m
 `auto`, `jev` or `parent`, and `jev_reason` carries the band it landed in. Read that before
 re-deriving anything.
 
+**`--mark` does not run Jev.** A mark Jev gave shows up there as "+N by hand, see notes", which
+reads like a hand adjustment and is not one. On 31 Oct 2026 Mason's 2B +6 looked like that and
+was Jev crediting answers that carried their working. Check `marked_by` before treating any
+"by hand" line as a human change, and write the split (Jev marks, parent marks) into the notes.
+
 Then, for each wrong answer, decide: **real child error, or question fault?** Verify every key
 by arithmetic or fact. Check `answersMatch` before assuming an answer was judged semantically:
 the engine is tolerant enough that "about 0" matches a key of "0". Use Jev on the ones you are
@@ -170,6 +176,11 @@ node scripts/suggest-accepted.mjs [child] [N] # rejected-but-right answers that 
 
 `gap-observe` is the guard against the positional trap below: it prints a line per active gap,
 so a skipped gap shows as a missing entry. A gap in a hinted section can take 1 but stays IMPROVING.
+
+**Its count is reliable, its values are not.** On 31 Oct 2026 it was wrong twice in one run: it
+called Mason's strengthen gap "not tested" when 3A tested it 5 of 5, and it gave Elysia's
+fractions gap a 0 from two items that could not count either way. Check every value against the
+items before accepting it, and say in the gap detail when you overrode it.
 
 Statuses: NEW, PERSISTS, IMPROVING, RESOLVED, PARKED. Append one observation to each gap's
 `weeks[]`: `1` the child got it right, `0` the child got it wrong, `null` it was not tested.
@@ -228,7 +239,20 @@ the current week and gap counts.
 
 **It deliberately cannot write a mark.** The Worker owns marks, answers and the decision queue:
 it marked the week, and the local copy is always the older story. If a mark genuinely needs
-changing by hand, that is `push --include-scores`, and it needs Nik's explicit yes.
+changing by hand, it needs Nik's explicit yes.
+
+**Change only the rows the decision names.** `push --include-scores` rewrites every score from
+`data/`, which is wider than one approved mark. The procedure used on 31 Oct 2026, and the one to
+repeat:
+
+1. `scripts/kh.py backup`, and keep the snapshot path.
+2. Through `/admin/sql`, update the one question row, its section mark and the week total, and
+   insert one `audit` row naming the decision and that Nik approved it.
+3. `scripts/kh.py pull`, then diff the new export against the snapshot. The only differences
+   allowed are that question, that section, the total and `adjustedAt`. Count the decision and
+   answer rows: they must not change.
+4. Record in the week's `notes` and `designIssues` who approved it, when, and the scheme line
+   that decided it.
 
 ## Step 6. Advancement, and the roadmap
 
@@ -243,6 +267,13 @@ its reason to name the new slot and rung. This is the one part of the roadmap th
 and `kh.py validate` now refuses a push where the roadmap claims a child is working on a family
 that no slot of theirs serves. It is the map saying the work is happening when it is not, which is
 worse than an out of date map.
+
+**A school half term boundary moves the roadmap on its own.** Slot 2C takes its families from
+`schoolSync`, so when the term changes, families drop out and new ones come in with no rung
+moving. On 31 Oct 2026 validate refused the push because the roadmap still listed M-place as
+current after Autumn 1 ended. When `kh.py curriculum` shows a new term, update `progress.nsw` for
+both children in the same pass. `scripts/dashboard-check.mjs` asserts fixed counts, so update its
+expected numbers too and run it with and without `ROADMAP_PATCH`.
 
 ```bash
 node scripts/advance-evidence.mjs <child> <N>  # per slot: the facts to hold on, plus Jev on shortcuts
@@ -267,6 +298,16 @@ Give Nik:
    and the running count per child, x of 32. Name any family that has been at zero for a month.
 7. What next week will contain per child, each section against the family it serves.
 8. **Decisions he must make, numbered, each answerable yes or no.**
+
+**Keep that list short.** CLAUDE.md section 2 says decide, do not ask. Only three kinds of item
+belong in it: a change to a saved mark, an outward facing or irreversible action (a deploy that
+was not already standing, a deletion), and something only Nik can physically do (sit with a
+child, send a school document). Accept or reject, gap status, hold or advance and next week's
+content are decided and reported, not asked. Every item carries your recommendation.
+
+**Check the inputs next week needs before stopping.** Mason's 1C follows the school spelling
+list. If the current half term's list is not held anywhere, say so here, so Nik can send it
+before step 8 rather than after the week is built without it.
 
 **Wait for his reply.** Do not continue.
 
@@ -322,6 +363,18 @@ close. So the box has to teach without stating the thing being tested. Three way
 
 If none of those fit, hint it deliberately, set `hinted` and `hintedWhy`, and say in step 7 that
 the gap cannot close this week.
+
+**Two build rules that each cost a mark or a gate run on 31 Oct 2026:**
+
+- **Keep working and answer apart.** A question that asks for the written method gets the answer
+  in its own box and the working or the check in another. Mason typed his full division working
+  into a single box, auto marking rejected all four, and only Jev saved them.
+- **A worked example shares no numbers and no answer with any question.** Elysia's 2B example
+  worked 57 - 23 = 34, and Q1's answer was also 34, so it could be copied. The gate blocked it at
+  95 percent. Assert this in the build script, do not leave it to the gate.
+
+Build with a script that uses a fixed random seed, and keep it in the scratchpad. A rebuild then
+gives the same questions, so a Jev pass from an earlier build still applies.
 
 Write the questions into `data/current/<child>.json`.
 
