@@ -242,17 +242,21 @@ it marked the week, and the local copy is always the older story. If a mark genu
 changing by hand, it needs Nik's explicit yes.
 
 **Change only the rows the decision names.** `push --include-scores` rewrites every score from
-`data/`, which is wider than one approved mark. The procedure used on 31 Oct 2026, and the one to
-repeat:
+`data/`, which is wider than one approved mark. Use `adjust` instead:
 
-1. `scripts/kh.py backup`, and keep the snapshot path.
-2. Through `/admin/sql`, update the one question row, its section mark and the week total, and
-   insert one `audit` row naming the decision and that Nik approved it.
-3. `scripts/kh.py pull`, then diff the new export against the snapshot. The only differences
-   allowed are that question, that section, the total and `adjustedAt`. Count the decision and
-   answer rows: they must not change.
-4. Record in the week's `notes` and `designIssues` who approved it, when, and the scheme line
-   that decided it.
+```bash
+scripts/kh.py adjust mason 26 1B-Q3 1 --reason "comma after although loses mark 2" \
+  --approved-by Nik --dry-run          # preview, writes nothing
+scripts/kh.py adjust mason 26 1B-Q3 1 --reason "..." --approved-by Nik --yes
+```
+
+It snapshots first, then changes the question, its section and the week total plus one audit
+row in a single transaction. It reads everything back and fails loudly if any other count moved.
+It refuses a banded drill section, a question with an open decision, an unmarked question, and
+any total that already disagrees with its rows. Those need a hand repair with
+`push --include-scores`, and Nik's yes for that specifically. Then run `kh.py pull` and record
+in the week's `notes` and `designIssues` who approved the change, when, and which scheme line
+decided it. `python3 scripts/kh_adjust_test.py` covers the command.
 
 ## Step 6. Advancement, and the roadmap
 

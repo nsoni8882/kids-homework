@@ -19,6 +19,8 @@ jobs:
         run: node scripts/test.mjs
       - name: Jev helper tests
         run: node scripts/jev-helpers.test.mjs
+      - name: Single mark adjust tests
+        run: python3 scripts/kh_adjust_test.py
       - name: Syntax check the browser and Worker code
         run: |
           for f in assets/*.js worker/src/*.js; do node --check "$f"; done

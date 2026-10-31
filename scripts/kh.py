@@ -13,6 +13,7 @@ data/ so a week can be read, diffed and planned without a browser.
   kh.py answers   print one week's questions next to the answers given
   kh.py plan      the spec for NEXT week
   kh.py curriculum  the weekly brief
+  kh.py adjust    change ONE saved mark after Nik approves it, nothing else
 
 WHAT PUSH WRITES, AND WHY IT IS NARROW
 --------------------------------------
@@ -1664,6 +1665,146 @@ def cmd_answers(args):
 
 
 # --------------------------------------------------------------------------
+# adjust: change ONE saved mark, and nothing else
+# --------------------------------------------------------------------------
+
+def _adjust_state(c, child, week, qid):
+    """Everything adjust reads, and everything it promises not to change."""
+    ans = api_query(c, "SELECT * FROM answer WHERE child_id = ? AND week = ? AND question_id = ?",
+                    [child, week, qid])
+    if not ans:
+        die(f"no saved answer for {child} week {week} {qid}. Check the id with kh.py answers.")
+    ans = ans[0]
+    sec_id = ans["section_id"]
+    sec = api_query(c, "SELECT * FROM section_mark WHERE child_id = ? AND week = ? AND section_id = ?",
+                    [child, week, sec_id])
+    wk = api_query(c, "SELECT * FROM week WHERE child_id = ? AND week = ?", [child, week])
+    secs = api_query(c, "SELECT section_id, marks FROM section_mark WHERE child_id = ? AND week = ?",
+                     [child, week])
+    rows = api_query(c, "SELECT question_id, marks FROM answer "
+                        "WHERE child_id = ? AND week = ? AND section_id = ?", [child, week, sec_id])
+    counts = api_query(c, "SELECT "
+                          "(SELECT COUNT(*) FROM answer WHERE child_id = ?1 AND week = ?2) AS answers, "
+                          "(SELECT COALESCE(SUM(marks), 0) FROM answer WHERE child_id = ?1 AND week = ?2) AS answer_marks, "
+                          "(SELECT COUNT(*) FROM decision WHERE child_id = ?1) AS decisions, "
+                          "(SELECT COUNT(*) FROM decision WHERE child_id = ?1 AND status = 'open') AS open_decisions, "
+                          "(SELECT COUNT(*) FROM audit) AS audit",
+                       [child, week])[0]
+    open_q = api_query(c, "SELECT id FROM decision WHERE child_id = ? AND week = ? "
+                          "AND question_id = ? AND status = 'open'", [child, week, qid])
+    if not sec or not wk:
+        die(f"{child} week {week} has an answer row but no section or week row. Repair by hand.")
+    return {"answer": ans, "section": sec[0], "week": wk[0], "sections": secs,
+            "section_rows": rows, "counts": counts, "open": open_q}
+
+
+def cmd_adjust(args):
+    """Change one saved mark, with the section and week totals that follow from it.
+
+    Exists because `push --include-scores` rewrites every score from data/, which is
+    far wider than one approved decision. This touches four rows: the answer, its
+    section, the week, and a new audit row, in one D1 batch, which is one transaction.
+    """
+    c = creds()
+    child, week, qid, new = args.child, args.week, args.question.upper(), args.marks
+    if not args.reason.strip() or not args.approved_by.strip():
+        die("--reason and --approved-by are both required: the audit row must say why and who")
+
+    s = _adjust_state(c, child, week, qid)
+    a, sec, wk = s["answer"], s["section"], s["week"]
+    old = a["marks"]
+
+    if s["open"]:
+        die(f"{qid} has an open decision. Award it through the marking screen, not here.")
+    if old is None:
+        die(f"{qid} has no mark yet (referred, never awarded). That is an award, not an adjustment.")
+    if not 0 <= new <= a["out_of"]:
+        die(f"{qid} is out of {a['out_of']}, so {new} is not a valid mark")
+    if new == old:
+        print(f"{child} W{week} {qid} is already {old}/{a['out_of']}. Nothing to do.")
+        return
+
+    # Refuse anything where a total is not the plain sum of the rows beneath it.
+    # A banded drill or an earlier hand repair breaks that, and a delta applied
+    # on top of a total that already disagrees with its rows hides the problem.
+    row_sum = sum((r["marks"] or 0) for r in s["section_rows"])
+    if any(r["marks"] is None for r in s["section_rows"]):
+        die(f"section {sec['section_id']} still has unmarked questions. Finish the marking first.")
+    if row_sum != sec["marks"]:
+        die(f"section {sec['section_id']} reads {sec['marks']} but its questions sum to {row_sum}. "
+            "It is banded or was repaired by hand, so a one question change cannot be applied safely.")
+    sec_sum = sum(r["marks"] for r in s["sections"])
+    if sec_sum != wk["total"]:
+        die(f"week total reads {wk['total']} but its sections sum to {sec_sum}. Repair that first.")
+
+    delta = new - old
+    new_sec, new_total = sec["marks"] + delta, wk["total"] + delta
+    if not 0 <= new_sec <= sec["out_of"]:
+        die(f"section {sec['section_id']} would be {new_sec}/{sec['out_of']}")
+
+    print(f"{child} week {week}, approved by {args.approved_by}: {args.reason}")
+    print(f"  {qid:9s} {old} -> {new}  of {a['out_of']}   (was marked by {a['marked_by']})")
+    print(f"  {sec['section_id']:9s} {sec['marks']} -> {new_sec}  of {sec['out_of']}")
+    print(f"  {'total':9s} {wk['total']} -> {new_total}  of {wk['out_of']}")
+    if args.dry_run:
+        print("dry run, nothing written")
+        return
+    if not args.yes and input("write this? [y/N] ").strip().lower() != "y":
+        die("not written")
+
+    snap = os.path.join(DATA, "snapshots", now_stamp() + "-preadjust", "export.json")
+    write_json(snap, api_export(c))
+    print(f"  snapshot -> {os.path.relpath(snap, ROOT)}")
+
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + \
+        f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
+    detail = json.dumps({"question": qid, "from": old, "to": new, "section": sec["section_id"],
+                         "sectionFrom": sec["marks"], "sectionTo": new_sec,
+                         "totalFrom": wk["total"], "totalTo": new_total,
+                         "approvedBy": args.approved_by, "reason": args.reason}, ensure_ascii=False)
+    api_sql(c, [
+        # Guarded on the old values, so a row that moved since it was read is left alone.
+        st("UPDATE answer SET marks = ?, correct = ?, marked_by = 'parent' "
+           "WHERE child_id = ? AND week = ? AND question_id = ? AND marks = ?",
+           new, 1 if new == a["out_of"] else 0, child, week, qid, old),
+        st("UPDATE section_mark SET marks = ? WHERE child_id = ? AND week = ? AND section_id = ? AND marks = ?",
+           new_sec, child, week, sec["section_id"], sec["marks"]),
+        st("UPDATE week SET total = ?, adjusted_at = ? WHERE child_id = ? AND week = ? AND total = ?",
+           new_total, stamp, child, week, wk["total"]),
+        st("INSERT INTO audit (at, actor, action, child_id, week, detail) VALUES (?, 'cli', 'adjust', ?, ?, ?)",
+           stamp, child, week, detail),
+    ], "adjust")
+
+    after = _adjust_state(c, child, week, qid)
+    problems = []
+    if after["answer"]["marks"] != new:
+        problems.append(f"{qid} reads {after['answer']['marks']}, expected {new}")
+    if after["section"]["marks"] != new_sec:
+        problems.append(f"section reads {after['section']['marks']}, expected {new_sec}")
+    if after["week"]["total"] != new_total:
+        problems.append(f"total reads {after['week']['total']}, expected {new_total}")
+    b, n = s["counts"], after["counts"]
+    for k in ("answers", "decisions", "open_decisions"):
+        if b[k] != n[k]:
+            problems.append(f"{k} went from {b[k]} to {n[k]}")
+    if n["answer_marks"] != b["answer_marks"] + delta:
+        problems.append(f"answer marks moved by {n['answer_marks'] - b['answer_marks']}, expected {delta}")
+    if n["audit"] < b["audit"] + 1:
+        problems.append("no audit row was added")
+    for k in ("submitted_at", "notes", "summary", "out_of"):
+        if after["week"][k] != wk[k]:
+            problems.append(f"week {k} changed")
+    if problems:
+        print("READ BACK FAILED. Snapshot is the copy to restore from:")
+        for p_ in problems:
+            print(f"  - {p_}")
+        raise SystemExit(1)
+    print(f"  read back: {child} W{week} now {new_total}/{wk['out_of']}, "
+          f"{n['answers']} answer rows and {n['decisions']} decisions unchanged")
+    print("next: kh.py pull, then record the decision in the week's notes and designIssues")
+
+
+# --------------------------------------------------------------------------
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1695,6 +1836,17 @@ def main():
     sa.add_argument("child", choices=CHILDREN)
     sa.add_argument("week", type=int)
     sa.set_defaults(fn=cmd_answers)
+
+    sj = sub.add_parser("adjust", help="change ONE saved mark, with its section and week totals")
+    sj.add_argument("child", choices=CHILDREN)
+    sj.add_argument("week", type=int)
+    sj.add_argument("question", help="question id, for example 1B-Q3")
+    sj.add_argument("marks", type=int, help="the new mark for that question")
+    sj.add_argument("--reason", required=True, help="why, citing the mark scheme")
+    sj.add_argument("--approved-by", required=True, help="who approved it, for the audit row")
+    sj.add_argument("--dry-run", action="store_true", help="read and show the change, write nothing")
+    sj.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    sj.set_defaults(fn=cmd_adjust)
 
     args = p.parse_args()
     args.fn(args)
