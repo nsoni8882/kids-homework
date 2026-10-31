@@ -1059,13 +1059,14 @@
     "nsw": {
      "cleared": [],
      "current": {
-      "M-place": "Slot 2C is on 4 digit place value this half term, which is Autumn 1 to late October",
-      "M-reverse": "Slot 2B is at rung 2B.3, the written division method checked by multiplying back, which is the same undoing step",
-      "M-pattern": "Slot 3B is at rung 3B.1, sequences with a changing step, which is the sequence half of this item type",
-      "T-strengthen": "Slot 3A is at rung 3A.1, which statement most strengthens a short argument. Week 24 taught it hinted and 3 of 5; week 25 runs it unhinted so the rung can be evidenced",
-      "T-conditional": "Slot 3C is at rung 3C.1, what follows from a conditional. Week 24 taught it hinted and 2 of 5, the converse taken as though it followed; week 25 runs it unhinted",
-      "W-brief": "Slot 1D opens in week 25 at rung 1D.1, one paragraph to a brief that names its audience and its text type. First week, so it is covered and not yet evidenced",
-      "W-type": "Slot 1D's brief states the text type and the audience every week, so writing to the right kind of text is part of rung 1D.1 from week 25"
+      "M-reverse": "Slot 2B is at rung 2B.3, the written division method checked by multiplying back, which is the same undoing step. W26 6 of 6",
+      "M-pattern": "Slot 3B is at rung 3B.1, sequences with a changing step, forwards and backwards. W26 5 of 5 after 2 of 5",
+      "T-strengthen": "Slot 3A is at rung 3A.1, which statement most strengthens a short argument. W26 5 of 5 unhinted, the first clean week",
+      "T-conditional": "Slot 3C is at rung 3C.1, what follows from a conditional. W26 4 of 5 unhinted; the converse on an 'every X gets Y' rule is still the one miss",
+      "W-brief": "Slot 1D is at rung 1D.1, one paragraph to a brief naming its audience and text type. W26 2 of 4: a real paragraph now, reasons still missing",
+      "W-type": "Slot 1D's brief states the text type and the audience every week, so writing to the right kind of text is part of rung 1D.1",
+      "M-measure": "Slot 2C follows the school's Autumn 2 topic, length and perimeter, from week 27",
+      "M-area": "Slot 2C follows the school's Autumn 2 topic, length and perimeter, from week 27: perimeter now, composite area in Spring 1"
      }
     }
    },
@@ -1133,10 +1134,11 @@
     "nsw": {
      "cleared": [],
      "current": {
-      "M-place": "Slot 2C works on adding and subtracting within 100 this half term",
-      "M-pattern": "Slot 3B is at rung 3B.1, patterns with a constant step that is not 2, 5 or 10",
-      "T-strengthen": "Slot 3A is at rung 3A.1, which statement best supports a claim. Week 22 teaches it hinted, so it is covered but not yet evidenced",
-      "T-deduce": "Slot 3C is at rung 3C.1, two clue logic needing both clues, which is week 22's section"
+      "M-pattern": "Slot 3B cleared rungs 3B.1 and 3B.2, patterns forwards and backwards, clean in W23/W24 and W25. 3B moves on to tables from week 26",
+      "T-strengthen": "Slot 3A is at rung 3A.2 from week 26, which statement best supports a claim with one tempting on topic wrong option. 3A.1 was clean in W23/W24 and W25",
+      "T-deduce": "Slot 3C is at rung 3C.2 from week 26, three clue logic with one elimination. 3C.1 was clean in W23/W24 and W25",
+      "M-value": "Slot 2C follows the school's Autumn 2 topic, money counting, equal groups and arrays, from week 26",
+      "T-tables": "Slot 3B is at rung 3B.3 from week 26, reading a table or pictogram for what it does not state outright"
      }
     }
    },

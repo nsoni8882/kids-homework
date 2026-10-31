@@ -38,15 +38,59 @@ let serverResult = null;
 let draft = null;               // this browser's unfinished attempt, if any
 let savedMsg = '';             // what the last successful save said, kept across a re-render
 let typingTimer = null;        // debounce for the save while typing
-const sectionSecs = {};        // how long each section actually took
-let sectionStarted = Date.now();
-const startedAt = Date.now();
+/* Time is ACTIVE time on a section, and it lives in the draft.
+
+   It used to be counted from page load, so reopening a saved draft restarted
+   the clock and the recorded times meant nothing: W25 read 141 seconds for a
+   whole week. Now each section accumulates its own seconds while it is on
+   screen and the page is visible, the running total is flushed into the draft
+   on every save, and the week's elapsed time is the sum of the sections. A
+   flush moves the clock's start to now, so a second flush cannot count the same
+   seconds twice. Seconds are kept fractional and rounded only when sent or
+   shown, so frequent flushes do not shave a second off each time. */
+const sectionSecs = {};        // section id -> active seconds, fractional
+let sectionStarted = null;     // when the current stretch of active time began, or null when not timing
 
 function recordSectionTime() {
-  const sec = week.sections[sectionIdx];
-  if (!sec) return;
-  sectionSecs[sec.id] = (sectionSecs[sec.id] || 0) + Math.round((Date.now() - sectionStarted) / 1000);
-  sectionStarted = Date.now();
+  const sec = week && week.sections[sectionIdx];
+  if (!sec || sectionStarted === null) return;
+  const now = Date.now();
+  sectionSecs[sec.id] = (sectionSecs[sec.id] || 0) + Math.max(0, now - sectionStarted) / 1000;
+  sectionStarted = now;
+}
+
+/* Stop counting: off the section screens, or while the tab is hidden. */
+function pauseTiming() {
+  recordSectionTime();
+  sectionStarted = null;
+}
+
+const totalSecs = () => Object.values(sectionSecs).reduce((t, v) => t + v, 0);
+const roundedSecs = () => Object.fromEntries(
+  Object.entries(sectionSecs).map(([k, v]) => [k, Math.round(v)]));
+
+let timing = false;            // true while a section is on screen in a live attempt
+
+/* A hidden tab is not homework. Flush and save on the way out, so closing the
+   tab or switching apps keeps every second counted so far, and pick the clock
+   back up only when the page is visible again. */
+if (typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (!timing) return;
+    if (document.visibilityState === 'hidden') {
+      pauseTiming();
+      collect();
+    } else if (sectionStarted === null) {
+      sectionStarted = Date.now();
+    }
+  });
+}
+if (typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', () => {
+    if (!timing) return;
+    pauseTiming();
+    collect();
+  });
 }
 
 /* ------------------------------------------------------------------ theme */
@@ -121,6 +165,9 @@ async function init() {
 
 function showWelcome() {
   clearInterval(timerId);
+  if (timing) pauseTiming();
+  timing = false;
+  sectionStarted = null;
   const total = week.sections.reduce((s, sec) => s + sec.totalMarks, 0);
 
   const chips = week.sections.map((s, i) => `
@@ -236,6 +283,7 @@ function resumeDraft() {
   answers = { ...draft.answers };
   sectionMarks = {};
   toMark = [];
+  Object.keys(sectionSecs).forEach((k) => delete sectionSecs[k]);
   Object.assign(sectionSecs, draft.sectionSecs);
   sectionIdx = Math.min(draft.sectionIdx, week.sections.length - 1);
   showSection();
@@ -316,8 +364,15 @@ function showSection() {
       el.addEventListener('input', updateAnswered);
     });
     updateAnswered();
-    sectionStarted = Date.now();
+    timing = true;
+    // Visible or not, the previous section's seconds were flushed before this
+    // render, so the clock only ever starts fresh here, never carries over.
+    const hidden = typeof document.visibilityState === 'string' && document.visibilityState === 'hidden';
+    sectionStarted = hidden ? null : Date.now();
     startTimer(sec);
+  } else {
+    timing = false;
+    sectionStarted = null;
   }
 }
 
@@ -352,14 +407,19 @@ function startTimer(sec) {
   const el = document.getElementById('timer');
   if (!el) return;
   const target = sec.timerMins * 60;
-  let elapsed = 0;
-  timerId = setInterval(() => {
-    elapsed++;
+  // Read from the clock every tick, not counted up from zero: a resumed draft
+  // or a revisited section shows the time already spent on it, and a hidden
+  // tab that froze the interval catches up correctly when it comes back.
+  const paint = () => {
+    const live = sectionStarted === null ? 0 : Math.max(0, Date.now() - sectionStarted) / 1000;
+    const elapsed = Math.floor((sectionSecs[sec.id] || 0) + live);
     const m = Math.floor(elapsed / 60);
     const s = String(elapsed % 60).padStart(2, '0');
     el.textContent = `${m}:${s}`;
     el.className = elapsed > target ? 'timer timer-over' : 'timer';
-  }, 1000);
+  };
+  paint();
+  timerId = setInterval(paint, 1000);
 }
 
 function drillSection(sec) {
@@ -501,6 +561,7 @@ function collect() {
     answers[el.dataset.qid] = el.value.trim();
   });
   if (!reviewMode) {
+    recordSectionTime();
     saveDraft(child, week.weekNum, { answers, sectionIdx, sectionSecs });
   }
 }
@@ -526,6 +587,8 @@ function nextSection() {
   }
 
   clearInterval(timerId);
+  timing = false;
+  sectionStarted = null;
   if (reviewMode) { showResults(true); return; }
   submitToServer();
 }
@@ -544,8 +607,10 @@ async function submitToServer() {
       week: week.weekNum,
       answers,
       resit: !!savedEntry,
-      elapsedSecs: Math.round((Date.now() - startedAt) / 1000),
-      sectionSecs,
+      // The sum of active time on each section, carried across reloads by the
+      // draft. Not wall clock since page load, which is what made W25 read 141.
+      elapsedSecs: Math.round(totalSecs()),
+      sectionSecs: roundedSecs(),
     });
     clearDraft(child, week.weekNum);
     draft = null;

@@ -13,6 +13,18 @@ const VERSION = 1;
 
 const key = (child, week) => `kh-draft-${child}-w${week}`;
 
+/* Active seconds per section. The worksheet resumes its clock from these, so
+   anything that is not a finite, non negative number is dropped rather than
+   allowed to turn the timer into NaN. */
+function cleanSecs(raw) {
+  if (!raw || typeof raw !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) out[k] = v;
+  }
+  return out;
+}
+
 /** The saved draft for this child and week, or null if there is none. */
 export function loadDraft(child, week) {
   try {
@@ -23,7 +35,7 @@ export function loadDraft(child, week) {
     return {
       answers: d.answers,
       sectionIdx: Number.isInteger(d.sectionIdx) ? d.sectionIdx : 0,
-      sectionSecs: d.sectionSecs && typeof d.sectionSecs === 'object' ? d.sectionSecs : {},
+      sectionSecs: cleanSecs(d.sectionSecs),
       savedAt: d.savedAt || null,
     };
   } catch {

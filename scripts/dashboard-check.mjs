@@ -151,8 +151,10 @@ if (!patched) {
     'Elysia should still be 0 of 5 on Writing: she has no slot 1D until September 2029');
   ok((html.match(/Reading\s+0 of 5/g) || []).length === 2,
     'Reading should be 0 of 5 for both children, several rungs below every item type');
-  ok(/Mathematical Reasoning\s+3 of 12/.test(html),
-    "Mason's Mathematical Reasoning component does not show 3 of 12");
+  // 4 of 12 from Autumn 2 2026: slot 2C follows the school term, which moved
+  // from place value (M-place) to length and perimeter (M-measure, M-area).
+  ok(/Mathematical Reasoning\s+4 of 12/.test(html),
+    "Mason's Mathematical Reasoning component does not show 4 of 12");
   ok(/Mathematical Reasoning\s+2 of 12/.test(html),
     "Elysia's Mathematical Reasoning component does not show 2 of 12");
   // a component with nothing in the week is flagged, and Elysia's Writing is one
@@ -164,7 +166,9 @@ if (!patched) {
     'an untouched test component is not badged "Not started"');
   ok(open === 13, `expected 5 Kumon levels and 8 test components open, got ${open}`);
   const current = (html.match(/kl kl-current/g) || []).length;
-  ok(current === 18, `expected 18 current sub-topics (7 Kumon, 11 test), got ${current}`);
+  // 13 test families from 31 Oct 2026: Autumn 2 swapped M-place for M-measure
+  // and M-area (Mason) and M-value (Elysia), and Elysia's 3B reached 3B.3 (T-tables).
+  ok(current === 20, `expected 20 current sub-topics (7 Kumon, 13 test), got ${current}`);
 } else {
   // a level part cleared with nothing current in it must not read "To come"
   const c = html.slice(html.indexOf('>Level C<'), html.indexOf('>Level D<'));
