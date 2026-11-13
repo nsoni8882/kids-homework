@@ -192,6 +192,16 @@ async function markWeek(child, set, answers, jev) {
         continue;
       }
 
+      // A bare number that missed the key is wrong: there is no meaning to judge.
+      // Answers carrying words or working (a remainder, a check) still go to Jev.
+      if (q.autoMark && q.inputType === 'number' && /^\s*-?[\d,.]+\s*$/.test(given)) {
+        perQuestion[q.id] = {
+          marks: 0, correct: 0, markedBy: 'auto', confidence: 1,
+          reason: 'a bare number that does not match the key',
+        };
+        continue;
+      }
+
       // A blank is a blank. Nothing to judge.
       if (!given) {
         perQuestion[q.id] = {

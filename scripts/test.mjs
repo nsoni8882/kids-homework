@@ -274,6 +274,14 @@ async function serverMarkingTests() {
     ok('a wrong letter scores nothing', r.perQuestion['1A-Q1'].marks === 0);
   }
   {
+    const set = oneSection([q({ inputType: 'number', accepted: ['53'] })]);
+    const jev = stubJev(CORRECT);
+    const r = await markWeek('mason', set, { '1A-Q1': '52' }, jev);
+    ok('a wrong bare number is decided locally', jev.asked.length === 0 && r.perQuestion['1A-Q1'].marks === 0);
+    await markWeek('mason', set, { '1A-Q1': '13 r 4 check 13x7' }, jev);
+    ok('a number with words or working still goes to Jev', jev.asked.length === 1);
+  }
+  {
     const set = oneSection([q()]);
     const jev = stubJev(CORRECT);
     const r = await markWeek('mason', set, { '1A-Q1': '   ' }, jev);
