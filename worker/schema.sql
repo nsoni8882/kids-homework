@@ -145,17 +145,6 @@ CREATE TABLE IF NOT EXISTS position (
   PRIMARY KEY (child_id, slot)
 );
 
--- Every rung the child has cleared, which is what the child's own progress
--- page shows. Appended to, never rewritten, so the history survives.
-CREATE TABLE IF NOT EXISTS rung_cleared (
-  child_id      TEXT NOT NULL REFERENCES child(id) ON DELETE CASCADE,
-  rung          TEXT NOT NULL,
-  slot          TEXT NOT NULL,
-  cleared_week  INTEGER NOT NULL,
-  cleared_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  PRIMARY KEY (child_id, rung)
-);
-
 -- ----------------------------------------------------------------- writing
 
 CREATE TABLE IF NOT EXISTS writing (

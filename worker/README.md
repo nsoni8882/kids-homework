@@ -4,7 +4,7 @@ The homework API, and the store behind it. Cloudflare Worker over a D1 database.
 
 | | State |
 |---|---|
-| `schema.sql` | applied, 13 tables, database `kids-homework` in WEUR |
+| `schema.sql` | applied, 12 tables, database `kids-homework` in WEUR |
 | `src/jev.js` | TypeSafe Jev: marking, partial credit, diagnosis, the question gate, writing |
 | | `diagnose()` is used by `scripts/jev-check.mjs --diagnose`, not by any route |
 | `src/index.js` | the HTTP API |
