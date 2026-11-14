@@ -291,6 +291,22 @@ function resumeDraft() {
   showSection();
 }
 
+/* The server's reason is often a machine string ("jev 0.37"). Words go first and
+   the raw string drops to a small footnote, so nobody has to decode a score. */
+const PLAIN_REASONS = {
+  'left blank': 'No answer was given.',
+  'a bare number that does not match the key': 'The number does not match the answer.',
+  'awarded by a grown up': 'A grown up decided this mark.',
+};
+function reasonParts(reason, pending) {
+  if (!reason) return { text: '', tech: '' };
+  if (PLAIN_REASONS[reason]) return { text: PLAIN_REASONS[reason], tech: '' };
+  return {
+    text: pending ? 'The automatic check was not sure about this one, so a grown up decides.' : '',
+    tech: reason,
+  };
+}
+
 /* ------------------------------------------------------- review: tick or cross */
 
 /* Each answer in a saved week gets a green tick or a red cross and a tinted
@@ -334,6 +350,7 @@ function showWhy(q, opener) {
   const written = !q.autoMark || !(q.accepted && q.accepted.length);
   const key = written ? (q.markScheme || '-') : q.accepted[0];
   // The machine's own reason (a score) is never shown to a child, only words.
+  const tech = p.explanation ? '' : reasonParts(p.reason).tech;
   const why = p.explanation
     || (p.markedBy === 'parent' ? 'A grown up marked this one.'
       : given ? 'This is not the answer the question is asking for. Compare what you wrote with the correct answer above.'
@@ -368,6 +385,7 @@ function showWhy(q, opener) {
       <div class="wa-label">Why</div>
       <div class="why-val">${esc(why)}</div>
     </div>
+    ${tech ? `<p class="why-tech">Automatic check: ${esc(tech)}</p>` : ''}
     <button type="button" class="btn btn-primary" data-close>Got it</button>`;
   dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
   dlg.addEventListener('close', () => { if (opener && opener.focus) opener.focus(); }, { once: true });
@@ -731,9 +749,9 @@ async function submitToServer() {
 function jevNote(qid) {
   const p = verdicts()[qid];
   if (!p || !p.reason) return '';
+  const { text, tech } = reasonParts(p.reason, true);
   return `<p class="helper" style="color:var(--text-3);margin-top:var(--s3)">
-    ${icon('sparkle', 'i i-sm')} Checked automatically first and it was not confident enough to
-    decide: ${esc(p.reason)}</p>`;
+    ${icon('sparkle', 'i i-sm')} ${esc(text)}${tech ? ` <small class="why-tech">(${esc(tech)})</small>` : ''}</p>`;
 }
 
 function showMarkScreen() {
@@ -1231,8 +1249,9 @@ function markCard(it) {
   </div>`;
 
   if (it.kind === 'pending') {
+    const rp = reasonParts(it.reason, true);
     const why = it.reason
-      ? `<p class="helper" style="color:var(--text-3);margin-top:var(--s3)">${icon('sparkle', 'i i-sm')} ${esc(it.reason)}</p>`
+      ? `<p class="helper" style="color:var(--text-3);margin-top:var(--s3)">${icon('sparkle', 'i i-sm')} ${esc(rp.text)}${rp.tech ? ` <small class="why-tech">(${esc(rp.tech)})</small>` : ''}</p>`
       : '';
     return `<article class="wrong-card pending-card">
       <span class="badge badge-warn">${icon('clock')} ${esc(q.id)} · up to ${it.atStake || q.marks} ${plural(it.atStake || q.marks)} still to decide</span>

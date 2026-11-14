@@ -1691,3 +1691,5 @@ html[data-app="worksheet"] .error-card { border: 0; box-shadow: var(--clay-sm); 
 .why-val { font-size: 1.02rem; line-height: 1.55; white-space: pre-wrap; font-weight: 600; }
 .why-reason .why-val { font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .rv-mark-bad { transition: none; } }
+
+.why-tech { margin: 0; font-size: .72rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
