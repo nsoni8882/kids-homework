@@ -346,7 +346,8 @@ function markReview(sec) {
    backdrop for free, and hands focus back to the cross that opened it. */
 function showWhy(q, opener) {
   const p = verdicts()[q.id] || {};
-  const given = String(givenAnswers()[q.id] == null ? '' : givenAnswers()[q.id]).trim();
+  const raw = givenAnswers()[q.id];
+  const given = String(raw == null ? '' : raw).trim();
   const written = !q.autoMark || !(q.accepted && q.accepted.length);
   const key = written ? (q.markScheme || '-') : q.accepted[0];
   // The machine's own reason (a score) is never shown to a child, only words.
@@ -362,7 +363,13 @@ function showWhy(q, opener) {
     dlg = document.createElement('dialog');
     dlg.id = 'why-dialog';
     dlg.className = 'why';
-    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+    // Only a tap outside the panel closes it. A tap on the panel's own padding
+    // also targets the dialog, so test the point against its box.
+    dlg.addEventListener('click', (e) => {
+      const r = dlg.getBoundingClientRect();
+      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      if (e.target === dlg && !inside) dlg.close();
+    });
     document.body.appendChild(dlg);
   }
   dlg.setAttribute('aria-labelledby', 'why-title');
@@ -1285,7 +1292,7 @@ function markCard(it) {
     <span class="badge ${written ? 'badge-warn' : 'badge-bad'}">
       ${icon(written ? 'sparkle' : 'cross')} ${esc(q.id)} · ${esc(lost)}, ${esc(who)}</span>
     <p class="wrong-q-text">${esc(text)}</p>
-    <div class="wrong-grid${written ? '' : ''}">
+    <div class="wrong-grid">
       ${givenCell}
       ${written ? schemeCell : `<div>
         <div class="wa-label">Correct answer</div>

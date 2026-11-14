@@ -304,13 +304,10 @@ svg.i-lg { width: 28px; height: 28px; }
 @media (max-width: 400px) { .brand-text { display: none; } }
 
 .stack { display: grid; gap: var(--s4); }
-.stack-lg { display: grid; gap: var(--s6); }
 .row { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 
 .grid { display: grid; gap: var(--s4); }
-.grid-3 { grid-template-columns: 1fr; }
 .grid-2 { grid-template-columns: 1fr; }
-@media (min-width: 680px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 900px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
 
 /* The dashboard panel owns the rhythm between its cards. Before this it was a
@@ -339,33 +336,7 @@ svg.i-lg { width: 28px; height: 28px; }
   padding: var(--s5);
   box-shadow: var(--sh-1);
 }
-.card-head {
-  display: flex; align-items: center; gap: var(--s2);
-  margin-bottom: var(--s4);
-}
-.card-head svg { color: var(--accent); }
-.card-head h2 { flex: 1; min-width: 0; }
 .card-note { font-size: .82rem; color: var(--text-3); line-height: 1.55; }
-
-.stat {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: var(--s4) var(--s5);
-  box-shadow: var(--sh-1);
-  display: grid; gap: var(--s1);
-  position: relative; overflow: hidden;
-}
-.stat::before {
-  content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent);
-}
-.stat-num {
-  font-family: var(--font-head); font-weight: 800;
-  font-size: clamp(1.7rem, 5.6vw, 2.1rem); line-height: 1.1; color: var(--accent-ink);
-}
-.stat-label { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
-.stat-sub { font-size: .82rem; color: var(--text-2); display: flex; align-items: center; gap: var(--s1); flex-wrap: wrap; }
-.stat-sub svg { width: 15px; height: 15px; }
 
 .trend-up { color: var(--ok); }
 .trend-down { color: var(--bad); }
@@ -396,9 +367,6 @@ svg.i-lg { width: 28px; height: 28px; }
 .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
 .btn-secondary:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent); }
 
-.btn-ghost { background: transparent; color: var(--text-2); min-height: var(--tap); padding: var(--s2) var(--s3); }
-.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
-
 .btn-icon {
   width: var(--tap); height: var(--tap); padding: 0; border-radius: var(--r-md);
   background: transparent; border: 1px solid transparent; color: var(--text-2);
@@ -408,7 +376,6 @@ svg.i-lg { width: 28px; height: 28px; }
 .btn-icon:hover { background: var(--surface-2); color: var(--text); }
 
 .btn-lg { font-size: 1.08rem; min-height: 54px; padding: var(--s4) var(--s8); border-radius: var(--r-lg); }
-.btn-block { width: 100%; }
 
 /* --------------------------------------------------------------------------
    Tabs, pills, badges
@@ -457,7 +424,6 @@ svg.i-lg { width: 28px; height: 28px; }
 .subj-english { color: var(--english); }
 .subj-maths { color: var(--maths); }
 .subj-thinking { color: var(--thinking); }
-.subj-dot { width: 9px; height: 9px; border-radius: var(--r-full); background: currentColor; flex: none; }
 
 .chip-subject {
   display: inline-flex; align-items: center; gap: var(--s2);
@@ -481,19 +447,7 @@ th {
 td { padding: var(--s3); border-bottom: 1px solid var(--border); vertical-align: top; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: var(--surface-2); }
-.td-topic strong { font-weight: 700; }
 .td-detail { display: block; font-size: .8rem; color: var(--text-3); line-height: 1.5; margin-top: 2px; }
-
-.week-chip {
-  display: inline-grid; place-items: center;
-  width: 24px; height: 24px; margin-right: 3px;
-  border-radius: var(--r-sm); font-size: .76rem; font-weight: 700;
-  border: 1px solid transparent;
-}
-.week-pass { background: var(--ok-wash); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
-.week-fail { background: var(--bad-wash); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
-.week-null { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
-.week-latest { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .empty {
   display: grid; gap: var(--s2); justify-items: center; text-align: center;
@@ -518,23 +472,11 @@ details.disclose[open] > summary svg.chev { transform: rotate(90deg); }
 
 .chart-box { position: relative; height: 240px; }
 @media (min-width: 680px) { .chart-box { height: 260px; } }
-.chart-skeleton {
-  position: absolute; inset: 0; border-radius: var(--r-md);
-  background: linear-gradient(100deg, var(--surface-2) 30%, var(--surface-3) 50%, var(--surface-2) 70%);
-  background-size: 220% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-@keyframes shimmer { from { background-position: 180% 0; } to { background-position: -40% 0; } }
 
 /* --------------------------------------------------------------------------
    Notes and passages
    -------------------------------------------------------------------------- */
 
-.note-item { padding: var(--s3) 0; border-bottom: 1px solid var(--border); }
-.note-item:last-child { border-bottom: 0; }
-.note-head { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s2); }
-.note-week { font-family: var(--font-head); font-weight: 800; color: var(--accent-ink); }
-.note-score { font-size: .8rem; color: var(--text-3); }
 .note-body {
   font-size: .86rem; line-height: 1.65; color: var(--text-2);
   background: var(--surface-2); border-left: 3px solid var(--accent-edge);
@@ -746,8 +688,6 @@ details.rm-sec > summary:hover { color: var(--accent-ink); }
 }
 .q-marks { margin-left: auto; font-size: .78rem; font-weight: 700; color: var(--text-3); }
 .q-text { font-size: 1.02rem; line-height: 1.6; margin-bottom: var(--s3); white-space: pre-wrap; }
-
-label.field-label { display: block; font-size: .82rem; font-weight: 700; color: var(--text-2); margin-bottom: var(--s1); }
 
 .input, .textarea {
   width: 100%; font-family: var(--font-body); font-size: 1.05rem;
@@ -1096,7 +1036,6 @@ label.field-label { display: block; font-size: .82rem; font-weight: 700; color: 
   display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center;
   margin-top: var(--s3);
 }
-.legend-item { display: inline-flex; align-items: center; gap: var(--s2); font-size: .8rem; color: var(--text-2); }
 .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 
 /* The legend is also the focus control, so each entry is a real button:

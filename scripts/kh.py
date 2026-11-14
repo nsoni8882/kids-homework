@@ -7,7 +7,7 @@ data/ so a week can be read, diffed and planned without a browser.
 
   kh.py pull      API   -> data/   (writes a raw snapshot of the export first)
   kh.py status    one screen summary of what is on disk and what the API holds
-  kh.py validate  check data/ against schema/ and the curriculum rules
+  kh.py validate  check data/ against the rules and the curriculum spine
   kh.py push      data/ -> API     (the fields a human owns, asks first)
   kh.py backup    raw snapshot of the export, nothing else
   kh.py answers   print one week's questions next to the answers given
@@ -51,7 +51,6 @@ from datetime import date, datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
-SCHEMA = os.path.join(ROOT, "schema")
 SPINE = os.path.join(ROOT, "curriculum", "spine.json")
 POSITION = os.path.join(DATA, "curriculum", "position.json")
 ROADMAP = os.path.join(ROOT, "assets", "roadmap.json")
@@ -718,12 +717,6 @@ def components_for(spine, child):
     for t in spine["goals"][child].get("tests") or []:
         out.update(t.get("components") or [])
     return out
-
-
-def slot_of(qid_or_section):
-    """Section ids look like 1A or 1D and question ids like 1A-Q3, so the slot is
-    the first two characters."""
-    return str(qid_or_section)[:2]
 
 
 def nsw_families(slot, child):

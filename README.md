@@ -15,7 +15,6 @@ read the current week and submit the current week, and nothing else.
 | `mason/`, `elysia/` | one weekly worksheet per child |
 | `assets/` | design system, API client, marking engine, charts |
 | `curriculum/spine.json` | the fixed map each week is generated against |
-| `schema/` | JSON Schema for the data shapes |
 | `scripts/` | the data CLI and the checks below |
 | `worker/` | the Cloudflare Worker and D1 schema. This is the store. |
 | `.claude/skills/homework/` | the `/homework` command that runs the weekly cycle |
