@@ -13,6 +13,7 @@ data/ so a week can be read, diffed and planned without a browser.
   kh.py answers   print one week's questions next to the answers given
   kh.py plan      the spec for NEXT week
   kh.py curriculum  the weekly brief
+  kh.py explain   list the lost answers of a week, or write the reason for each wrong one
   kh.py adjust    change ONE saved mark after Nik approves it, nothing else
 
 WHAT PUSH WRITES, AND WHY IT IS NARROW
@@ -1665,6 +1666,72 @@ def cmd_answers(args):
 
 
 # --------------------------------------------------------------------------
+# explain: the child facing reason behind each wrong answer
+# --------------------------------------------------------------------------
+
+def cmd_explain(args):
+    """List a week's lost answers, or write the reasons for them.
+
+    The worksheet's review screen shows a red cross on every wrong answer, and the
+    overlay behind it prints `answer.explanation`. This is the only thing that
+    writes that column, and it writes nothing else: no mark, total or gap moves.
+    """
+    c = creds()
+    child, week = args.child, args.week
+    rows = api_query(c, "SELECT question_id, given, marks, out_of, marked_by, jev_reason, explanation "
+                        "FROM answer WHERE child_id = ? AND week = ? ORDER BY question_id", [child, week])
+    if not rows:
+        die(f"no saved answers for {child} week {week}")
+    lost = [r for r in rows if r["marks"] is not None and r["marks"] < r["out_of"]]
+    qset = read_json(os.path.join(DATA, "children", child, "question-sets", f"w{week:02d}.json"))
+    if not qset and read_json(os.path.join(DATA, "current", f"{child}.json"), {}).get("weekNum") == week:
+        qset = read_json(os.path.join(DATA, "current", f"{child}.json"))
+    qset = qset or {}
+    qs = {q["id"]: q for sec in qset.get("sections", []) for q in sec.get("questions", [])}
+
+    if not args.file:
+        print(f"{child} week {week}: {len(lost)} lost answers, "
+              f"{sum(1 for r in lost if r['explanation'])} already explained")
+        for r in lost:
+            q = qs.get(r["question_id"], {})
+            key = (q.get("accepted") or [q.get("markScheme", "?")])[0]
+            print(f"\n{r['question_id']} ({r['marks']}/{r['out_of']}, marked by {r['marked_by']})")
+            print(f"  question: {q.get('text', '?')[:300]}")
+            print(f"  given:    {r['given']!r}")
+            print(f"  key:      {str(key)[:300]}")
+            if r["jev_reason"]:
+                print(f"  marking:  {r['jev_reason']}")
+            print(f"  explained: {r['explanation'] or 'NO'}")
+        return
+
+    new = read_json(args.file)
+    if not isinstance(new, dict) or not new:
+        die("--file must be a JSON object of {question id: explanation}")
+    known = {r["question_id"] for r in rows}
+    for qid, text in new.items():
+        if qid not in known:
+            die(f"{qid} is not an answer in {child} week {week}")
+        if not isinstance(text, str) or not text.strip():
+            die(f"{qid}: explanation must be a non empty string")
+        if "\u2014" in text:
+            die(f"{qid}: no em dashes in child facing text")
+    print(f"{child} week {week}: writing {len(new)} explanations")
+    for qid, text in new.items():
+        print(f"  {qid}: {text}")
+    if not args.yes and input("write these? [y/N] ").strip().lower() != "y":
+        die("not written")
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + \
+        f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
+    api_sql(c, [st("UPDATE answer SET explanation = ? WHERE child_id = ? AND week = ? AND question_id = ?",
+                   t.strip(), child, week, q) for q, t in new.items()]
+            + [st("INSERT INTO audit (at, actor, action, child_id, week, detail) VALUES (?, 'cli', 'explain', ?, ?, ?)",
+                  stamp, child, week, json.dumps({"questions": sorted(new)}))], "explain")
+    after = api_query(c, "SELECT COUNT(*) AS n FROM answer WHERE child_id = ? AND week = ? AND explanation IS NOT NULL",
+                      [child, week])[0]["n"]
+    print(f"read back: {after} answers in {child} week {week} now carry an explanation")
+
+
+# --------------------------------------------------------------------------
 # adjust: change ONE saved mark, and nothing else
 # --------------------------------------------------------------------------
 
@@ -1836,6 +1903,13 @@ def main():
     sa.add_argument("child", choices=CHILDREN)
     sa.add_argument("week", type=int)
     sa.set_defaults(fn=cmd_answers)
+
+    sx = sub.add_parser("explain", help="list a week's lost answers, or write why each is wrong")
+    sx.add_argument("child", choices=CHILDREN)
+    sx.add_argument("week", type=int)
+    sx.add_argument("--file", help="JSON {question id: explanation}. Omit to list instead.")
+    sx.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    sx.set_defaults(fn=cmd_explain)
 
     sj = sub.add_parser("adjust", help="change ONE saved mark, with its section and week totals")
     sj.add_argument("child", choices=CHILDREN)

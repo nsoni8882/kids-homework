@@ -126,7 +126,7 @@ async function handleWeek(request, env, child) {
     // parent marking screen is reachable from a reopened week, not only from
     // the submit that produced it.
     const answers = await env.DB.prepare(
-      'SELECT question_id, given, marks, correct, marked_by, jev_reason FROM answer WHERE child_id = ? AND week = ?',
+      'SELECT question_id, given, marks, correct, marked_by, jev_reason, explanation FROM answer WHERE child_id = ? AND week = ?',
     ).bind(child, week).all();
     submitted = {
       total: row.total,
@@ -136,6 +136,7 @@ async function handleWeek(request, env, child) {
       answers: Object.fromEntries(answers.results.map((r) => [r.question_id, r.given])),
       perQuestion: Object.fromEntries(answers.results.map((r) => [r.question_id, {
         marks: r.marks, correct: r.correct, markedBy: r.marked_by, reason: r.jev_reason,
+        explanation: r.explanation,
       }])),
     };
   }
@@ -384,7 +385,7 @@ async function handleSubmit(request, env, child, ctx) {
        ON CONFLICT(child_id, week, question_id) DO UPDATE SET
          given = excluded.given, marks = excluded.marks, marked_by = excluded.marked_by,
          correct = excluded.correct, confidence = excluded.confidence,
-         jev_reason = excluded.jev_reason`,
+         jev_reason = excluded.jev_reason, explanation = NULL`,
     ).bind(child, week, qid, slotOf(qid), asAnswer(answers[qid]),
       p.marks, q ? q.marks : 1, p.markedBy, p.correct, p.confidence ?? null, p.reason || null));
   }

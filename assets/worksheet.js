@@ -252,8 +252,10 @@ function showWelcome() {
 
 function startReview() {
   reviewMode = true;
-  answers = { ...(savedEntry.archive || {}) };
-  sectionMarks = { ...(savedEntry.sectionMarks || {}) };
+  // Straight after a live submit there is no saved entry yet, only what was
+  // typed and what the server returned, so read both from those.
+  answers = { ...givenAnswers() };
+  sectionMarks = { ...(savedEntry ? savedEntry.sectionMarks : sectionMarks) };
   sectionIdx = 0;
   showSection();
 }
@@ -287,6 +289,89 @@ function resumeDraft() {
   Object.assign(sectionSecs, draft.sectionSecs);
   sectionIdx = Math.min(draft.sectionIdx, week.sections.length - 1);
   showSection();
+}
+
+/* ------------------------------------------------------- review: tick or cross */
+
+/* Each answer in a saved week gets a green tick or a red cross and a tinted
+   panel. The verdict is the server's, read from the stored row, never worked out
+   here. A cross is a button: it opens the overlay saying why and what the
+   answer should have been. Nothing in the row means nothing is shown. */
+function reviewState(q) {
+  const p = verdicts()[q.id];
+  if (!p) return null;
+  if (p.marks === null) return 'pending';
+  return (p.correct === 1 || p.marks >= q.marks) ? 'right' : 'wrong';
+}
+
+const REVIEW_MARK = {
+  right: (q) => `<span class="rv-mark rv-mark-ok" role="img" aria-label="Correct">${icon('check')}</span>`,
+  pending: () => `<span class="rv-mark rv-mark-wait" role="img" aria-label="Waiting for a grown up">${icon('clock')}</span>`,
+  wrong: (q) => `<button type="button" class="rv-mark rv-mark-bad" data-why="${esc(q.id)}"
+    aria-label="Wrong. Show why and the correct answer">${icon('cross')}</button>`,
+};
+
+function markReview(sec) {
+  const byId = Object.fromEntries(sec.questions.map((q) => [q.id, q]));
+  app.querySelectorAll('[data-qid]').forEach((el) => {
+    const q = byId[el.dataset.qid];
+    const state = q && reviewState(q);
+    const box = state && el.closest('.q-card, .letter-item, .number-item');
+    if (!box) return;
+    box.classList.add('rv', `rv-${state}`);
+    (box.querySelector('.q-top') || box).insertAdjacentHTML('beforeend', REVIEW_MARK[state](q));
+  });
+  app.querySelectorAll('[data-why]').forEach((b) => {
+    b.addEventListener('click', () => showWhy(byId[b.dataset.why], b));
+  });
+}
+
+/* One dialog, made on first use. <dialog> gives the focus trap, Escape and the
+   backdrop for free, and hands focus back to the cross that opened it. */
+function showWhy(q, opener) {
+  const p = verdicts()[q.id] || {};
+  const given = String(givenAnswers()[q.id] == null ? '' : givenAnswers()[q.id]).trim();
+  const written = !q.autoMark || !(q.accepted && q.accepted.length);
+  const key = written ? (q.markScheme || '-') : q.accepted[0];
+  // The machine's own reason (a score) is never shown to a child, only words.
+  const why = p.explanation
+    || (p.markedBy === 'parent' ? 'A grown up marked this one.'
+      : given ? 'This is not the answer the question is asking for. Compare what you wrote with the correct answer above.'
+      : 'No answer was given to this question.');
+  const text = q.text.length > 300 ? `${q.text.slice(0, 297)}…` : q.text;
+
+  let dlg = document.getElementById('why-dialog');
+  if (!dlg) {
+    dlg = document.createElement('dialog');
+    dlg.id = 'why-dialog';
+    dlg.className = 'why';
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg);
+  }
+  dlg.setAttribute('aria-labelledby', 'why-title');
+  dlg.innerHTML = `
+    <div class="why-head">
+      <span class="why-cross">${icon('cross')}</span>
+      <h2 id="why-title">Not quite</h2>
+      <span class="why-marks">${p.marks == null ? 0 : p.marks} / ${q.marks}</span>
+    </div>
+    <p class="why-q">${esc(text)}</p>
+    <div class="why-block why-given">
+      <div class="wa-label">${esc(NAME)}'s answer</div>
+      <div class="why-val">${given ? esc(given) : '<em>Left blank</em>'}</div>
+    </div>
+    <div class="why-block why-key">
+      <div class="wa-label">${written ? 'Mark scheme' : 'Correct answer'}</div>
+      <div class="why-val">${esc(key)}</div>
+    </div>
+    <div class="why-block why-reason">
+      <div class="wa-label">Why</div>
+      <div class="why-val">${esc(why)}</div>
+    </div>
+    <button type="button" class="btn btn-primary" data-close>Got it</button>`;
+  dlg.querySelector('[data-close]').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('close', () => { if (opener && opener.focus) opener.focus(); }, { once: true });
+  dlg.showModal();
 }
 
 /* --------------------------------------------------------------- sections */
@@ -345,6 +430,7 @@ function showSection() {
     if (reviewMode) el.readOnly = true;
   });
   wireChoices();
+  if (reviewMode) markReview(sec);
 
   app.querySelector('[data-nav="next"]').addEventListener('click', nextSection);
   const prev = app.querySelector('[data-nav="prev"]');
@@ -928,14 +1014,17 @@ function showResults(readOnly) {
        </button>`
     : '';
 
+  // Review is offered once nothing is waiting on a grown up, live or saved.
+  const reviewBtn = open ? '' : `<button class="btn btn-primary" data-act="review">${icon('eye')} Review ${esc(NAME)}'s answers</button>`;
   const footer = readOnly
-    ? `<button class="btn btn-secondary" data-act="home">${icon('arrowLeft')} Back to the start</button>`
+    ? `${reviewBtn}<button class="btn btn-secondary" data-act="home">${icon('arrowLeft')} Back to the start</button>`
     : `<div class="save-status" id="save-status" role="status" aria-live="polite">
          ${icon('save', 'i i-sm')} <span id="save-text">Saving</span>
        </div>
        <button class="btn btn-secondary" id="retry-btn" style="display:none">
          ${icon('refresh')} Try saving again
-       </button>`;
+       </button>
+       ${reviewBtn}`;
 
   render(`<div class="page page-narrow">
     <div class="results">
@@ -966,6 +1055,8 @@ function showResults(readOnly) {
 
   const home = app.querySelector('[data-act="home"]');
   if (home) home.addEventListener('click', showWelcome);
+  const rev = app.querySelector('[data-act="review"]');
+  if (rev) rev.addEventListener('click', startReview);
   const rest = app.querySelector('[data-act="mark-rest"]');
   if (rest) rest.addEventListener('click', markPending);
 

@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS answer (
   correct       INTEGER,                       -- 1 | 0 | NULL when not yet marked
   confidence    REAL,                          -- jev only
   jev_reason    TEXT,                          -- jev only, the band it landed in
+  explanation   TEXT,                          -- why a wrong answer is wrong, written by /score, child facing
   PRIMARY KEY (child_id, week, question_id),
   FOREIGN KEY (child_id, week) REFERENCES week(child_id, week) ON DELETE CASCADE
 );

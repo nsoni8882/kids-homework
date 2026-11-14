@@ -1630,3 +1630,64 @@ html[data-app="worksheet"] .error-card { border: 0; box-shadow: var(--clay-sm); 
 .choice:has(input:checked) .choice-letter { background: var(--accent); border-color: var(--accent); color: #fff; }
 .choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .choice:has(input:disabled) { cursor: default; }
+
+
+/* ------------------------------------------------ review: tick, cross, why */
+
+/* A saved week reopened for review. Green panel and a tick for a right answer,
+   red panel and a cross for a wrong one. Both pairs come from the --ok and --bad
+   tokens, which are redefined for dark mode, so neither theme needs its own rule.
+   The mark is an icon and a word for screen readers, never colour alone. */
+.rv { position: relative; border-width: 2px; }
+.rv-right { background: var(--ok-wash); border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+.rv-wrong { background: var(--bad-wash); border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+.rv-pending { background: var(--surface-2); border-style: dashed; }
+.rv-right .input, .rv-right .textarea, .rv-right .letter-input, .rv-right .number-input {
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface)); border-color: var(--ok); color: var(--text);
+}
+.rv-wrong .input, .rv-wrong .textarea, .rv-wrong .letter-input, .rv-wrong .number-input {
+  background: color-mix(in srgb, var(--bad) 14%, var(--surface)); border-color: var(--bad); color: var(--text);
+}
+.rv-right .choice:has(input:checked) { border-color: var(--ok); }
+.rv-wrong .choice:has(input:checked) { border-color: var(--bad); }
+
+.rv-mark {
+  flex: none; width: 44px; height: 44px; border-radius: 999px; padding: 0;
+  display: inline-grid; place-items: center; border: 2.5px solid currentColor;
+  background: var(--surface); font: inherit;
+}
+.rv-mark svg { width: 26px; height: 26px; stroke-width: 3; }
+.rv-mark-ok { color: var(--ok); }
+.rv-mark-wait { color: var(--warn); border-width: 2px; }
+.rv-mark-bad { color: var(--bad); cursor: pointer; transition: transform var(--t-fast) var(--ease); }
+.rv-mark-bad:hover { transform: scale(1.08); }
+.rv-mark-bad:active { transform: scale(.94); }
+.rv-mark-bad:focus-visible { outline: 3px solid var(--bad); outline-offset: 3px; }
+.q-top .rv-mark { margin-left: var(--s2); }
+.number-item .rv-mark { position: absolute; top: var(--s2); right: var(--s2); }
+.number-item.rv label { padding-right: 52px; }
+
+.why {
+  width: min(480px, calc(100vw - 2 * var(--s4))); max-height: calc(100vh - 2 * var(--s4)); overflow: auto;
+  padding: var(--s5); border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  background: var(--surface); color: var(--text); box-shadow: var(--sh-3, 0 12px 40px rgb(0 0 0 / .35));
+}
+.why[open] { display: grid; gap: var(--s3); }
+.why::backdrop { background: rgb(0 0 0 / .55); }
+.why-head { display: flex; align-items: center; gap: var(--s3); }
+.why-head h2 { margin: 0; font-size: 1.3rem; flex: 1; }
+.why-cross {
+  width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center;
+  color: var(--bad); background: var(--bad-wash); border: 2.5px solid var(--bad);
+}
+.why-cross svg { width: 24px; height: 24px; stroke-width: 3; }
+.why-marks { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.why-q { font-size: .95rem; line-height: 1.55; color: var(--text-2); white-space: pre-wrap; margin: 0; }
+.why-block { border-radius: var(--r-md); padding: var(--s3) var(--s4); }
+.why-given { background: var(--bad-wash); color: var(--bad); }
+.why-key { background: var(--ok-wash); color: var(--ok); }
+.why-reason { background: var(--surface-2); color: var(--text); }
+.why-block .wa-label { color: inherit; opacity: .8; }
+.why-val { font-size: 1.02rem; line-height: 1.55; white-space: pre-wrap; font-weight: 600; }
+.why-reason .why-val { font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .rv-mark-bad { transition: none; } }
