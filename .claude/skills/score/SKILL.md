@@ -69,8 +69,10 @@ kh.py answers <child> <N>                           # the mark schemes, for pare
 - `--diagnose` gives a cause and a probability that the QUESTION is at fault. Treat it as
   evidence. A question-fault flag at 50 percent or more means check the key yourself.
 - Verify each key by arithmetic or fact. Check the wording against `answersMatch` before deciding
-  a child was wrong. Look at the context sitting in the section above a question before believing
-  a "question fault" flag, because Jev reads one question at a time.
+  a child was wrong. `--diagnose` sends the section passage with each question (since 14 Nov
+  2026), but not the questions around it, so check context held in a neighbouring question
+  before believing a "question fault" flag. A flag on a too-narrow key is real: 1A-Q2 in
+  Elysia W27 ("flew away" against a key of "floated away") read 76 to 79 percent.
 - `autoMark:false` answers are not re-marked. Check the award against the mark scheme and flag an
   over award.
 

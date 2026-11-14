@@ -162,6 +162,7 @@ async function runDiagnose(child, week, jev, concurrency) {
       return { section, q, given: a, ...(await diagnose(jev, {
         child, question: { ...q, subject: section.subject }, given: a,
         expected: (q.accepted || [])[0],
+        passage: section.passage,
       })) };
     } catch (err) { return { section, q, given: a, error: err.message }; }
   });

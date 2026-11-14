@@ -241,9 +241,13 @@ const ERROR_KINDS = {
 
 /** Why did this one go wrong? Feeds the gap tracker so the weekly diagnosis
     starts from evidence rather than a guess. */
-export async function diagnose(jev, { child, question, given, expected }) {
+export async function diagnose(jev, { child, question, given, expected, passage }) {
   const answers = await jev.ask(
     {
+      // The section's passage, table or worked example. Without it a question
+      // like "Sentence B" or "use the table" reads as unanswerable, and came back
+      // as a question fault on 4 of 4 such items in week 27.
+      passage: passage || null,
       question: question.text,
       expectedAnswer: expected,
       childAnswer: given || '',
@@ -263,7 +267,9 @@ export async function diagnose(jev, { child, question, given, expected }) {
         instructions:
           'Setting the child aside, is this question itself flawed? It is flawed if it is '
           + 'ambiguous, if more than one answer is defensible, if `expectedAnswer` is wrong, '
-          + 'or if the wording invites the answer the child gave.',
+          + 'or if the wording invites the answer the child gave. When `passage` is given, the '
+          + 'question is answered from it: read it first, and a question that points at it is '
+          + 'not unclear for doing so.',
         criteria: {
           true: 'The question or its expected answer is at fault',
           false: 'The question is sound and the child simply got it wrong',

@@ -147,7 +147,9 @@ and returns a cause (misread, slip, wrong method, incomplete, spelling, blank, b
 plus a separate probability that the QUESTION is at fault. Use it as evidence, not as the
 verdict: it reports and changes nothing.
 
-**Jev sees one question at a time.** A question that carries its context in the question above
+**Jev sees the section passage but not the other questions.** `--diagnose` has sent the passage
+since 14 Nov 2026, which removed four false flags in week 27 on items that point at a table or a
+"Sentence B". A question that carries its context in the question above
 it, "Every student must have a seat. How many minibuses are needed?", reads as unanswerable
 alone and comes back as a question fault at 60 or 70 percent. It is clear on screen. Check
 whether the context sits in the section before believing the flag, and write the item so it
