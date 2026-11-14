@@ -140,6 +140,14 @@ export function answersMatch(kidRaw, acceptedRaw, inputType) {
   return false;
 }
 
+/** Marks for a banded drill given how many were right: the first matching band wins. */
+export function bandMarks(section, correct) {
+  for (const [lo, hi, marks] of section.scoreBandRules || []) {
+    if (correct >= lo && correct <= hi) return marks;
+  }
+  return 0;
+}
+
 /**
  * Marks for one section, given the answers collected so far.
  *
@@ -156,10 +164,7 @@ export function markSection(section, answers) {
       if (!q.autoMark) continue;
       if (answersMatch(answers[q.id], q.accepted, q.inputType)) correct++;
     }
-    for (const [lo, hi, marks] of section.scoreBandRules || []) {
-      if (correct >= lo && correct <= hi) return marks;
-    }
-    return 0;
+    return bandMarks(section, correct);
   }
 
   let earned = 0;

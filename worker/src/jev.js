@@ -179,7 +179,6 @@ export async function markAnswer(jev, { child, question, given }) {
   }
 
   const answers = await jev.ask(state, {
-    essentially_correct: essentiallyCorrect,
     credit: {
       type: 'score',
       instructions:
@@ -211,9 +210,6 @@ export async function markAnswer(jev, { child, question, given }) {
 }
 
 function creditLevels(marks, question) {
-  if (marks === 1) {
-    return ['Wrong, blank or off topic', 'Correct in substance'];
-  }
   if (marks === 2) {
     return [
       'No creditable content: blank, off topic, or wrong',

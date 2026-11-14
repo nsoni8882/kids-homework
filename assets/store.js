@@ -36,10 +36,6 @@ export const apiWeek = (child) => api(`/api/week/${child}`);
 /** Everything the dashboard needs for both children. */
 export const apiDashboard = () => api('/api/dashboard');
 
-/* GET /api/progress/:child also exists and is tested, but nothing calls it yet:
-   the child facing progress page has not been built. Add the helper when it is,
-   rather than keeping an unused one here. */
-
 /**
  * Submit a week. The server marks it: deterministic first, then Jev on anything
  * that rejected and on every question that used to come straight to the parent.

@@ -17,7 +17,7 @@
  *   3. only what Jev is genuinely unsure about reaches the parent.
  */
 
-import { answersMatch } from '../../assets/marking.js';
+import { answersMatch, bandMarks } from '../../assets/marking.js';
 import { Jev, markAnswer, scoreWriting, reviewAward } from './jev.js';
 
 /* The writing slot. Its question is marked against its mark scheme like any other,
@@ -261,11 +261,7 @@ async function markWeek(child, set, answers, jev) {
       const correct = section.questions.filter(
         (q) => q.autoMark && perQuestion[q.id] && perQuestion[q.id].correct === 1,
       ).length;
-      let band = 0;
-      for (const [lo, hi, marks] of section.scoreBandRules || []) {
-        if (correct >= lo && correct <= hi) { band = marks; break; }
-      }
-      sectionMarks[section.id] = band;
+      sectionMarks[section.id] = bandMarks(section, correct);
       continue;
     }
     let earned = 0;
@@ -546,11 +542,7 @@ async function handleAward(request, env, child, ctx) {
       const correct = section.questions.filter(
         (q) => q.autoMark && byQ[q.id] && byQ[q.id].correct === 1,
       ).length;
-      let band = 0;
-      for (const [lo, hi, m] of section.scoreBandRules || []) {
-        if (correct >= lo && correct <= hi) { band = m; break; }
-      }
-      sectionMarks[section.id] = band;
+      sectionMarks[section.id] = bandMarks(section, correct);
       continue;
     }
     sectionMarks[section.id] = section.questions.reduce(
@@ -660,51 +652,6 @@ async function handleDashboard(request, env) {
   return json(out, request, env);
 }
 
-/* ----------------------------------------------------------------- progress */
-
-/** The child's own page: what they have cleared, not what they got wrong. */
-async function handleProgress(request, env, child) {
-  // A week counts as done when it has a score, not when it has a submitted_at.
-  // The weeks migrated from the old archive format never carried a timestamp,
-  // so filtering on one hid nine real weeks per child from the progress page.
-  const weeks = await env.DB.prepare(
-    `SELECT week, total, out_of, submitted_at FROM week
-     WHERE child_id = ? AND total IS NOT NULL AND out_of > 0 ORDER BY week`,
-  ).bind(child).all();
-
-  const rungs = await env.DB.prepare(
-    'SELECT rung, slot, cleared_week FROM rung_cleared WHERE child_id = ? ORDER BY cleared_week',
-  ).bind(child).all();
-
-  const pos = await env.DB.prepare('SELECT slot, rung FROM position WHERE child_id = ?')
-    .bind(child).all();
-
-  const list = weeks.results;
-  const rate = (w) => (w && w.out_of ? w.total / w.out_of : 0);
-  const best = list.reduce((b, w) => (rate(w) > rate(b) ? w : b), null);
-
-  // A streak is consecutive submitted weeks, so missing one breaks it.
-  let streak = 0;
-  for (let i = list.length - 1; i > 0; i--) {
-    if (list[i].week === list[i - 1].week + 1) streak++; else break;
-  }
-  if (list.length) streak++;
-
-  return json({
-    child,
-    weeksDone: list.length,
-    streak,
-    best: best ? { week: best.week, pct: Math.round(best.total / best.out_of * 100) } : null,
-    latest: list.length ? {
-      week: list[list.length - 1].week,
-      total: list[list.length - 1].total,
-      outOf: list[list.length - 1].out_of,
-    } : null,
-    cleared: rungs.results,
-    current: Object.fromEntries(pos.results.map((r) => [r.slot, r.rung])),
-  }, request, env);
-}
-
 /** Compare two secrets without leaking, through timing, how much of one matched. */
 function sameSecret(a, b) {
   const x = new TextEncoder().encode(String(a));
@@ -803,12 +750,6 @@ export default {
       if (award && request.method === 'POST') {
         if (!isChild(award[1])) return fail('unknown child', request, env, 404);
         return await handleAward(request, env, award[1], ctx);
-      }
-
-      const prog = path.match(/^\/api\/progress\/([a-z]+)$/);
-      if (prog && request.method === 'GET') {
-        if (!isChild(prog[1])) return fail('unknown child', request, env, 404);
-        return await handleProgress(request, env, prog[1]);
       }
 
       return fail('not found', request, env, 404);

@@ -7,6 +7,7 @@
 import { CHILDREN, currentChild } from './config.js';
 import { apiWeek, apiSubmit, apiAward } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
+import { bandMarks } from './marking.js';
 import { loadDraft, saveDraft, clearDraft, draftAnswered } from './draft.js';
 
 const child = currentChild();
@@ -858,11 +859,7 @@ function bandFor(sec, awarded) {
     const p = v[q.id];
     return p && p.correct === 1;
   }).length;
-  let marks = 0;
-  for (const [lo, hi, m] of sec.scoreBandRules || []) {
-    if (correct >= lo && correct <= hi) { marks = m; break; }
-  }
-  return { marks, correct, outOf: items.length };
+  return { marks: bandMarks(sec, correct), correct, outOf: items.length };
 }
 
 /**
