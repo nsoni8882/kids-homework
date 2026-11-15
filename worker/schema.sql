@@ -213,3 +213,27 @@ CREATE TABLE IF NOT EXISTS audit (
 );
 
 CREATE INDEX IF NOT EXISTS audit_recent ON audit (at DESC);
+
+-- ------------------------------------------------------------------- jobs
+--
+-- A run of /score or /homework asked for from the dashboard. The Worker only
+-- queues it. scripts/runner.mjs, left running on Nik's Mac, polls for it,
+-- runs Claude Code in this folder and writes the final report back. Nothing in
+-- the Worker runs a skill, and only one job may be queued or running at once.
+CREATE TABLE IF NOT EXISTS job (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind          TEXT NOT NULL CHECK (kind IN ('score', 'homework')),
+  status        TEXT NOT NULL DEFAULT 'queued'
+                CHECK (status IN ('queued', 'running', 'done', 'failed')),
+  requested_at  TEXT NOT NULL,
+  started_at    TEXT,
+  finished_at   TEXT,
+  report        TEXT
+);
+
+-- One row, id 1: when the runner last polled, so the page can tell Nik the
+-- Mac is asleep instead of leaving a job queued with no explanation.
+CREATE TABLE IF NOT EXISTS runner (
+  id            INTEGER PRIMARY KEY CHECK (id = 1),
+  seen_at       TEXT NOT NULL
+);

@@ -12,3 +12,7 @@ __pycache__/
 *.pyc
 .wrangler/
 .dev.vars
+
+# copyrighted textbook PDFs, repo is public
+parents-resources/
+.playwright-mcp/

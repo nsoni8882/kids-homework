@@ -662,6 +662,47 @@ function sameSecret(a, b) {
   return diff === 0;
 }
 
+/* --------------------------------------------------------------------- jobs */
+
+/* The dashboard asks for a skill run, the Mac runs it. The Worker only keeps the
+   queue: scripts/runner.mjs polls /admin/runner/poll, claims and finishes jobs
+   through /admin/sql, and is the only thing that ever starts Claude Code. */
+const JOB_KINDS = ['score', 'homework'];
+
+async function jobState(env) {
+  const jobs = await env.DB.prepare(
+    'SELECT id, kind, status, requested_at, started_at, finished_at, report FROM job ORDER BY id DESC LIMIT 5',
+  ).all();
+  const seen = await env.DB.prepare('SELECT seen_at FROM runner WHERE id = 1').first();
+  return { jobs: jobs.results, runnerSeenAt: seen ? seen.seen_at : null };
+}
+
+/** GET is open, like the dashboard. POST queues a run and needs the run code,
+    which is a Worker secret and never sits in a committed file. */
+async function handleJobs(request, env, ctx) {
+  if (request.method === 'GET') return json(await jobState(env), request, env);
+
+  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!env.RUN_TOKEN || !sameSecret(token, env.RUN_TOKEN)) {
+    ctx.waitUntil(audit(env, 'browser', 'job_denied', null, null, 'wrong run code'));
+    return fail('That run code is not right.', request, env, 401);
+  }
+  let body;
+  try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
+  const kind = body && body.kind;
+  if (!JOB_KINDS.includes(kind)) return fail('kind must be score or homework', request, env);
+
+  /* One statement, so two taps at once cannot both queue a run. */
+  const r = await env.DB.prepare(
+    `INSERT INTO job (kind, status, requested_at)
+     SELECT ?, 'queued', ? WHERE NOT EXISTS (SELECT 1 FROM job WHERE status IN ('queued', 'running'))`,
+  ).bind(kind, nowIso()).run();
+  if (!r.meta.changes) return fail('A run is already waiting or in progress.', request, env, 409);
+
+  ctx.waitUntil(audit(env, 'browser', 'job_queued', null, null, kind));
+  return json(await jobState(env), request, env, 201);
+}
+
 /* -------------------------------------------------------------------- admin */
 
 /** Everything scripts/kh.py needs. Behind a bearer token that only the CLI has. */
@@ -680,6 +721,18 @@ async function handleAdmin(request, env, path, ctx) {
   if (request.method === 'POST') {
     try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
     if (!body || typeof body !== 'object') return fail('body must be a JSON object', request, env);
+  }
+
+  /* The runner's heartbeat, every 30 seconds. Kept out of /admin/sql so it does
+     not write an audit row each time. */
+  if (request.method === 'POST' && path === '/admin/runner/poll') {
+    await env.DB.prepare(
+      'INSERT INTO runner (id, seen_at) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET seen_at = excluded.seen_at',
+    ).bind(nowIso()).run();
+    const job = await env.DB.prepare(
+      "SELECT id, kind FROM job WHERE status = 'queued' ORDER BY id LIMIT 1",
+    ).first();
+    return json({ job: job || null }, request, env);
   }
 
   if (request.method === 'POST' && path === '/admin/sql') {
@@ -744,6 +797,10 @@ export default {
 
       if (path === '/api/dashboard' && request.method === 'GET') {
         return await handleDashboard(request, env);
+      }
+
+      if (path === '/api/jobs' && (request.method === 'GET' || request.method === 'POST')) {
+        return await handleJobs(request, env, ctx);
       }
 
       const award = path.match(/^\/api\/week\/([a-z]+)\/award$/);

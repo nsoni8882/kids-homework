@@ -338,6 +338,24 @@ svg.i-lg { width: 28px; height: 28px; }
 }
 .card-note { font-size: .82rem; color: var(--text-3); line-height: 1.55; }
 
+/* The run panel above the tabs, assets/runner.js */
+.run-panel { display: grid; gap: var(--s3); margin-bottom: var(--s5); }
+.run-part { display: contents; }
+.run-code[hidden] { display: none; }
+.run-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+.run-title { font-family: var(--font-head); font-weight: 800; font-size: 1.05rem; margin: 0; }
+.run-code { display: grid; gap: var(--s1); max-width: 320px; font-size: .85rem; font-weight: 700; color: var(--text-2); }
+.run-msg { margin: 0; font-size: .88rem; color: var(--text-2); }
+.run-msg:empty { display: none; }
+.run-last { display: grid; gap: var(--s2); padding-top: var(--s3); border-top: 1px solid var(--border); }
+.run-meta { font-size: .85rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.run-details summary { cursor: pointer; font-size: .88rem; font-weight: 700; color: var(--text-2); min-height: var(--tap); display: flex; align-items: center; }
+.run-report {
+  margin: 0; max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  font-size: .82rem; line-height: 1.55; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s3) var(--s4);
+}
+
 .trend-up { color: var(--ok); }
 .trend-down { color: var(--bad); }
 .trend-flat { color: var(--neutral); }
