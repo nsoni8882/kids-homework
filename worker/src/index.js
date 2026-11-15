@@ -841,4 +841,4 @@ export default {
 /* markWeek is exported for scripts/test.mjs, which exercises the marking order
    against a stub Jev. Nothing else imports from this module: it is an entry
    point, not a library. */
-export { markWeek };
+export { markWeek, queueScore };

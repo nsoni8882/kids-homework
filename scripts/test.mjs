@@ -17,7 +17,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { answersMatch, markSection, countCorrect } from '../assets/marking.js';
-import { markWeek } from '../worker/src/index.js';
+import { markWeek, queueScore } from '../worker/src/index.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -482,6 +482,22 @@ function remark(child, week) {
   return diffs ? 1 : 0;
 }
 
+/* queueScore must wait while a referred question is still with the parent, and
+   queue once none is. The fake DB answers the COUNT query and records inserts. */
+async function queueScoreTests() {
+  const run = async (open) => {
+    const inserts = [];
+    const DB = { prepare: (sql) => ({ bind: () => ({
+      first: async () => ({ n: open }),
+      run: async () => { inserts.push(sql); return {}; },
+    }) }) };
+    await queueScore({ DB }, 'mason', 1);
+    return inserts.filter((s) => /INSERT INTO job/.test(s)).length;
+  };
+  ok('queueScore waits while a mark is open', await run(2) === 0);
+  ok('queueScore queues once nothing is open', await run(0) === 1);
+}
+
 /* ------------------------------------------------------------------- main */
 
 const [flag, a, b] = process.argv.slice(2);
@@ -497,6 +513,7 @@ if (flag === '--check-accepted') {
 } else {
   unitTests();
   await serverMarkingTests();
+  await queueScoreTests();
   if (failures.length) {
     console.log(`${passed} passed, ${failures.length} FAILED:`);
     failures.forEach((f) => console.log(`  - ${f}`));

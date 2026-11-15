@@ -7,7 +7,6 @@ const PATHS = {
   trendDown: '<path d="M22 17l-8.5-8.5-4 4L2 5"/><path d="M16 17h6v-6"/>',
   flat: '<path d="M3 12h18"/>',
   target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>',
-  notes: '<path d="M4 4h12l4 4v12a0 0 0 0 1 0 0H4z"/><path d="M8 11h8M8 15h5"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>',
   book: '<path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 3v18"/>',
   compass: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',

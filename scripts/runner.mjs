@@ -13,9 +13,11 @@
  * names this Mac's paths. Log: ~/Library/Logs/kids-homework-runner.log
  *
  * Claude runs headless with a fixed tool list: the data CLI, node, python,
- * file edits and read only shell commands. git, wrangler and curl are NOT on
- * it, so a run from the dashboard can push next week's questions through
- * kh.py but can never commit, deploy or reach anywhere else.
+ * file edits and read only shell commands. git, wrangler and curl are left off,
+ * so a normal run cannot commit or deploy. That is a guard against accidents,
+ * NOT a sandbox: node and python3 can run anything, so only queue jobs you trust.
+ *
+ * KH_API and KH_ADMIN_TOKEN override CLAUDE.md, for testing against `wrangler dev`.
  */
 import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -119,6 +121,7 @@ function runClaude(prompt, jobId) {
         || (signal ? `Stopped after ${MAX_MS / 60_000} minutes.` : `claude exited with code ${code} and printed nothing.`);
       resolve({ ok: code === 0, text });
     });
+    child.stdin.on('error', () => {});   // claude failed to start: the 'error' event above reports it
     child.stdin.end(prompt);
   });
 }

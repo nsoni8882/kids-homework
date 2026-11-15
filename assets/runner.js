@@ -34,7 +34,6 @@ let armTimer = null;
 let message = '';
 let openReport = null;   // job id whose report is expanded
 let timer = null;
-let clock = null;
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const when = (iso) => {
@@ -179,7 +178,7 @@ root.innerHTML = `<div class="card run-panel">
 <div class="card run-history" data-part="history"></div>`;
 
 // the clock ticks every second without redrawing anything else
-clock = setInterval(() => {
+setInterval(() => {
   root.querySelectorAll('.run-clock').forEach((el) => { el.textContent = clockText(el.dataset.from); });
 }, 1000);
 

@@ -53,7 +53,8 @@ only reason that was detectable afterwards.
 | `POST /api/week/:child/submit` | mark server side and write the rows |
 | `POST /api/week/:child/award` | the marks a grown up awarded for the referred questions |
 | `GET /api/dashboard` | the parent payload for both children, including open decisions |
-| `/admin/export`, `/admin/query`, `/admin/sql` | behind `ADMIN_TOKEN`, for `scripts/kh.py` |
+| `GET /api/jobs`, `POST /api/jobs` | the dashboard's Run tab: read the last ten runs, queue a score or weekly cycle, one at a time |
+| `/admin/export`, `/admin/query`, `/admin/sql`, `/admin/runner/poll` | behind `ADMIN_TOKEN`, for `scripts/kh.py` and `scripts/runner.mjs` |
 
 Anti-abuse on the open routes: CORS origin allowlist, submissions accepted only for the current
 week, a 60 second repeat guard, answer count and length caps, and every write recorded in

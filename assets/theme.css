@@ -303,7 +303,6 @@ svg.i-lg { width: 28px; height: 28px; }
 }
 @media (max-width: 400px) { .brand-text { display: none; } }
 
-.stack { display: grid; gap: var(--s4); }
 .row { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 
 .grid { display: grid; gap: var(--s4); }
