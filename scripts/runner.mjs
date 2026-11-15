@@ -62,19 +62,59 @@ async function admin(p, body = {}) {
 }
 const sql = (s, params = []) => admin('/admin/sql', { statements: [{ sql: s, params }] });
 
-function runClaude(prompt) {
+/* Claude streams one JSON event per line. Two of them carry the run's progress:
+   plan_steps lists the steps, report_progress ticks one off. They are the same
+   checklist Nik sees in the terminal, so the dashboard shows it too. */
+function followProgress(jobId) {
+  let steps = [];
+  let buf = '';
+  let result = null;
+  let timer = null;
+  const push = () => {
+    timer = null;
+    sql('UPDATE job SET progress = ? WHERE id = ?', [JSON.stringify(steps), jobId]).catch(() => {});
+  };
+  const note = (name, input) => {
+    if (name.endsWith('plan_steps') && Array.isArray(input.steps)) {
+      steps = input.steps.map((t) => ({ task: String(t), percent: 0 }));
+    } else if (name.endsWith('report_progress') && input.task) {
+      const s = steps.find((x) => x.task === input.task);
+      if (s) s.percent = Number(input.percent) || 0;
+    } else return;
+    if (!timer) timer = setTimeout(push, 2000);   // at most one write every 2 seconds
+  };
+  return {
+    feed(chunk) {
+      buf += chunk;
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 1);
+        let ev; try { ev = JSON.parse(line); } catch { continue; }
+        if (ev.type === 'result' && typeof ev.result === 'string') result = ev.result;
+        if (ev.type === 'assistant' && ev.message && Array.isArray(ev.message.content)) {
+          for (const c of ev.message.content) if (c.type === 'tool_use') note(c.name || '', c.input || {});
+        }
+      }
+    },
+    result: () => result,
+    flush() { if (timer) { clearTimeout(timer); push(); } },
+  };
+}
+
+function runClaude(prompt, jobId) {
   return new Promise((resolve) => {
-    const child = spawn('claude', ['-p', '--permission-mode', 'acceptEdits', '--allowedTools', ...TOOLS],
-      { cwd: ROOT, env: process.env });
-    let out = '';
+    const child = spawn('claude', ['-p', '--output-format', 'stream-json', '--verbose',
+      '--permission-mode', 'acceptEdits', '--allowedTools', ...TOOLS], { cwd: ROOT, env: process.env });
+    const follow = followProgress(jobId);
     let err = '';
-    child.stdout.on('data', (d) => { out += d; });
+    child.stdout.on('data', (d) => follow.feed(String(d)));
     child.stderr.on('data', (d) => { err += d; });
     const timer = setTimeout(() => child.kill('SIGTERM'), MAX_MS);
     child.on('error', (e) => { clearTimeout(timer); resolve({ ok: false, text: `Could not start claude: ${e.message}` }); });
     child.on('close', (code, signal) => {
       clearTimeout(timer);
-      const text = out.trim() || err.trim()
+      follow.flush();
+      const text = (follow.result() || '').trim() || err.trim()
         || (signal ? `Stopped after ${MAX_MS / 60_000} minutes.` : `claude exited with code ${code} and printed nothing.`);
       resolve({ ok: code === 0, text });
     });
@@ -87,7 +127,7 @@ async function tick() {
   if (!job) return;
   await sql("UPDATE job SET status = 'running', started_at = ? WHERE id = ? AND status = 'queued'", [now(), job.id]);
   log(`job ${job.id}: running ${job.kind}`);
-  const r = await runClaude(PROMPTS[job.kind]);
+  const r = await runClaude(PROMPTS[job.kind], job.id);
   await sql('UPDATE job SET status = ?, finished_at = ?, report = ? WHERE id = ?',
     [r.ok ? 'done' : 'failed', now(), r.text.slice(-REPORT_MAX), job.id]);
   log(`job ${job.id}: ${r.ok ? 'done' : 'failed'}`);

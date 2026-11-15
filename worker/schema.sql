@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS job (
   requested_at  TEXT NOT NULL,
   started_at    TEXT,
   finished_at   TEXT,
+  progress      TEXT,                 -- JSON: the run's steps and how far each has got
   report        TEXT
 );
 

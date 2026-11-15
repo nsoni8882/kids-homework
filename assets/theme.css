@@ -338,23 +338,45 @@ svg.i-lg { width: 28px; height: 28px; }
 }
 .card-note { font-size: .82rem; color: var(--text-3); line-height: 1.55; }
 
-/* The run panel above the tabs, assets/runner.js */
-.run-panel { display: grid; gap: var(--s3); margin-bottom: var(--s5); }
+/* The Run tab, assets/runner.js */
+.run-panel { display: grid; gap: var(--s3); }
 .run-part { display: contents; }
-.run-code[hidden] { display: none; }
 .run-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
 .run-title { font-family: var(--font-head); font-weight: 800; font-size: 1.05rem; margin: 0; }
-.run-code { display: grid; gap: var(--s1); max-width: 320px; font-size: .85rem; font-weight: 700; color: var(--text-2); }
 .run-msg { margin: 0; font-size: .88rem; color: var(--text-2); }
 .run-msg:empty { display: none; }
-.run-last { display: grid; gap: var(--s2); padding-top: var(--s3); border-top: 1px solid var(--border); }
-.run-meta { font-size: .85rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.run-details summary { cursor: pointer; font-size: .88rem; font-weight: 700; color: var(--text-2); min-height: var(--tap); display: flex; align-items: center; }
+.run-meta { margin: 0; font-size: .85rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.run-active { display: grid; gap: var(--s2); padding-top: var(--s3); border-top: 1px solid var(--border); }
+.run-spinner {
+  width: 20px; height: 20px; border-radius: var(--r-full); flex: none;
+  border: 3px solid var(--surface-3); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+.run-clock { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-2); margin-left: auto; }
+.run-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.run-steps li { display: flex; align-items: center; gap: var(--s2); color: var(--text-3); font-size: .95rem; }
+.run-steps li.done { color: var(--text); }
+.run-steps li svg { width: 16px; height: 16px; color: var(--ok); flex: none; }
+.run-bullet { width: 8px; height: 8px; margin: 0 4px; border-radius: var(--r-full); background: var(--border-strong); flex: none; }
+.run-history { display: grid; gap: 0; padding-block: var(--s2); }
+.run-job { border-bottom: 1px solid var(--border); }
+.run-job:last-child { border-bottom: 0; }
+.run-job summary {
+  cursor: pointer; min-height: var(--tap); display: flex; align-items: center; gap: var(--s3);
+  font-weight: 700; flex-wrap: wrap;
+}
+.run-job summary .run-meta { margin-left: auto; }
 .run-report {
-  margin: 0; max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  margin: 0 0 var(--s3); max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word;
   font-size: .82rem; line-height: 1.55; color: var(--text-2);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s3) var(--s4);
 }
+/* a run is going: the tab says so from any other tab */
+.tab.is-running::after {
+  content: ''; width: 10px; height: 10px; border-radius: var(--r-full);
+  animation: spin .8s linear infinite; border: 2px solid var(--warn); border-top-color: transparent;
+}
+@media (prefers-reduced-motion: reduce) { .run-spinner, .tab.is-running::after { animation-duration: 3s; } }
 
 .trend-up { color: var(--ok); }
 .trend-down { color: var(--bad); }

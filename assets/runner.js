@@ -1,9 +1,8 @@
-/* The two run buttons at the top of the dashboard.
+/* The Run tab.
  *
  * The page cannot start a skill itself. It asks the Worker to queue one, and
  * scripts/runner.mjs on the Mac picks it up, runs Claude Code and writes the
- * report back. Queuing needs the run code, typed once and kept in this browser
- * only: it is a Worker secret, never in a committed file.
+ * steps and the final report back. This tab shows that, nothing else.
  *
  * Kept out of dashboard.js on purpose: the tracker renders from one payload and
  * this panel polls its own, so neither can break the other.
@@ -12,8 +11,8 @@
 import { API } from './config.js';
 import { icon } from './icons.js';
 
-const CODE_KEY = 'kh-run-code';
-const POLL_MS = 15_000;
+const SLOW_MS = 15_000;    // nothing running
+const FAST_MS = 3_000;     // a run is waiting or in progress
 const ALIVE_MS = 90_000;   // the helper polls every 30s, so 90s silent means asleep or off
 const KIND = { score: 'Score', homework: 'Weekly cycle' };
 const STATUS = {
@@ -23,15 +22,18 @@ const STATUS = {
   failed: { label: 'Failed', cls: 'badge-bad', icon: 'alert' },
 };
 
-const root = document.getElementById('run-panel');
-const getCode = () => { try { return localStorage.getItem(CODE_KEY) || ''; } catch { return ''; } };
-const setCode = (v) => { try { if (v) localStorage.setItem(CODE_KEY, v); else localStorage.removeItem(CODE_KEY); } catch { /* private window */ } };
+const root = document.getElementById('panel-run');
+const tab = document.getElementById('tab-run');
 
 let state = null;
 let armed = null;        // the kind waiting for its second tap
 let armTimer = null;
 let message = '';
+let openReport = null;   // job id whose report is expanded
+let timer = null;
+let clock = null;
 
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const when = (iso) => {
   const d = new Date(iso);
   const t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -39,51 +41,42 @@ const when = (iso) => {
     : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${t}`;
 };
 const mins = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 60_000));
+const clockText = (from) => {
+  const s = Math.max(0, Math.round((Date.now() - new Date(from)) / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+const steps = (job) => { try { return JSON.parse(job.progress) || []; } catch { return []; } };
+const isBusy = (j) => j && (j.status === 'queued' || j.status === 'running');
 
-function render() {
-  const jobs = state ? state.jobs : [];
-  const last = jobs[0];
-  const busy = last && (last.status === 'queued' || last.status === 'running');
-  const alive = state && state.runnerSeenAt && Date.now() - new Date(state.runnerSeenAt) < ALIVE_MS;
-  const helper = !state ? ''
-    : alive ? `<span class="badge badge-ok">${icon('checkCircle')}Mac helper on</span>`
-    : `<span class="badge badge-neutral">${icon('clock')}Mac helper off${state.runnerSeenAt ? `, last seen ${when(state.runnerSeenAt)}` : ''}</span>`;
+function activeHtml(job, alive) {
+  const s = STATUS[job.status];
+  const list = steps(job);
+  const from = job.started_at || job.requested_at;
+  const lead = job.status === 'queued'
+    ? (alive ? 'Waiting for the Mac to pick it up' : 'The Mac helper is off, so this starts when the Mac is awake')
+    : 'Working';
+  return `<div class="run-active">
+    <div class="row"><span class="run-spinner" aria-hidden="true"></span>
+      <strong>${KIND[job.kind]}</strong><span class="badge ${s.cls}">${icon(s.icon)}${s.label}</span>
+      <span class="run-clock" data-from="${esc(from)}">${clockText(from)}</span></div>
+    <p class="run-meta">${lead}</p>
+    ${list.length ? `<ol class="run-steps">${list.map((x) => {
+      const st = x.percent >= 100 ? 'done' : '';
+      return `<li class="${st}">${x.percent >= 100 ? icon('checkCircle') : '<span class="run-bullet" aria-hidden="true"></span>'}${esc(x.task)}</li>`;
+    }).join('')}</ol>` : ''}
+  </div>`;
+}
 
-  const button = (kind, cls, ico, label) => {
-    const isArmed = armed === kind;
-    return `<button class="btn ${cls}" type="button" data-run="${kind}" ${busy ? 'disabled' : ''}>
-      ${icon(isArmed ? 'check' : ico)}${isArmed ? 'Tap again to start' : label}</button>`;
-  };
-
-  let lastHtml = '';
-  if (last) {
-    const s = STATUS[last.status];
-    const timing = last.finished_at ? `asked ${when(last.requested_at)}, took ${mins(last.started_at || last.requested_at, last.finished_at)} min`
-      : last.started_at ? `started ${when(last.started_at)}`
-      : `asked ${when(last.requested_at)}${alive ? '' : ', it starts when the Mac is awake'}`;
-    lastHtml = `<div class="run-last">
-      <div class="row"><span class="badge ${s.cls}">${icon(s.icon)}${s.label}</span>
-        <span class="run-meta">${KIND[last.kind]}, ${timing}</span></div>
-      ${last.report ? `<details class="run-details"><summary>Read the report</summary><pre class="run-report"></pre></details>` : ''}
-    </div>`;
-  }
-
-  /* The panel refreshes every 15 seconds. Rebuilding all of it would wipe a
-     half typed run code and snap shut a report being read, so the code field is
-     built once and each part is only redrawn when what it shows has changed. */
-  part('top', `
-    <div class="run-head"><h2 class="run-title">Run the weekly work</h2>${helper}</div>
-    <p class="card-note">Score marks the latest submitted week and writes the reason behind each wrong answer.
-      The weekly cycle does that, updates the gaps and builds next week. Both run on the Mac and take a few minutes.</p>
-    <div class="row">
-      ${button('score', 'btn-primary', 'clipboard', 'Score the latest week')}
-      ${button('homework', 'btn-secondary', 'layers', 'Run the weekly cycle')}
-    </div>`);
-  root.querySelector('.run-code').hidden = Boolean(getCode());
-  part('bottom', `<p class="run-msg" role="status" aria-live="polite">${message}</p>${lastHtml}`, () => {
-    const pre = root.querySelector('.run-report');
-    if (pre) pre.textContent = last.report;   // the report is text, never markup
-  });
+function historyHtml(jobs) {
+  if (!jobs.length) return '<p class="card-note">Nothing has been run yet.</p>';
+  return jobs.map((j) => {
+    const s = STATUS[j.status];
+    const took = j.finished_at ? `, took ${mins(j.started_at || j.requested_at, j.finished_at)} min` : '';
+    return `<details class="run-job" data-job="${j.id}" ${openReport === j.id ? 'open' : ''}>
+      <summary><span class="badge ${s.cls}">${icon(s.icon)}${s.label}</span>
+        <span>${KIND[j.kind]}</span><span class="run-meta">${when(j.requested_at)}${took}</span></summary>
+      <pre class="run-report"></pre></details>`;
+  }).join('');
 }
 
 function part(name, html, after) {
@@ -94,18 +87,49 @@ function part(name, html, after) {
   if (after) after();
 }
 
+function render() {
+  const jobs = state ? state.jobs : [];
+  const live = jobs.find(isBusy);
+  const alive = state && state.runnerSeenAt && Date.now() - new Date(state.runnerSeenAt) < ALIVE_MS;
+  tab.classList.toggle('is-running', Boolean(live));
+
+  const helper = !state ? ''
+    : alive ? `<span class="badge badge-ok">${icon('checkCircle')}Mac helper on</span>`
+    : `<span class="badge badge-neutral">${icon('clock')}Mac helper off${state.runnerSeenAt ? `, last seen ${when(state.runnerSeenAt)}` : ''}</span>`;
+  const button = (kind, cls, ico, label) => `<button class="btn ${cls}" type="button" data-run="${kind}" ${live ? 'disabled' : ''}>
+    ${icon(armed === kind ? 'check' : ico)}${armed === kind ? 'Tap again to start' : label}</button>`;
+
+  part('top', `
+    <div class="run-head"><h2 class="run-title">Run the weekly work</h2>${helper}</div>
+    <p class="card-note">Score marks the latest submitted week and writes the reason behind each wrong answer.
+      The weekly cycle does that, updates the gaps and builds next week. Both run on the Mac and take a few minutes.</p>
+    <div class="row">
+      ${button('score', 'btn-primary', 'clipboard', 'Score the latest week')}
+      ${button('homework', 'btn-secondary', 'layers', 'Run the weekly cycle')}
+    </div>
+    <p class="run-msg" role="status" aria-live="polite">${esc(message)}</p>`);
+  part('active', live ? activeHtml(live, alive) : '');
+  part('history', historyHtml(jobs), () => {
+    // the report is text, never markup
+    root.querySelectorAll('.run-job').forEach((d) => {
+      const j = jobs.find((x) => String(x.id) === d.dataset.job);
+      d.querySelector('.run-report').textContent = j.report || (isBusy(j) ? 'No report yet.' : 'No report was written.');
+      d.addEventListener('toggle', () => { openReport = d.open ? j.id : (openReport === j.id ? null : openReport); });
+    });
+  });
+}
+
 async function load() {
+  clearTimeout(timer);
   try {
     const res = await fetch(`${API}/api/jobs`);
     if (res.ok) state = await res.json();
   } catch { /* offline: keep what is on screen */ }
   render();
+  timer = setTimeout(load, state && state.jobs.some(isBusy) ? FAST_MS : SLOW_MS);
 }
 
 async function start(kind) {
-  const typed = root.querySelector('#run-code');
-  const code = getCode() || (typed ? typed.value.trim() : '');
-  if (!code) { message = 'Type the run code first.'; render(); return; }
   message = 'Asking the Mac';
   render();
   let res;
@@ -113,7 +137,7 @@ async function start(kind) {
   try {
     res = await fetch(`${API}/api/jobs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${code}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind }),
     });
     body = await res.json().catch(() => ({}));
@@ -122,10 +146,9 @@ async function start(kind) {
     render();
     return;
   }
-  if (res.status === 401) setCode('');
-  else if (res.ok || res.status === 409) setCode(code);
   if (res.ok) { state = body; message = ''; } else message = body.error || `HTTP ${res.status}`;
   render();
+  load();
 }
 
 root.addEventListener('click', (e) => {
@@ -144,11 +167,18 @@ root.addEventListener('click', (e) => {
   start(kind);
 });
 
-root.innerHTML = `<div class="run-part" data-part="top"></div>
-  <label class="run-code"><span>Run code</span>
-    <input class="input" id="run-code" type="password" autocomplete="off" spellcheck="false"></label>
-  <div class="run-part" data-part="bottom"></div>`;
-root.hidden = false;
+root.innerHTML = `<div class="card run-panel">
+  <div class="run-part" data-part="top"></div>
+  <div class="run-part" data-part="active"></div>
+</div>
+<h3 class="section-label">Recent runs</h3>
+<div class="card run-history" data-part="history"></div>`;
+
+// the clock ticks every second without redrawing anything else
+clock = setInterval(() => {
+  root.querySelectorAll('.run-clock').forEach((el) => { el.textContent = clockText(el.dataset.from); });
+}, 1000);
+
 render();
 load();
-setInterval(() => { if (!document.hidden) load(); }, POLL_MS);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });

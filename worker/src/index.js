@@ -671,22 +671,18 @@ const JOB_KINDS = ['score', 'homework'];
 
 async function jobState(env) {
   const jobs = await env.DB.prepare(
-    'SELECT id, kind, status, requested_at, started_at, finished_at, report FROM job ORDER BY id DESC LIMIT 5',
+    'SELECT id, kind, status, requested_at, started_at, finished_at, progress, report FROM job ORDER BY id DESC LIMIT 10',
   ).all();
   const seen = await env.DB.prepare('SELECT seen_at FROM runner WHERE id = 1').first();
   return { jobs: jobs.results, runnerSeenAt: seen ? seen.seen_at : null };
 }
 
-/** GET is open, like the dashboard. POST queues a run and needs the run code,
-    which is a Worker secret and never sits in a committed file. */
+/** GET reads the queue. POST queues a run. There is no run code: Nik is the only
+    user, and a stray request costs one run at most, because only one job can wait
+    or run at a time and the helper's tool list has no git, deploy or network. */
 async function handleJobs(request, env, ctx) {
   if (request.method === 'GET') return json(await jobState(env), request, env);
 
-  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!env.RUN_TOKEN || !sameSecret(token, env.RUN_TOKEN)) {
-    ctx.waitUntil(audit(env, 'browser', 'job_denied', null, null, 'wrong run code'));
-    return fail('That run code is not right.', request, env, 401);
-  }
   let body;
   try { body = await request.json(); } catch { return fail('body must be JSON', request, env); }
   const kind = body && body.kind;

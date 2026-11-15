@@ -42,8 +42,6 @@
 </header>
 
 <main class="page">
-  <section id="run-panel" class="card run-panel" aria-label="Run the weekly work" hidden></section>
-
   <div id="loading" class="center-state">
     <div class="spinner" role="status" aria-label="Loading"></div>
     <p>Loading the tracker</p>
@@ -65,10 +63,15 @@
               aria-selected="false" aria-controls="panel-roadmap" id="tab-roadmap" tabindex="-1">
         Roadmap
       </button>
+      <button class="tab" role="tab" type="button" data-tab="run"
+              aria-selected="false" aria-controls="panel-run" id="tab-run" tabindex="-1">
+        Run
+      </button>
     </div>
     <div id="panel-mason" role="tabpanel" aria-labelledby="tab-mason" tabindex="0"></div>
     <div id="panel-elysia" role="tabpanel" aria-labelledby="tab-elysia" tabindex="0" hidden></div>
     <div id="panel-roadmap" role="tabpanel" aria-labelledby="tab-roadmap" tabindex="0" hidden></div>
+    <div id="panel-run" role="tabpanel" aria-labelledby="tab-run" tabindex="0" hidden></div>
   </div>
 </main>
 

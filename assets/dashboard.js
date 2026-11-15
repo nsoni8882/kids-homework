@@ -151,7 +151,7 @@ async function init() {
 
 /* ------------------------------------------------------------------- tabs */
 
-const VIEWS = [...KIDS, 'roadmap'];
+const VIEWS = [...KIDS, 'roadmap', 'run'];
 
 function initTabs() {
   const tabs = [...document.querySelectorAll('[role="tab"]')];
