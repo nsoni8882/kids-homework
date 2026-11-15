@@ -135,11 +135,16 @@ async function tick() {
   await sql('UPDATE job SET status = ?, finished_at = ?, report = ? WHERE id = ?',
     [r.ok ? 'done' : 'failed', now(), r.text.slice(-REPORT_MAX), job.id]);
   log(`job ${job.id}: ${r.ok ? 'done' : 'failed'}`);
+  await prune();
 }
+
+// The Run tab shows the newest 10 runs, so older rows only take space.
+const prune = () => sql("DELETE FROM job WHERE status IN ('done', 'failed') AND id NOT IN (SELECT id FROM job ORDER BY id DESC LIMIT 10)");
 
 // A job left running by a helper that died can never be finished by anyone else,
 // and it would block every new run, so close it on start.
 await sql("UPDATE job SET status = 'failed', finished_at = ?, report = 'The Mac helper restarted while this run was in progress. Start it again.' WHERE status = 'running'", [now()]);
+await prune();
 log(`runner up, polling ${API} every ${POLL_MS / 1000}s`);
 for (;;) {
   try { await tick(); } catch (e) { log('poll failed:', e.message); }
