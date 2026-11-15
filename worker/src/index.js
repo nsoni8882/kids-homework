@@ -425,6 +425,7 @@ async function handleSubmit(request, env, child, ctx) {
   }
 
   await env.DB.batch(statements);
+  await queueScore(env, child, week);
   ctx.waitUntil(audit(env, 'browser', 'submit', child, week,
     `${marked.total}/${marked.outOf}, jev asked ${marked.askedJev}, referred ${marked.needsParent}`));
 
@@ -563,6 +564,7 @@ async function handleAward(request, env, child, ctx) {
     ).bind(m, child, week, sid));
   }
   await env.DB.batch(updates);
+  await queueScore(env, child, week);
 
   ctx.waitUntil(audit(env, 'browser', 'award', child, week,
     `${Object.keys(awards).length} awarded, total now ${total}/${outOf}`));
@@ -671,10 +673,32 @@ const JOB_KINDS = ['score', 'homework'];
 
 async function jobState(env) {
   const jobs = await env.DB.prepare(
-    'SELECT id, kind, status, requested_at, started_at, finished_at, progress, report FROM job ORDER BY id DESC LIMIT 10',
+    'SELECT id, kind, child_id, week, auto, status, requested_at, started_at, finished_at, progress, report FROM job ORDER BY id DESC LIMIT 10',
   ).all();
   const seen = await env.DB.prepare('SELECT seen_at FROM runner WHERE id = 1').first();
   return { jobs: jobs.results, runnerSeenAt: seen ? seen.seen_at : null };
+}
+
+/** Called when a week may have just become fully marked: after a submit, and
+    after the parent awards marks. Once no referred question is still waiting for
+    the parent, queue a score run for exactly that child and week, so the reasons
+    behind every wrong answer are written without anyone pressing a button.
+    Never fails the request that triggered it. */
+async function queueScore(env, child, week) {
+  try {
+    const open = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM decision WHERE child_id = ? AND week = ? AND kind = 'mark' AND status = 'open'",
+    ).bind(child, week).first();
+    if (open.n > 0) return;
+    await env.DB.prepare(
+      `INSERT INTO job (kind, child_id, week, auto, status, requested_at)
+       SELECT 'score', ?, ?, 1, 'queued', ?
+       WHERE NOT EXISTS (SELECT 1 FROM job WHERE status = 'queued' AND child_id = ? AND week = ?)`,
+    ).bind(child, week, nowIso(), child, week).run();
+    await audit(env, 'worker', 'job_queued', child, week, 'score, automatic');
+  } catch (err) {
+    console.error('queueScore failed', err && err.message);
+  }
 }
 
 /** GET reads the queue. POST queues a run. There is no run code: Nik is the only
@@ -726,7 +750,7 @@ async function handleAdmin(request, env, path, ctx) {
       'INSERT INTO runner (id, seen_at) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET seen_at = excluded.seen_at',
     ).bind(nowIso()).run();
     const job = await env.DB.prepare(
-      "SELECT id, kind FROM job WHERE status = 'queued' ORDER BY id LIMIT 1",
+      "SELECT id, kind, child_id, week FROM job WHERE status = 'queued' ORDER BY id LIMIT 1",
     ).first();
     return json({ job: job || null }, request, env);
   }

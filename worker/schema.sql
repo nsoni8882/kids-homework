@@ -223,6 +223,9 @@ CREATE INDEX IF NOT EXISTS audit_recent ON audit (at DESC);
 CREATE TABLE IF NOT EXISTS job (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   kind          TEXT NOT NULL CHECK (kind IN ('score', 'homework')),
+  child_id      TEXT,                 -- set on a score run for one child's week
+  week          INTEGER,
+  auto          INTEGER NOT NULL DEFAULT 0,   -- 1 when the Worker queued it, not a button
   status        TEXT NOT NULL DEFAULT 'queued'
                 CHECK (status IN ('queued', 'running', 'done', 'failed')),
   requested_at  TEXT NOT NULL,

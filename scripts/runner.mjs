@@ -34,8 +34,9 @@ const REPORT_MAX = 20_000;
 const UNATTENDED = '\n\nThis run was started from the dashboard and nobody is at the terminal. '
   + 'Do not ask anything or wait for a reply: decide, as CLAUDE.md section 2 says, and finish with the report.';
 const PROMPTS = {
-  score: '/score' + UNATTENDED,
-  homework: '/homework' + UNATTENDED
+  // a run the Worker queued names its child and week, so /score marks exactly that week
+  score: (job) => `/score${job.child_id ? ` ${job.child_id} ${job.week}` : ''}` + UNATTENDED,
+  homework: () => '/homework' + UNATTENDED
     + ' Apply your own recommendations and carry straight on through step 8, building, gating and pushing next week, as the standing instruction says.',
 };
 
@@ -127,7 +128,7 @@ async function tick() {
   if (!job) return;
   await sql("UPDATE job SET status = 'running', started_at = ? WHERE id = ? AND status = 'queued'", [now(), job.id]);
   log(`job ${job.id}: running ${job.kind}`);
-  const r = await runClaude(PROMPTS[job.kind], job.id);
+  const r = await runClaude(PROMPTS[job.kind](job), job.id);
   await sql('UPDATE job SET status = ?, finished_at = ?, report = ? WHERE id = ?',
     [r.ok ? 'done' : 'failed', now(), r.text.slice(-REPORT_MAX), job.id]);
   log(`job ${job.id}: ${r.ok ? 'done' : 'failed'}`);
