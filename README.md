@@ -1,6 +1,6 @@
 # Practice worksheets
 
-Weekly practice worksheets and a progress dashboard, served from GitHub Pages and backed by a
+Daily practice worksheets and a progress dashboard, served from GitHub Pages and backed by a
 Cloudflare Worker.
 
 No learning data, answers or personal records are stored in this repository, and no credential
@@ -12,12 +12,12 @@ read the current week and submit the current week, and nothing else.
 | Path | What it is |
 |---|---|
 | `index.html` | parent progress dashboard |
-| `mason/`, `elysia/` | one weekly worksheet per child |
+| `mason/`, `elysia/` | one daily worksheet per child |
 | `assets/` | design system, API client, marking engine, charts |
 | `curriculum/spine.json` | the fixed map each week is generated against |
 | `scripts/` | the data CLI and the checks below |
 | `worker/` | the Cloudflare Worker and D1 schema. This is the store. |
-| `.claude/skills/homework/` | the `/homework` command that runs the weekly cycle |
+| `.claude/skills/homework/` | the `/homework` command that runs the daily cycle |
 
 ## How it fits together
 
@@ -50,7 +50,7 @@ to the deployed Worker. To run the API locally too, see `worker/README.md`.
 scripts/kh.py pull              # API -> a normalised local copy under data/
 scripts/kh.py status            # what is on disk, what the API holds, open decisions
 scripts/kh.py curriculum mason  # where the child is on the curriculum map
-scripts/kh.py plan mason        # the spec for next week, before writing any questions
+scripts/kh.py plan mason        # the spec for the next set, before writing any questions
 scripts/kh.py answers mason 21  # one week's questions beside the answers given
 scripts/kh.py validate          # structure, coverage and the hard limits
 scripts/kh.py push              # write the week up, gaps, position and next week's questions

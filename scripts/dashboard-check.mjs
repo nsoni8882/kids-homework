@@ -160,7 +160,7 @@ if (!patched) {
   // a component with nothing in the week is flagged, and Elysia's Writing is one
   ok((html.match(/rm-cover-none/g) || []).length >= 1,
     'a component with nothing in the week is not flagged');
-  ok(html.includes('Nothing in the week covers this yet'),
+  ok(html.includes('Nothing in the daily homework covers this yet'),
     'a test component with no coverage is not called out');
   ok(html.includes('>Not started<'),
     'an untouched test component is not badged "Not started"');

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-10-12",
+  "updated": "2026-11-17",
   "purpose": "The fixed map the weekly homework is generated against. Read this BEFORE designing a week. It exists so the pathway is decided once and then followed, instead of being re-derived from scratch every week, which is how the content drifts. This file holds the map only. Where each child currently stands on it is data/curriculum/position.json, which the weekly cycle updates. Do not restate, summarise or re-invent this file in a weekly plan: cite the rung ids.",
   "howToUse": [
     "Run scripts/kh.py curriculum <child> to get this map merged with the child's current position, open gaps and the school topic for today. That printout is the brief.",
@@ -34,7 +34,13 @@
           ],
           "weightEach": "25%"
         }
-      ]
+      ],
+      "dailyMarks": {
+        "total": 25,
+        "english": 9,
+        "maths": 9,
+        "thinking": 7
+      }
     },
     "elysia": {
       "target": "NSW Opportunity Class (OC) placement test in 2029, then the NSW Selective High School placement test in 2031",
@@ -69,7 +75,13 @@
           ],
           "weightEach": "25%"
         }
-      ]
+      ],
+      "dailyMarks": {
+        "total": 20,
+        "english": 7,
+        "maths": 7,
+        "thinking": 6
+      }
     }
   },
   "slots": {
@@ -88,7 +100,11 @@
         "R-poem",
         "R-match"
       ],
-      "nswFamiliesNote": "A slot may declare its families as one list for both children, or as an object keyed by child when they differ. slots_for and the gate both read either form."
+      "nswFamiliesNote": "A slot may declare its families as one list for both children, or as an object keyed by child when they differ. slots_for and the gate both read either form.",
+      "dailyMarks": {
+        "mason": 3,
+        "elysia": 3
+      }
     },
     "1B": {
       "subject": "english",
@@ -101,7 +117,11 @@
       },
       "nswFamilies": [
         "R-missing"
-      ]
+      ],
+      "dailyMarks": {
+        "mason": 2,
+        "elysia": 2
+      }
     },
     "1C": {
       "subject": "english",
@@ -114,7 +134,11 @@
       },
       "nswFamilies": [
         "R-cloze"
-      ]
+      ],
+      "dailyMarks": {
+        "mason": 2,
+        "elysia": 2
+      }
     },
     "1D": {
       "subject": "english",
@@ -147,25 +171,33 @@
       "marksNote": "Mason's 4 marks come out of English's 20 from week 25. Elysia's split is not decided yet and must be before September 2029: her English 15 has to make room without the week leaving 40.",
       "plannedSplit": {
         "decided": "2026-10-12",
-        "what": "When slot 1D opens for Elysia in September 2029 her week moves from 40 marks to 55 and adopts the same split as Mason: 1A 6, 1B 5, 1C 5, 1D 4, Maths 20, Thinking 15.",
+        "what": "When slot 1D opens for Elysia in September 2029 her daily set moves from 20 marks to 25 and adopts the same split as Mason: 1A 3, 1B 2, 1C 2, 1D 2, Maths 9, Thinking 7. Re-decided 17 Nov 2026 when the homework went daily; the 12 Oct 2026 decision was the weekly version of the same thing, 40 to 55.",
         "why": "Squeezing 3 marks for writing out of her English 15 would permanently under-weight a component worth a quarter of the 2031 selective mark, and the reason writing reached zero coverage for Mason is precisely that it was never given marks. Raising the week is the honest answer rather than the convenient one: her 40 is sized for a Year 3 child and by September 2029 she is in NSW Year 5 with the Year 6 selective test ahead of her, sitting the same paper Mason sat. It also leaves ONE weekly structure across both children instead of two.",
         "mustChangeThen": [
-          "curriculum/spine.json goals.elysia.weeklyMarks",
+          "curriculum/spine.json goals.elysia.dailyMarks",
           "data/children/elysia/profile.json marksOutOf",
-          "assets/dashboard.js SUBJECT_MAX, which duplicates the spine and needs a Pages deploy"
+          "assets/dashboard.js DAILY_MAX, which duplicates the spine and needs a Pages deploy"
         ],
-        "watchFor": "Her weekly marks are checked against goals.elysia.weeklyMarks, so the three numbers above must move together. kh.py validate compares dashboard.js against the spine so the copy cannot be forgotten."
+        "watchFor": "Her daily marks are checked against goals.elysia.dailyMarks, so the three numbers above must move together. kh.py validate compares dashboard.js against the spine so the copy cannot be forgotten."
+      },
+      "dailyMarks": {
+        "mason": 2,
+        "elysia": 2
       }
     },
     "2A": {
       "subject": "maths",
       "purpose": "Arithmetic fluency drill, timed",
-      "format": "A score banded drill. At least 30 problems. First third easy, middle moderate, last third harder. From week 24 Mason's 2A carries 6 of his 20 maths marks rather than 8, with the same 30 items and the bands rescaled.",
+      "format": "A score banded drill. Daily sets: 12 problems, 3 marks, bands 12 for 3, 10 to 11 for 2, 7 to 9 for 1, 6 or fewer for 0. First third easy, middle moderate, last third harder. The weekly sets before the daily switch carried 30 problems.",
       "fixed": "Always scoreBand true with scoreBandRules. Always the child's current Kumon arithmetic operation.",
       "inferredRule": false,
       "nswFamilies": [],
       "nswRole": "Support, not an item family. 35 maths questions in 40 minutes with no calculator is out of reach without arithmetic fluency, so this slot buys the time the reasoning items need.",
-      "holdPolicy": "A rung whose advanceWhen is a Kumon level holds until the level moves, and that is not a stalled slot. Decided by Nik on 12 Oct 2026 after 2A.5 had held three cycles at 29 of 30: stop raising it and wait for the level to move on its own. Do not ask again, and do not advance on the score. Nik also allowed a PROBE: where readiness for the next rung is genuinely in doubt, one question at the next rung may be set to check understanding. It must not sit inside the banded drill, because a probe that costs a band mark is a test dressed as a question, so it goes in its own one mark item outside the band, and the week says it is a probe."
+      "holdPolicy": "A rung whose advanceWhen is a Kumon level holds until the level moves, and that is not a stalled slot. Decided by Nik on 12 Oct 2026 after 2A.5 had held three cycles at 29 of 30: stop raising it and wait for the level to move on its own. Do not ask again, and do not advance on the score. Nik also allowed a PROBE: where readiness for the next rung is genuinely in doubt, one question at the next rung may be set to check understanding. It must not sit inside the banded drill, because a probe that costs a band mark is a test dressed as a question, so it goes in its own one mark item outside the band, and the week says it is a probe.",
+      "dailyMarks": {
+        "mason": 3,
+        "elysia": 3
+      }
     },
     "2B": {
       "subject": "maths",
@@ -184,7 +216,11 @@
           "M-prob"
         ]
       },
-      "nswRole": "For Mason this is the working backwards item type: short division with the check multiplied back is the same undoing step, and the ladder ends at fractions of a quantity and then probability. For Elysia it is written procedure first, then working backwards at 2B.6 and probability at 2B.7. Probability had no route at all on either ladder until 11 Oct 2026, which is why the roadmap filed it under this slot while the slot did not serve it."
+      "nswRole": "For Mason this is the working backwards item type: short division with the check multiplied back is the same undoing step, and the ladder ends at fractions of a quantity and then probability. For Elysia it is written procedure first, then working backwards at 2B.6 and probability at 2B.7. Probability had no route at all on either ladder until 11 Oct 2026, which is why the roadmap filed it under this slot while the slot did not serve it.",
+      "dailyMarks": {
+        "mason": 3,
+        "elysia": 2
+      }
     },
     "2C": {
       "subject": "maths",
@@ -205,7 +241,11 @@
         "T-spatial"
       ],
       "familiesFrom": "schoolSync",
-      "nswRole": "2C tracks the school's half term topic, so which exam family it serves changes with the term, not with a rung. schoolSync.terms[].families is the per term list, and that is what decides whether a family is current. Claiming a family a term has not reached yet is how the roadmap came to say measurement and area were in the weekly homework in Autumn 1."
+      "nswRole": "2C tracks the school's half term topic, so which exam family it serves changes with the term, not with a rung. schoolSync.terms[].families is the per term list, and that is what decides whether a family is current. Claiming a family a term has not reached yet is how the roadmap came to say measurement and area were in the weekly homework in Autumn 1.",
+      "dailyMarks": {
+        "mason": 3,
+        "elysia": 2
+      }
     },
     "3A": {
       "subject": "thinking",
@@ -219,7 +259,11 @@
         "T-weaken",
         "T-flaw",
         "T-sufficiency"
-      ]
+      ],
+      "dailyMarks": {
+        "mason": 2,
+        "elysia": 2
+      }
     },
     "3B": {
       "subject": "thinking",
@@ -232,7 +276,11 @@
         "M-pattern",
         "T-tables",
         "T-optimise"
-      ]
+      ],
+      "dailyMarks": {
+        "mason": 3,
+        "elysia": 2
+      }
     },
     "3C": {
       "subject": "thinking",
@@ -245,7 +293,11 @@
         "T-conditional",
         "T-deduce",
         "T-calendar"
-      ]
+      ],
+      "dailyMarks": {
+        "mason": 2,
+        "elysia": 2
+      }
     }
   },
   "ladders": {
@@ -1609,5 +1661,22 @@
       "elysia": 23
     },
     "fromWeekWhy": "The first week each child is EXPECTED to carry an exam format section. Mason's week 24 and Elysia's week 22 were already with the children when the rule was agreed on 11 Oct 2026, and rebuilding a live section into multiple choice would discard whatever they had typed into it. A date alone was not enough: the ramp's first step fell due on 12 Oct and `validate` then failed both published weeks, which would have blocked `push` for everything, the same way slot 1D would have failed week 24 without its week guard. Enforcement needs both the date and the week."
+  },
+  "cadence": {
+    "decided": "2026-11-17",
+    "what": "Homework is DAILY, not weekly, from the set numbers in dailyFrom. Each daily set keeps every slot, so every rung and every open gap is still tested every set, but carries roughly 45 percent of the questions the weekly set did: Mason 33 questions for 25 marks, Elysia 29 for 20, about 30 and 25 minutes.",
+    "why": "Nik asked on 17 Nov 2026 for the homework to be done every day instead of once a week, with a half to a third of the questions per sitting.",
+    "dailyFrom": {
+      "mason": 30,
+      "elysia": 29
+    },
+    "dailyFromWhy": "Mason's W29 and Elysia's W28 were already loaded at full weekly size when the change was made, and rebuilding a live set would discard whatever they had typed. The set number keeps counting, so history stays one line: sets before dailyFrom are labelled Week, sets from it are labelled Day.",
+    "shape": {
+      "questions": "Every non drill question is worth 1 mark, so a section's dailyMarks is its question count. 2A is a 12 item banded drill worth 3. 1D is one short writing task worth 2.",
+      "passage": "1A passages shrink to 100 to 180 words. Every other format rule in the slot still applies.",
+      "timers": "About 2 to 3 minutes per question, 4 minutes for the drill, 8 for the writing task."
+    },
+    "evidence": "A 'week' in any advanceWhen means a BLOCK of three consecutive daily sets, combined per section. 'Two clean weeks' is therefore the last six daily sets at full marks, and the 95/80 percent advancement thresholds are read on the block, not on one set, because two or three items a day is too thin to judge alone. kh.py plan computes the block. Two sets submitted within 12 hours count as one data point.",
+    "gaps": "A gap gains one observation per daily set. RESOLVED needs three clean appearances, not two, on unhinted, unambiguous items, since a daily re-test is often a single item. Untested for six sets in a row is flagged."
   }
 }

@@ -1,7 +1,7 @@
 /* Parent dashboard.
  *
  * It answers two questions, in this order:
- *   1. How did this week go?        the hero line, one sentence, no scrolling
+ *   1. How did the last set go?     the hero line, one sentence, no scrolling
  *   2. Are they moving forward?     the mastery ladder, not the score
  *
  * Everything else is detail behind that. The long marking notes are kept, but
@@ -13,7 +13,7 @@
  * capped at 100KB. The database has no such cap.
  */
 
-import { CHILDREN } from './config.js';
+import { CHILDREN, isDaily, setLabel } from './config.js';
 import { apiDashboard } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
 import { trendChart, subjectChart, lossChart, sparkline,
@@ -24,6 +24,11 @@ const MAX = {
   mason: { english: 20, maths: 20, thinking: 15, total: 55 },
   elysia: { english: 15, maths: 15, thinking: 10, total: 40 },
 };
+// Homework went daily on 17 Nov 2026 (spine.cadence). Sets from DAILY_FROM use this split.
+const DAILY_MAX = {
+  mason: { english: 9, maths: 9, thinking: 7, total: 25 },
+  elysia: { english: 7, maths: 7, thinking: 6, total: 20 },
+};
 const GAP_STATUS = {
   new: { label: 'New', cls: 'badge-bad', icon: 'alert' },
   persists: { label: 'Persists', cls: 'badge-warn', icon: 'alert' },
@@ -32,7 +37,7 @@ const GAP_STATUS = {
   parked: { label: 'Parked', cls: 'badge-neutral', icon: 'clock' },
 };
 const VERDICT = {
-  strong: { label: 'Strong week', icon: 'award' },
+  strong: { label: 'Strong set', icon: 'award' },
   steady: { label: 'Steady', icon: 'flat' },
   dip: { label: 'Dipped', icon: 'trendDown' },
   concern: { label: 'Needs attention', icon: 'alert' },
@@ -87,7 +92,7 @@ function initTheme() {
 
 /** Normalise one week from the API into the shape the UI uses. */
 function norm(kid, raw) {
-  const max = MAX[kid];
+  const max = (isDaily(kid, raw.week) ? DAILY_MAX : MAX)[kid];
   const sm = raw.sectionMarks || {};
   const has = Object.keys(sm).length > 0;
   // By the leading digit of the section id, so a new slot such as Mason's 1D
@@ -98,6 +103,8 @@ function norm(kid, raw) {
   const total = raw.total;
   return {
     week: raw.week,
+    tag: setLabel(kid, raw.week, true),
+    label: setLabel(kid, raw.week),
     total,
     outOf,
     // null, not 0, where a week has no section marks: the chart then leaves a
@@ -198,7 +205,7 @@ function renderKid(kid) {
   const data = live[kid] || {};
   if (!data.weeks || !data.weeks.filter((w) => w.total != null).length) {
     $(`panel-${kid}`).innerHTML = `<div class="card"><div class="empty">${icon('inbox', 'i i-lg')}
-      <h2>No weeks recorded yet</h2><p>The first submitted worksheet shows up here.</p></div></div>`;
+      <h2>No homework recorded yet</h2><p>The first submitted worksheet shows up here.</p></div></div>`;
     return;
   }
   const weeks = weeksFor(kid);
@@ -215,13 +222,13 @@ function renderKid(kid) {
     <h2 class="section-label">Performance</h2>
     <div class="grid grid-2">
       ${chartCard(`${kid}-trend`, 'trend', 'Accuracy over time',
-        `last ${weeks.length} weeks`, trendTable(kid, weeks))}
+        `last ${weeks.length} sets`, trendTable(kid, weeks))}
       ${chartCard(`${kid}-subject`, 'target', 'By subject', '', subjectTable(kid, weeks),
         subjectLegend(kid))}
     </div>
     <section class="card">
       <div class="chart-head">${icon('search')}<h2>Where the marks went</h2></div>
-      <p class="card-note" style="margin-bottom:var(--s3)">Marks lost each week, by subject.</p>
+      <p class="card-note" style="margin-bottom:var(--s3)">Marks lost each set, by subject.</p>
       <div class="chart-box" style="height:200px"><canvas id="${kid}-loss-chart"></canvas></div>
       <div class="legend" role="group" aria-label="Focus one subject">
         ${SUBJECTS.map((s) => `<button type="button" class="legend-btn" data-focus="${s}"
@@ -253,13 +260,13 @@ function renderKid(kid) {
       ${resolvedHtml(kid, data)}
     </section>
 
-    <h2 class="section-label">This week in detail</h2>
+    <h2 class="section-label">Latest set in detail</h2>
     ${detailHtml(w)}
 
     <h2 class="section-label">History</h2>
     <section class="card">
-      <div class="chart-head">${icon('history')}<h2>Every week on record</h2></div>
-      <p class="card-note">The charts above show the last ${weeks.length} weeks. This is all of them.</p>
+      <div class="chart-head">${icon('history')}<h2>Every set on record</h2></div>
+      <p class="card-note">The charts above show the last ${weeks.length} sets. This is all of them.</p>
       ${historyHtml(kid)}
     </section>
 `;
@@ -283,9 +290,9 @@ function heroHtml(kid, w, prev) {
   const delta = prev ? w.total - prev.total : null;
   const deltaCls = delta == null ? 'trend-flat' : delta > 0 ? 'trend-up' : delta < 0 ? 'trend-down' : 'trend-flat';
   const deltaIcon = delta == null ? 'flat' : delta > 0 ? 'trend' : delta < 0 ? 'trendDown' : 'flat';
-  const deltaText = delta == null ? 'first week recorded'
-    : delta === 0 ? `level with week ${prev.week}`
-    : `${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)} on week ${prev.week}`;
+  const deltaText = delta == null ? 'first set recorded'
+    : delta === 0 ? `level with ${prev.label}`
+    : `${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)} on ${prev.label}`;
 
   const tags = SUBJECTS.map((s) => `
     <span class="pill"><span style="color:var(--${s})">${icon(SUBJECT_ICON[s], 'i i-sm')}</span>
@@ -295,14 +302,14 @@ function heroHtml(kid, w, prev) {
     <div class="hero-top">
       <div class="hero-score">${w.total}<small> / ${w.outOf}</small></div>
       <div class="hero-meta">
-        <div class="hero-week">Week ${w.week} &middot; ${p}%</div>
+        <div class="hero-week">${w.label} &middot; ${p}%</div>
         <div class="hero-delta ${deltaCls}">${icon(deltaIcon, 'i i-sm')} ${deltaText}</div>
       </div>
       ${v ? `<span class="verdict verdict-${w.verdict}" style="margin-left:auto">
         ${icon(v.icon)} ${v.label}</span>` : ''}
     </div>
     ${w.summary ? `<p class="hero-summary">${esc(w.summary)}</p>`
-      : '<p class="hero-summary" style="color:var(--text-3)">No summary written for this week yet.</p>'}
+      : '<p class="hero-summary" style="color:var(--text-3)">No summary written for this set yet.</p>'}
     <div class="hero-tags">${tags}</div>
   </section>`;
 }
@@ -340,8 +347,8 @@ function kpiHtml(kid, weeks, gaps) {
 
   return `<div class="kpi-row">
     ${tile(`${kid}-spark-acc`, 'Accuracy', 'target', `${pct(w.total, w.outOf)}%`,
-      `${avg}% average over ${weeks.length} weeks`, 'var(--accent-ink)', true)}
-    ${tile('', 'Best week', 'award', `${pct(best.total, best.outOf)}%`, `week ${best.week}`, 'var(--text)')}
+      `${avg}% average over ${weeks.length} sets`, 'var(--accent-ink)', true)}
+    ${tile('', 'Best set', 'award', `${pct(best.total, best.outOf)}%`, best.label, 'var(--text)')}
     ${tile('', 'Open gaps', 'alert', String(active),
       `${gaps.length - active} improving`, gapColour)}
     ${tile('', 'Skills cleared', 'layers', totalRungs ? `${cleared}/${totalRungs}` : '-',
@@ -363,7 +370,7 @@ function decisionsHtml(kid, w, gaps, data) {
     const weeks = [...new Set(open.map((d) => d.week))].sort((a, b) => a - b);
     items.push(`${open.length} answer${open.length === 1 ? '' : 's'} still need`
       + `${open.length === 1 ? 's' : ''} a mark from you`
-      + ` (week${weeks.length === 1 ? '' : 's'} ${weeks.join(', ')}).`
+      + ` (${weeks.map((n) => setLabel(kid, n)).join(', ')}).`
       + ' Reopen the worksheet to award them.');
   }
   for (const d of (data.decisions || []).filter((x) => x.kind !== 'mark')) {
@@ -384,7 +391,7 @@ function decisionsHtml(kid, w, gaps, data) {
     return g.status !== 'resolved' && g.status !== 'parked'
       && seen > 0 && tail.length >= 6 && tail.every(untested);
   });
-  for (const g of stale) items.push(`"${g.topic}" has not been tested for six weeks. Retest or close it.`);
+  for (const g of stale) items.push(`"${g.topic}" has not been tested in the last six sets. Retest or close it.`);
   // A hinted section is information, not a decision, so it gets its own line.
   const hinted = w.hintedSections && w.hintedSections.length
     ? `<p style="margin:var(--s2) 0 0;font-size:.86rem;color:var(--text-2)">Sections ${esc(w.hintedSections.join(', '))} were hinted, so they are not clean evidence.</p>`
@@ -472,17 +479,17 @@ function wireCard(id) {
 }
 
 function trendTable(kid, weeks) {
-  return `<table><caption class="sr-only">Accuracy by week for ${CHILDREN[kid].name}</caption>
-    <thead><tr><th>Week</th><th>Marks</th><th>Accuracy</th></tr></thead><tbody>
-    ${weeks.slice().reverse().map((w) => `<tr><td>W${w.week}</td>
+  return `<table><caption class="sr-only">Accuracy by set for ${CHILDREN[kid].name}</caption>
+    <thead><tr><th>Set</th><th>Marks</th><th>Accuracy</th></tr></thead><tbody>
+    ${weeks.slice().reverse().map((w) => `<tr><td>${w.tag}</td>
       <td class="n">${w.total} / ${w.outOf}</td><td class="n">${pct(w.total, w.outOf)}%</td></tr>`).join('')}
     </tbody></table>`;
 }
 
 function subjectTable(kid, weeks) {
   return `<table><caption class="sr-only">Score by subject for ${CHILDREN[kid].name}</caption>
-    <thead><tr><th>Week</th>${SUBJECTS.map((s) => `<th>${SUBJECT_LABEL[s]}</th>`).join('')}</tr></thead>
-    <tbody>${weeks.slice().reverse().map((w) => `<tr><td>W${w.week}</td>
+    <thead><tr><th>Set</th>${SUBJECTS.map((s) => `<th>${SUBJECT_LABEL[s]}</th>`).join('')}</tr></thead>
+    <tbody>${weeks.slice().reverse().map((w) => `<tr><td>${w.tag}</td>
       ${SUBJECTS.map((s) => `<td class="n">${w[s] == null ? 'not recorded' : `${w[s]} / ${w[`${s}Max`]}`}</td>`).join('')}
     </tr>`).join('')}</tbody></table>`;
 }
@@ -556,7 +563,7 @@ function heatHtml(gaps) {
     </div>`;
   }).join('');
   return `<div class="heat">${rows}</div>
-    <p class="card-note" style="margin-top:var(--s3)">Last 8 weeks, oldest first. The ringed cell is
+    <p class="card-note" style="margin-top:var(--s3)">Last 8 sets, oldest first. The ringed cell is
       the latest. A dash means not tested that week.</p>`;
 }
 
@@ -579,12 +586,12 @@ function detailHtml(w) {
     cards.push(`<div class="card"><div class="detail-head">${icon('cross', 'i i-sm')} Real errors</div>
       <ul class="detail-list">${list(w.errors, 'cross', 'var(--bad)')}</ul></div>`);
   }
-  if (!cards.length) cards.push(`<div class="card"><p class="card-note">No detail recorded for this week.</p></div>`);
+  if (!cards.length) cards.push(`<div class="card"><p class="card-note">No detail recorded for this set.</p></div>`);
 
   return `<div class="detail-grid">${cards.join('')}</div>
     ${w.notes ? `<section class="card" style="margin-top:var(--s3)">
       <details class="disclose" style="border-top:0;margin-top:0;padding-top:0">
-        <summary>${icon('chevronRight', 'i i-sm chev')} Full marking notes for week ${w.week}</summary>
+        <summary>${icon('chevronRight', 'i i-sm chev')} Full marking notes for ${w.label}</summary>
         <div class="note-body" style="margin-top:var(--s3)">${esc(w.notes)}</div>
       </details></section>` : ''}`;
 }
@@ -632,37 +639,37 @@ function resolvedHtml(kid, data) {
 
 function historyHtml(kid) {
   const all = weeksFor(kid, true).sort((a, b) => a.week - b.week);
-  if (!all.length) return '<p class="card-note">No weeks recorded yet.</p>';
+  if (!all.length) return '<p class="card-note">No homework recorded yet.</p>';
 
   const avg = Math.round(all.reduce((t, w) => t + pct(w.total, w.outOf), 0) / all.length);
   const best = all.reduce((b, w) => (pct(w.total, w.outOf) > pct(b.total, b.outOf) ? w : b), all[0]);
 
   return `<details class="disclose" id="${kid}-history">
-    <summary>${icon('chevronRight', 'i i-sm chev')} Full history, weeks ${all[0].week} to ${all[all.length - 1].week}</summary>
+    <summary>${icon('chevronRight', 'i i-sm chev')} Full history, ${all[0].label} to ${all[all.length - 1].label}</summary>
     <div style="margin-top:var(--s4)">
       <div class="kpi-row" style="margin-bottom:var(--s4)">
-        <div class="kpi"><div class="kpi-label">${icon('history', 'i i-sm')} Weeks</div>
+        <div class="kpi"><div class="kpi-label">${icon('history', 'i i-sm')} Sets</div>
           <div class="kpi-value">${all.length}</div>
-          <div class="kpi-sub">W${all[0].week} to W${all[all.length - 1].week}</div></div>
+          <div class="kpi-sub">${all[0].tag} to ${all[all.length - 1].tag}</div></div>
         <div class="kpi"><div class="kpi-label">${icon('target', 'i i-sm')} Average</div>
-          <div class="kpi-value">${avg}%</div><div class="kpi-sub">every week</div></div>
+          <div class="kpi-value">${avg}%</div><div class="kpi-sub">every set</div></div>
         <div class="kpi"><div class="kpi-label">${icon('award', 'i i-sm')} Best</div>
           <div class="kpi-value">${pct(best.total, best.outOf)}%</div>
-          <div class="kpi-sub">week ${best.week}</div></div>
+          <div class="kpi-sub">${best.label}</div></div>
         <div class="kpi"><div class="kpi-label">${icon('save', 'i i-sm')} Answers kept</div>
           <div class="kpi-value">${all.filter((w) => w.hasAnswers).length}</div>
-          <div class="kpi-sub">weeks re-markable</div></div>
+          <div class="kpi-sub">sets re-markable</div></div>
       </div>
       <div class="chart-box" style="height:240px;margin-bottom:var(--s4)">
         <canvas id="${kid}-history-chart"></canvas></div>
       <div class="table-wrap"><table>
-        <caption class="sr-only">Every recorded week for ${CHILDREN[kid].name}</caption>
-        <thead><tr><th>Week</th><th>Marks</th><th>Accuracy</th>
+        <caption class="sr-only">Every recorded set for ${CHILDREN[kid].name}</caption>
+        <thead><tr><th>Set</th><th>Marks</th><th>Accuracy</th>
           ${SUBJECTS.map((s) => `<th>${SUBJECT_LABEL[s]}</th>`).join('')}<th>Summary</th></tr></thead>
         <tbody>${all.slice().reverse().map((w) => {
           const p = pct(w.total, w.outOf);
           const tone = p >= 90 ? 'badge-ok' : p >= 75 ? 'badge-info' : p >= 60 ? 'badge-warn' : 'badge-bad';
-          return `<tr><td><strong>W${w.week}</strong></td><td class="n">${w.total} / ${w.outOf}</td>
+          return `<tr><td><strong>${w.tag}</strong></td><td class="n">${w.total} / ${w.outOf}</td>
             <td><span class="badge ${tone}">${p}%</span></td>
             ${SUBJECTS.map((s) => `<td class="n">${w[s] == null ? '-' : `${w[s]}/${w[`${s}Max`]}`}</td>`).join('')}
             <td style="max-width:34ch"><span class="td-detail" style="margin:0">${esc(w.summary || '')}</span></td></tr>`;
@@ -835,7 +842,7 @@ function trackHtml(kid, child, t, trackId, isWide) {
   const items = t.sections.flatMap((sec) => sec.items);
   const covered = items.filter((i) => i.state !== 'future').length;
   const tally = isWide
-    ? `${covered} of ${items.length} skills in the week, ${items.length - covered} not started`
+    ? `${covered} of ${items.length} skills in the daily homework, ${items.length - covered} not started`
     : `${t.sections.filter((sec) => sectionState(sec) === 'cleared').length} of
        ${t.sections.length} levels cleared outright.`;
   /* Naming seven skills in one line reads worse than naming the components and
@@ -850,7 +857,7 @@ function trackHtml(kid, child, t, trackId, isWide) {
     ${isWide ? `<div class="rm-covers">${byComponent}</div>`
       : `<p class="card-note rm-now">${here.length
         ? `${icon('target', 'i i-sm')} Now on ${esc(here.join(' · '))}`
-        : `${icon('alert', 'i i-sm')} Nothing in the week covers this yet`}</p>`}
+        : `${icon('alert', 'i i-sm')} Nothing in the daily homework covers this yet`}</p>`}
     <p class="card-note">${tally}</p>
     ${note ? `<p class="card-note rm-note">${icon('alert', 'i i-sm')} ${esc(note)}</p>` : ''}
     <div class="${isWide ? 'rm-wide-secs' : ''}">
@@ -881,11 +888,11 @@ function sectionHtml(sec, track = {}) {
       <span class="rm-sec-label">${esc(sec.label)}</span>
       ${badge}
       ${sec.items.length > 1 ? `<span class="rm-sec-count">${track.wide
-        ? `${sec.items.filter((i) => i.state !== 'future').length} of ${sec.items.length} in the week`
+        ? `${sec.items.filter((i) => i.state !== 'future').length} of ${sec.items.length} in the daily homework`
         : `${done} of ${sec.items.length} cleared`}</span>` : ''}</summary>
     ${sec.sub ? `<p class="card-note rm-sec-sub">${esc(sec.sub)}</p>` : ''}
     ${track.wide && st === 'future' ? `<p class="card-note rm-sec-sub" style="color:var(--warn)">
-      ${icon('alert', 'i i-sm')} Nothing in the week covers this yet.</p>` : ''}
+      ${icon('alert', 'i i-sm')} Nothing in the daily homework covers this yet.</p>` : ''}
     <div class="rm-sec-items">${items}</div>
   </details>`;
 }

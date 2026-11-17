@@ -8,16 +8,16 @@
  * this panel polls its own, so neither can break the other.
  */
 
-import { API } from './config.js';
+import { API, setLabel } from './config.js';
 import { icon } from './icons.js';
 
 const SLOW_MS = 15_000;    // nothing running
 const FAST_MS = 3_000;     // a run is waiting or in progress
 const ALIVE_MS = 90_000;   // the helper polls every 30s, so 90s silent means asleep or off
-const KIND = { score: 'Score', homework: 'Weekly cycle' };
+const KIND = { score: 'Score', homework: 'Daily cycle' };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // an automatic run says which child and week it is scoring and why it started
-const label = (j) => (j.child_id ? `${KIND[j.kind]}, ${cap(j.child_id)} week ${j.week}${j.auto ? ', automatic' : ''}` : KIND[j.kind]);
+const label = (j) => (j.child_id ? `${KIND[j.kind]}, ${cap(j.child_id)} ${setLabel(j.child_id, j.week)}${j.auto ? ', automatic' : ''}` : KIND[j.kind]);
 const STATUS = {
   queued: { label: 'Waiting for the Mac', cls: 'badge-info', icon: 'clock' },
   running: { label: 'Running', cls: 'badge-warn', icon: 'refresh' },
@@ -102,13 +102,13 @@ function render() {
     ${icon(armed === kind ? 'check' : ico)}${armed === kind ? 'Tap again to start' : label}</button>`;
 
   part('top', `
-    <div class="run-head"><h2 class="run-title">Run the weekly work</h2>${helper}</div>
-    <p class="card-note">Score marks the latest submitted week and writes the reason behind each wrong answer.
-      The weekly cycle does that, updates the gaps and builds next week. Both run on the Mac and take a few minutes.
+    <div class="run-head"><h2 class="run-title">Run the daily work</h2>${helper}</div>
+    <p class="card-note">Score marks the latest submitted set and writes the reason behind each wrong answer.
+      The daily cycle does that, updates the gaps and builds the next day's set. Both run on the Mac and take a few minutes.
       Scoring also starts by itself once a child has submitted and every question the Mac could not mark has been marked by you.</p>
     <div class="row">
-      ${button('score', 'btn-primary', 'clipboard', 'Score the latest week')}
-      ${button('homework', 'btn-secondary', 'layers', 'Run the weekly cycle')}
+      ${button('score', 'btn-primary', 'clipboard', 'Score the latest set')}
+      ${button('homework', 'btn-secondary', 'layers', 'Run the daily cycle')}
     </div>
     <p class="run-msg" role="status" aria-live="polite">${esc(message)}</p>`);
   part('active', live ? activeHtml(live, alive) : '');

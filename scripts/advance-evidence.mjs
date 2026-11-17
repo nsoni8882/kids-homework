@@ -4,7 +4,7 @@
  *   node scripts/advance-evidence.mjs mason 24
  *
  * Per slot it lists the reasons to HOLD that are facts (hinted, a gap still open,
- * two weeks inside 48 hours, repeated answers) and the two things only Jev can
+ * two sets inside 12 hours, repeated answers) and the two things only Jev can
  * judge (a shortcut, or answers that do not show the skill).
  *
  * It recommends and decides nothing. Whether `advanceWhen` is met stays yours,
@@ -48,8 +48,8 @@ const rows = await pool(set.sections, 4, async (section) => {
   if (section.hinted) facts.push('the section was hinted, so it proves only that the child can copy');
   const open = gaps.filter((g) => g.slot === section.id && ['new', 'persists', 'improving'].includes(g.status));
   if (open.length) facts.push(`${open.length} open gap(s) on this slot, first: ${open[0].topic.slice(0, 50)}`);
-  if (hoursBetween !== null && hoursBetween < 48) {
-    facts.push(`submitted ${hoursBetween.toFixed(0)}h after the previous week: one data point, not two`);
+  if (hoursBetween !== null && hoursBetween < 12) {
+    facts.push(`submitted ${hoursBetween.toFixed(0)}h after the previous set: one data point, not two`);
   }
   const keys = section.questions.filter((q) => q.autoMark && q.accepted && q.accepted.length)
     .map((q) => String(q.accepted[0]).trim().toLowerCase());

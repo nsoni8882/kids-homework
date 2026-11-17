@@ -24,9 +24,18 @@ export const API = (() => {
 })();
 
 export const CHILDREN = {
-  mason:  { name: 'Mason',  icon: 'compass', outOf: 55 },
-  elysia: { name: 'Elysia', icon: 'sparkle', outOf: 40 },
+  mason:  { name: 'Mason',  icon: 'compass', outOf: 25 },
+  elysia: { name: 'Elysia', icon: 'sparkle', outOf: 20 },
 };
+
+/** The first DAILY set per child. Homework went daily on 17 Nov 2026; the set
+    number keeps counting, so older sets are a Week and newer ones a Day.
+    kh.py validate checks this against spine.cadence.dailyFrom. */
+export const DAILY_FROM = { mason: 30, elysia: 29 };
+export const isDaily = (child, n) => n >= DAILY_FROM[child];
+/** "Day 31" or "Week 28"; short gives "D31" or "W28". */
+export const setLabel = (child, n, short = false) =>
+  (short ? (isDaily(child, n) ? 'D' : 'W') : (isDaily(child, n) ? 'Day ' : 'Week ')) + n;
 
 /** The child this page is for. Set explicitly on <html data-child>, with the
     URL path as a fallback so /mason/ and /elysia/ keep working on their own. */

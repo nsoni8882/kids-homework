@@ -1,15 +1,18 @@
 ---
 name: score
-description: Check a submitted week's marks through Jev and the mark schemes, then write the child-facing reason behind every wrong answer, which the worksheet shows in the red cross overlay. Does not build next week. Use after a child has submitted and the parent has marked the referred answers, or when Nik types /score.
+description: Check a submitted daily set's marks through Jev and the mark schemes, then write the child-facing reason behind every wrong answer, which the worksheet shows in the red cross overlay. Does not build the next set. Use after a child has submitted and the parent has marked the referred answers, or when Nik types /score.
 trigger: /score
 model: opus
 ---
 
 # /score
 
-Marks the week that has just been submitted, checks every lost answer, and writes the reason
-behind each one. It is the step between "the child has submitted" and "/homework builds next
-week". It never builds questions.
+Marks the set that has just been submitted, checks every lost answer, and writes the reason
+behind each one. It is the step between "the child has submitted" and "/homework builds the next
+daily set". It never builds questions.
+
+Homework is daily from 17 Nov 2026 (`spine.cadence`). The set number N is still called `week` in
+the database and every command, so `/score mason 31` scores Mason's Day 31.
 
 ```
 /score                 both children, their latest submitted week
@@ -139,7 +142,7 @@ Then, only if there is something to act on:
 
 Say which explanations were written and which answers are unsure. Do not restate the whole week.
 
-Then stop. Do not build next week, and do not run `/homework`. The end of this skill is a
+Then stop. Do not build the next set, and do not run `/homework`. The end of this skill is a
 written report and the explanations in the database.
 
 ## Rules that do not bend

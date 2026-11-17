@@ -757,8 +757,8 @@ export const EVIDENCE_THRESHOLDS = { shortcut: 0.6, thin: 0.6 };
 /**
  * Is this week's result in one slot strong enough to move a rung on?
  *
- * The deterministic reasons to hold (hinted, a gap still open, two weeks inside
- * 48 hours, repeated answers) are the caller's: they are facts. This asks only
+ * The deterministic reasons to hold (hinted, a gap still open, two sets inside
+ * 12 hours, repeated answers) are the caller's: they are facts. This asks only
  * what a string rule cannot: whether a pattern or a guess could have scored the
  * marks, and whether what the child actually wrote shows the skill. It returns
  * flags and never a decision. `advanceWhen` itself stays deterministic.
@@ -861,10 +861,10 @@ export async function suggestAccepted(jev, { child, question, candidate }) {
 /* ------------------------------------------------------------ week verdict */
 
 export const VERDICT_KINDS = {
-  strong: 'A strong week: a high score, steady or better than recent weeks, nothing alarming',
-  steady: 'A steady week: close to the recent run, no clear move either way',
+  strong: 'A strong set: a high score, steady or better than recent sets, nothing alarming',
+  steady: 'A steady set: close to the recent run, no clear move either way',
   dip: 'A dip: noticeably below the recent run, or a subject has fallen away',
-  concern: 'A concern: low, or a pattern across weeks that needs attention soon',
+  concern: 'A concern: low, or a pattern across sets that needs attention soon',
 };
 
 export const VERDICT_POLICY = { minConfidence: 0.6 };
@@ -885,8 +885,9 @@ export async function suggestVerdict(jev, { child, facts }) {
       verdict: {
         type: 'choice',
         instructions:
-          'Judge this week for the parent. Compare `pct` with `recentPcts` (oldest first, this '
-          + 'week excluded), and look at `subjects` for any one that fell. Question faults '
+          'Judge this homework set for the parent. Compare `pct` with `recentPcts` (oldest first, this '
+          + 'set excluded). A daily set is short, so one slip moves `pct` a lot: weigh the recent '
+          + 'run, and look at `subjects` for any one that fell. Question faults '
           + '(`designIssueCount`) are the setter\'s fault, not the child\'s, so do not count them '
           + 'against the child. Choose the single label that fits.',
         criteria: VERDICT_KINDS,

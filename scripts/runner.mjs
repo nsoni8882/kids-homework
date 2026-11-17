@@ -39,7 +39,7 @@ const PROMPTS = {
   // a run the Worker queued names its child and week, so /score marks exactly that week
   score: (job) => `/score${job.child_id ? ` ${job.child_id} ${job.week}` : ''}` + UNATTENDED,
   homework: () => '/homework' + UNATTENDED
-    + ' Apply your own recommendations and carry straight on through step 8, building, gating and pushing next week, as the standing instruction says.',
+    + ' Apply your own recommendations and carry straight on through step 8, building, gating and pushing the next daily set, as the standing instruction says.',
 };
 
 const TOOLS = [

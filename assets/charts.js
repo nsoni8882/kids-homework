@@ -120,7 +120,7 @@ export function trendChart(canvas, weeks, accent) {
   return new Chart(canvas, {
     type: 'line',
     data: {
-      labels: weeks.map((w) => `W${w.week}`),
+      labels: weeks.map((w) => w.tag),
       datasets: [{
         label: 'Accuracy',
         data: pts,
@@ -177,7 +177,7 @@ export function subjectChart(canvas, weeks, focus = null) {
   return new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: weeks.map((w) => `W${w.week}`),
+      labels: weeks.map((w) => w.tag),
       datasets: SUBJECTS.map((s) => ({
         label: SUBJECT_LABEL[s],
         subjectKey: s,
@@ -231,7 +231,7 @@ export function lossChart(canvas, weeks, focus = null) {
   return new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: weeks.map((w) => `W${w.week}`),
+      labels: weeks.map((w) => w.tag),
       datasets: SUBJECTS.map((s) => ({
         label: SUBJECT_LABEL[s],
         subjectKey: s,

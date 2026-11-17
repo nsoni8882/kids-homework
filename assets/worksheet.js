@@ -1,10 +1,10 @@
-/* The weekly worksheet, one child per page.
+/* The daily worksheet, one child per page.
 
    Flow: welcome -> one screen per section -> parent marks the written answers
    -> results, which save themselves. A week already submitted can be reopened
    read only from the welcome screen. */
 
-import { CHILDREN, currentChild } from './config.js';
+import { CHILDREN, currentChild, setLabel } from './config.js';
 import { apiWeek, apiSubmit, apiAward } from './store.js';
 import { icon, iconLabelled, SUBJECT_ICON } from './icons.js';
 import { bandMarks } from './marking.js';
@@ -132,7 +132,7 @@ export function initTheme() {
 async function init() {
   render(`<div class="center-state">
     <div class="spinner" role="status" aria-label="Loading"></div>
-    <p>Loading this week's homework</p>
+    <p>Loading today's homework</p>
   </div>`);
   try {
     const data = await apiWeek(child);
@@ -195,7 +195,7 @@ function showWelcome() {
     const waiting = pendingQuestions();
     const atStake = waiting.reduce((t, i) => t + (i.section.scoreBand ? 0 : i.q.marks), 0);
     banner = `<div class="banner">
-      <div class="banner-title">${icon('checkCircle')} Week ${savedEntry.week} already submitted</div>
+      <div class="banner-title">${icon('checkCircle')} ${setLabel(child, savedEntry.week)} already submitted</div>
       <div class="banner-score">${savedEntry.total} / ${savedEntry.outOf} <span style="font-size:.9rem;font-weight:400">(${pct}%)</span></div>
       <div class="banner-sub">${esc(parts)}</div>
       ${waiting.length ? `<div class="banner-sub" style="margin-top:var(--s2);color:var(--warn);font-weight:700">
@@ -235,7 +235,7 @@ function showWelcome() {
   render(`<div class="page page-narrow"><div class="welcome">
     <div class="welcome-mark">${icon(PROFILE.icon, 'i')}</div>
     <h1>${esc(NAME)}'s homework</h1>
-    <div class="week-badge">Week ${week.weekNum}</div>
+    <div class="week-badge">${setLabel(child, week.weekNum)}</div>
     <p class="welcome-meta">${week.sections.length} sections, ${total} marks to collect</p>
     <ul class="section-chips" style="list-style:none;padding:0;margin:0">${chips}</ul>
     ${banner}
@@ -265,7 +265,7 @@ function startFresh() {
   // A submitted week is marked and possibly awarded. Starting again replaces all
   // of it, so ask first: one stray tap used to be enough.
   if (savedEntry && !confirm(
-    `Week ${savedEntry.week} is already marked. Starting again will replace its marks `
+    `${setLabel(child, savedEntry.week)} is already marked. Starting again will replace its marks `
     + 'with the new attempt. Are you sure?')) return;
   reviewMode = false;
   answers = {};
@@ -430,7 +430,7 @@ function showSection() {
     </div>
     <div class="page page-narrow" style="padding-top:var(--s5)">
       ${stepDots(count)}
-      ${reviewMode ? `<div class="mode-bar">${icon('eye')} Reviewing saved answers for week ${week.weekNum}</div>` : ''}
+      ${reviewMode ? `<div class="mode-bar">${icon('eye')} Reviewing saved answers for ${setLabel(child, week.weekNum)}</div>` : ''}
       <div class="section-top">
         <span class="section-count">Section ${sectionIdx + 1} of ${count}</span>
         <span class="chip-subject subj-${sec.subject}">
@@ -960,11 +960,11 @@ function ledger(readOnly) {
 /* One line of plain praise under the score, keyed off the same bands as the
    trophy so the picture and the words never disagree. */
 function cheer(pct) {
-  if (pct >= 95) return 'Almost every single one. That is a brilliant week.';
+  if (pct >= 95) return 'Almost every single one. That is a brilliant day.';
   if (pct >= 90) return 'A really strong week. Go and tell someone.';
   if (pct >= 75) return 'Lots right and a few to look at together.';
   if (pct >= 60) return 'A solid go. The ones below are the ones worth a second look.';
-  return 'Hard sections this week. Walk through the ones below with a grown up.';
+  return 'Hard sections today. Walk through the ones below with a grown up.';
 }
 
 /* The score counts itself up, which gives the number a moment of its own
@@ -1052,7 +1052,7 @@ function showResults(readOnly) {
     <div class="results">
       ${!open && pct >= 75 ? confetti() : ''}
       ${readOnly ? `<p class="review-step">${icon(savedMsg ? 'checkCircle' : 'eye', 'i i-sm')} ${
-        esc(savedMsg || `Saved results for week ${week.weekNum}`)}</p>` : ''}
+        esc(savedMsg || `Saved results for ${setLabel(child, week.weekNum)}`)}</p>` : ''}
       <div class="trophy" role="img" aria-label="${msg}">${trophy}</div>
       <h1>${msg}</h1>
       <div class="total-score" id="total-score">${L.total} / ${L.maxTotal}</div>
@@ -1120,8 +1120,8 @@ async function sendAwards() {
     if (box) box.className = 'save-status is-ok';
     if (text) {
       text.textContent = serverResult
-        ? `Week ${week.weekNum} saved. ${serverResult.askedJev} answer${serverResult.askedJev === 1 ? '' : 's'} were checked for meaning.`
-        : `Week ${week.weekNum} saved.`;
+        ? `${setLabel(child, week.weekNum)} saved. ${serverResult.askedJev} answer${serverResult.askedJev === 1 ? '' : 's'} were checked for meaning.`
+        : `${setLabel(child, week.weekNum)} saved.`;
     }
     return;
   }
@@ -1130,7 +1130,7 @@ async function sendAwards() {
   try {
     const r = await apiAward(child, awards);
     if (box) box.className = 'save-status is-ok';
-    if (text) text.textContent = `Week ${week.weekNum} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
+    if (text) text.textContent = `${setLabel(child, week.weekNum)} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
     // The server recomputed the totals from its own rows, so the page takes
     // them rather than keeping its own running sum. A drill band can move when
     // a referred drill item is awarded, and the server is the authority on it.
@@ -1152,7 +1152,7 @@ async function sendAwards() {
       toMark = [];
       markIdx = 0;
       reviewMode = true;
-      savedMsg = `Week ${week.weekNum} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
+      savedMsg = `${setLabel(child, week.weekNum)} saved, ${r.total} out of ${r.outOf}. Check the dashboard.`;
       if (r.reviews && r.reviews.length) {
         savedMsg += ` A second look disagrees on ${r.reviews.map((x) => x.questionId).join(', ')}, which is on the dashboard to check.`;
       }

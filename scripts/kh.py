@@ -731,6 +731,22 @@ def nsw_families(slot, child):
     return list(ids or [])
 
 
+def is_daily(spine, child, week):
+    """True from the set number where homework went daily (spine.cadence.dailyFrom)."""
+    start = ((spine.get("cadence") or {}).get("dailyFrom") or {}).get(child)
+    return start is not None and week is not None and week >= start
+
+
+def unit(spine, child, week):
+    return "Day" if is_daily(spine, child, week) else "Week"
+
+
+def marks_for(spine, child, week):
+    """The subject split a set must total: the daily split from dailyFrom, the weekly one before."""
+    g = spine["goals"][child]
+    return g["dailyMarks"] if is_daily(spine, child, week) else g["weeklyMarks"]
+
+
 def slots_for(spine, child, week=None, when=None):
     """The slots that apply to this child, in spine order.
 
@@ -829,13 +845,14 @@ def cmd_curriculum(args):
         print("=" * 78)
         print(f"  end state : {goal['endState']}")
         print(f"  posture   : {goal['currentPosture']}")
-        m = goal["weeklyMarks"]
-        print(f"  marks     : {m['total']} total, English {m['english']}, "
-              f"Maths {m['maths']}, Thinking {m['thinking']}")
+        nxt_no = (cur.get("weekNum") or 0) + 1
+        m = marks_for(spine, child, nxt_no)
+        print(f"  marks     : {m['total']} total per {unit(spine, child, nxt_no).lower()}, "
+              f"English {m['english']}, Maths {m['maths']}, Thinking {m['thinking']}")
         if latest:
-            print(f"  last week : W{latest['week']} {latest['score']['total']}/"
+            print(f"  last set  : W{latest['week']} {latest['score']['total']}/"
                   f"{latest['score']['outOf']} ({latest['score']['pct']}%)")
-        print(f"  next week : W{(cur.get('weekNum') or 0)} is loaded now; "
+        print(f"  loaded    : W{(cur.get('weekNum') or 0)} is loaded now; "
               f"position recorded as of W{pos.get('asOfWeek', '?')}")
         print(f"  school    : {term['term']} to {term['ends']}, "
               f"2C topic is \"{term[child]}\""
@@ -1075,20 +1092,32 @@ def cmd_plan(args):
         cur = local[child]["current"] or {}
         next_week = (cur.get("weekNum") or (weeks[-1]["week"] if weeks else 0)) + 1
         goal = spine["goals"][child]
-        # What the last SCORED week was out of, per section. Read once: it used to
-        # be re-read from disk inside the nine slot loop below.
-        scored_totals = {}
-        if weeks:
+        daily = is_daily(spine, child, next_week)
+        # The evidence the spec judges on. Weekly: the last set. Daily: the last
+        # BLOCK of three daily sets combined, because two or three items a day is
+        # too thin to judge alone (spine.cadence.evidence). Before any daily set
+        # exists the last weekly set stands in as a full block.
+        dailies = [w for w in weeks if is_daily(spine, child, w["week"])]
+        block = dailies[-3:] if dailies else weeks[-1:]
+        block_full = len(block) == 3 or not dailies
+        # What each block set was out of, per section. Read once, not per slot.
+        block_totals = {}
+        for w in block:
             qset = read_json(os.path.join(
-                DATA, "children", child, "question-sets", f"w{weeks[-1]['week']}.json")) or {}
-            scored_totals = {x["id"]: x.get("totalMarks") for x in qset.get("sections", [])}
+                DATA, "children", child, "question-sets", f"w{w['week']}.json")) or {}
+            block_totals[w["week"]] = {x["id"]: x.get("totalMarks") for x in qset.get("sections", [])}
+        split = marks_for(spine, child, next_week)
 
         print("=" * 78)
-        print(f"SPEC FOR {child.upper()} WEEK {next_week}")
+        print(f"SPEC FOR {child.upper()} {unit(spine, child, next_week).upper()} {next_week}")
         print("=" * 78)
-        print(f"  total {goal['weeklyMarks']['total']} marks: "
-              f"English {goal['weeklyMarks']['english']}, Maths {goal['weeklyMarks']['maths']}, "
-              f"Thinking {goal['weeklyMarks']['thinking']}")
+        print(f"  total {split['total']} marks: "
+              f"English {split['english']}, Maths {split['maths']}, "
+              f"Thinking {split['thinking']}")
+        if daily:
+            print(f"  DAILY SET: {spine['cadence']['shape']['questions']}")
+            print(f"  evidence block: {', '.join('W' + str(w['week']) for w in block) or 'none yet'}"
+                  + ("" if block_full else " (incomplete, so no slot is a candidate to advance)"))
         print(f"  school term {term['term']} to {term['ends']}, 2C topic \"{term[child]}\"")
         if term.get("source") == "planned":
             print("  that term row is PLANNED, not the school's published topic. Replace it when "
@@ -1130,9 +1159,6 @@ def cmd_plan(args):
             blocking = [g for g in blocking if g["status"] in ("new", "persists")]
 
             # was the last attempt at this rung hinted, or inconclusive?
-            last_marks = None
-            if weeks and weeks[-1].get("sectionMarks"):
-                last_marks = weeks[-1]["sectionMarks"].get(sid)
             last_section = next((x for x in cur.get("sections", []) if x["id"] == sid), None)
             # Hinted two ways: the section declared it when it was written, or the
             # weekly review found the rule printed in the questions and recorded it
@@ -1143,7 +1169,7 @@ def cmd_plan(args):
             # the spine wins when it fixes a slot's marks for this child: that
             # is how a re-split reaches the spec instead of last week's numbers
             # being copied forward for ever
-            fixed = (slot.get("marks") or {}).get(child)
+            fixed = (slot.get("dailyMarks" if daily else "marks") or {}).get(child)
             out_of = fixed if fixed is not None else (
                 last_section.get("totalMarks") if last_section else None)
             # The percentage must divide last week's marks by what last week was
@@ -1152,8 +1178,11 @@ def cmd_plan(args):
             # 6 out of 6 then read as 120 percent and the spec offered to advance
             # the rung off it. A score over 100 is the signal that the two came
             # from different weeks.
-            denom = scored_totals.get(sid) or out_of
-            pct = round(last_marks / denom * 100) if last_marks is not None and denom else None
+            got = [((w.get("sectionMarks") or {}).get(sid), block_totals[w["week"]].get(sid) or out_of)
+                   for w in block]
+            got = [(m, d) for m, d in got if m is not None and d]
+            pct = round(sum(m for m, _ in got) / sum(d for _, d in got) * 100) if got else None
+            hinted_in_block = any(sid in (w.get("hintedSections") or []) for w in block)
 
             print(f"  [{sid}] {slot['purpose']}")
             print(f"       marks   : {out_of if out_of else '?'}   subject {slot['subject']}")
@@ -1170,11 +1199,11 @@ def cmd_plan(args):
                 for g in blocking:
                     must.append(f"re-test the open gap: {g['topic'][:66]}")
             if was_hinted:
-                must.append("last week was HINTED, so this week must be UNHINTED or the rung "
+                must.append("the last set was HINTED, so this set must be UNHINTED or the rung "
                             "still cannot be evidenced")
             if pct is not None and pct < 95:
-                must.append(f"last score {pct}%, so open with a worked example box, then drill "
-                            "at the same level")
+                must.append(f"{'block' if daily else 'last'} score {pct}%, so open with a worked "
+                            "example box, then drill at the same level")
             # A rung recorded as starting next week has never been sat, so last
             # week's score belongs to the rung BELOW it and says nothing about
             # advancing again. Without this the spec tells you to skip a rung the
@@ -1194,17 +1223,19 @@ def cmd_plan(args):
                             "Kumon level and not a score. Not a candidate to advance however high "
                             "the section scores, and a long hold here is NOT a stalled slot. Raise "
                             "it only when Nik says the level has moved.")
-            elif pct is not None and pct >= 95 and not blocking and not was_hinted:
+            elif pct is not None and pct >= 95 and not blocking and not was_hinted \
+                    and block_full and not hinted_in_block:
                 nxt = rungs[idx + 1] if idx is not None and idx + 1 < len(rungs) else None
-                must.append(f"last score {pct}% and nothing blocking: this is a candidate to "
+                must.append(f"{'block' if daily else 'last'} score {pct}% and nothing blocking: "
+                            f"this is a candidate to "
                             f"advance to {nxt['id'] + ' ' + nxt['skill'] if nxt else 'a harder variant'}")
             if slot.get("inferredRule"):
                 must.append("the rule must be INFERRED, so do not state it in the passage")
             if sid == "2C":
                 must.append(f"school topic this half term: {term[child]}")
             if sid == "2A":
-                must.append("scoreBand true, scoreBandRules included, at least 30 items, "
-                            "first third easy, last third harder")
+                must.append(f"scoreBand true, scoreBandRules included, {'12' if daily else 'at least 30'} "
+                            "items, first third easy, last third harder")
 
             for m in must:
                 print(f"       MUST    : {m}")
@@ -1342,17 +1373,30 @@ def check_nsw_alignment(spine, local=None):
     js = os.path.join(ROOT, "assets", "dashboard.js")
     if os.path.exists(js):
         src = open(js, encoding="utf-8").read()
-        for child in CHILDREN:
-            want = spine["goals"][child]["weeklyMarks"]
-            m = re.search(rf"{child}:\s*\{{([^}}]*)\}}", src)
-            if not m:
-                problems.append(f"assets/dashboard.js has no weekly marks row for {child}")
-                continue
-            got = {k: int(v) for k, v in re.findall(r"(\w+):\s*(\d+)", m.group(1))}
-            for key in ("english", "maths", "thinking", "total"):
-                if got.get(key) != want.get(key):
-                    problems.append(f"assets/dashboard.js says {child} {key} is {got.get(key)}, "
-                                    f"the spine says {want.get(key)}")
+        # MAX holds the weekly split (history before the daily switch), DAILY_MAX
+        # the daily one. Each is matched inside its own constant.
+        for const, goal_key in (("MAX", "weeklyMarks"), ("DAILY_MAX", "dailyMarks")):
+            body = re.search(rf"const {const} = \{{(.*?)\n\}};", src, re.S)
+            for child in CHILDREN:
+                want = spine["goals"][child][goal_key]
+                m = body and re.search(rf"{child}:\s*\{{([^}}]*)\}}", body.group(1))
+                if not m:
+                    problems.append(f"assets/dashboard.js {const} has no row for {child}")
+                    continue
+                got = {k: int(v) for k, v in re.findall(r"(\w+):\s*(\d+)", m.group(1))}
+                for key in ("english", "maths", "thinking", "total"):
+                    if got.get(key) != want.get(key):
+                        problems.append(f"assets/dashboard.js {const} says {child} {key} is "
+                                        f"{got.get(key)}, the spine {goal_key} says {want.get(key)}")
+    # config.js tells the pages where Week labels turn into Day labels.
+    cfg = os.path.join(ROOT, "assets", "config.js")
+    if os.path.exists(cfg):
+        src = open(cfg, encoding="utf-8").read()
+        for child, start in ((spine.get("cadence") or {}).get("dailyFrom") or {}).items():
+            m = re.search(rf"{child}:\s*(\d+)", (re.search(r"DAILY_FROM = \{([^}]*)\}", src) or [None, ""])[1])
+            if not m or int(m.group(1)) != start:
+                problems.append(f"assets/config.js DAILY_FROM for {child} does not match "
+                                f"spine.cadence.dailyFrom ({start})")
 
     if term_table_exhausted(spine):
         last = spine["schoolSync"]["terms"][-1]
@@ -1421,7 +1465,7 @@ def check_coverage(local, spine):
             continue
         week = cur.get("weekNum")
         sections = {s["id"]: s for s in cur.get("sections", [])}
-        goal = spine["goals"][child]["weeklyMarks"]
+        goal = marks_for(spine, child, week)
         slots = (((position.get("children") or {}).get(child) or {}).get("slots")) or {}
         # improving is still open: a hinted pass keeps a gap IMPROVING, and it must still be re-tested
         gaps = [g for g in local[child]["gaps"] if g.get("status") not in ("resolved", "parked")]

@@ -1,13 +1,13 @@
 ---
 name: homework
-description: Run the weekly homework cycle after one or both children submit. Marks the week properly, diagnoses gaps, updates the dashboard, and builds next week against the NSW placement test plan. Use when Nik says the kids have finished, or types /homework.
+description: Run the daily homework cycle after one or both children submit. Marks the set properly, diagnoses gaps, updates the dashboard, and builds the next day's set against the NSW placement test plan. Use when Nik says the kids have finished, or types /homework.
 trigger: /homework
 model: opus
 ---
 
 # /homework
 
-One command for the whole weekly cycle. Run it when either child has submitted.
+One command for the whole daily cycle. Run it when either child has submitted.
 
 ```
 /homework                 both children, whoever has new work
@@ -15,6 +15,34 @@ One command for the whole weekly cycle. Run it when either child has submitted.
 /homework --dry           read and report, change nothing
 /homework --next          resume at step 8 after Nik has answered
 ```
+
+## Daily, not weekly (from 17 Nov 2026)
+
+The children now do homework **every day**. Each daily set is about 45 percent of the old weekly
+set. The rules live in `curriculum/spine.json` under `cadence`; read it. The short version:
+
+| | Mason | Elysia |
+|---|---|---|
+| First daily set | 30 | 29 |
+| Marks | 25: English 9, Maths 9, Thinking 7 | 20: English 7, Maths 7, Thinking 6 |
+| Split | 1A 3, 1B 2, 1C 2, 1D 2, 2A 3, 2B 3, 2C 3, 3A 2, 3B 3, 3C 2 | 1A 3, 1B 2, 1C 2, 2A 3, 2B 2, 2C 2, 3A 2, 3B 2, 3C 2 |
+| Questions | 33, about 30 minutes | 29, about 25 minutes |
+
+- **Every slot is still in every set**, so every rung and every open gap is still tested each day.
+  Only the size shrinks. Non drill questions are 1 mark each. 2A is a 12 item drill worth 3, bands
+  `[[12,12,3],[10,11,2],[7,9,1],[0,6,0]]`. 1D is one short writing task worth 2. 1A passages are
+  100 to 180 words.
+- **The number N keeps counting.** It is still `week` in the database, the API and every command
+  (`/score mason 31`). Pages label N below the first daily set "Week N" and from it "Day N".
+- **Evidence comes in blocks of three daily sets.** Where an `advanceWhen` says "week", read a block
+  of three consecutive daily sets combined per section. "Two clean weeks" is the last six daily
+  sets at full marks. The 95 and 80 percent thresholds apply to the block. `kh.py plan` prints the
+  block it judged on and refuses to call a slot a candidate until the block is complete.
+- **One gap observation per daily set**, as before per cycle. RESOLVED needs THREE clean
+  appearances now, because a daily re-test is often a single item.
+- Two sets submitted within **12 hours** of each other count as one data point.
+
+Wherever this file says "week" below, it means one homework set, now a day.
 
 ## What this is for
 
@@ -46,7 +74,7 @@ Three consequences that bite every week:
    Mathematical Reasoning five, and only the writing task is open. Free text is still the right
    format while a rung is being learned, because it shows the method and feeds the gap log. Once a
    rung is being consolidated, put it in the real format: no partial credit, no marks for working,
-   about one minute an item. Aim for at least one section a week in exam format, rising as 2029
+   about one minute an item. Aim for at least one section a set in exam format, rising as 2029
    gets closer, and say in step 7 which one it was.
 
 ## The one rule
@@ -163,7 +191,7 @@ Rules that do not bend:
 - A `--mark` difference that is genuinely old and settled still prints every week. Write the
   explanation into that week's `notes` once, so the next run is not re-investigating it.
 - Drill sections report the correct count and the band, plus any slip inside the top band.
-- Two submissions inside 48 hours count as ONE data point for advancement. Check `submittedAt`.
+- Two submissions inside 12 hours count as ONE data point for advancement. Check `submittedAt`.
 - Record each error as section, question, topic, the child's answer, the correct answer.
 
 ## Step 5. Diagnose gaps and write the week up
@@ -196,7 +224,7 @@ not active and takes no observation.
 
 Count them before pushing: active gaps in, observations appended, same number out.
 
-- **Never resolve on one good week.** RESOLVED needs two clean appearances on unhinted,
+- **Never resolve on one good set.** RESOLVED needs three clean appearances on unhinted,
   unambiguous items.
 - A section marked `hinted: true` records `true` but stays IMPROVING. A hinted pass proves only
   that the child can copy.
@@ -204,7 +232,7 @@ Count them before pushing: active gaps in, observations appended, same number ou
   why in the detail.
 - An ambiguous question is inconclusive: record `null` and retire the item into
   `curriculum/spine.json` under `retired`.
-- A gap untested for 6 or more weeks: flag it in step 7 and ask to retest or close.
+- A gap untested for 6 or more sets in a row: flag it in step 7 and ask to retest or close.
 - **A resolved gap that comes back is re-opened, not re-created.** Set its status to `persists`,
   append the `0`, and say in the detail which week closed it and which week broke it. A second
   gap with the same topic splits the history in two.
@@ -286,7 +314,7 @@ node scripts/advance-evidence.mjs <child> <N>  # per slot: the facts to hold on,
 ```
 
 Be the devil's advocate. Flag weak evidence and recommend hold:
-- submitted within 48 hours of the previous week
+- submitted within 12 hours of the previous set
 - the section was hinted
 - several items in a set shared the same answer, so a pattern guess would score
 - a known gap on that rung is still open
@@ -302,7 +330,7 @@ Give Nik:
 5. Slots that trigger advancement, with the rung ids and your recommendation.
 6. **Exam coverage**: which NSW families this week exercised, which section was in exam format,
    and the running count per child, x of 32. Name any family that has been at zero for a month.
-7. What next week will contain per child, each section against the family it serves.
+7. What the next daily set will contain per child, each section against the family it serves.
 8. **Decisions he must make, numbered, each answerable yes or no.**
 
 **Keep that list short.** CLAUDE.md section 2 says decide, do not ask. Only three kinds of item
@@ -319,7 +347,7 @@ before step 8 rather than after the week is built without it.
 
 ---
 
-## Step 8. Build next week (only after he replies)
+## Step 8. Build the next daily set (only after he replies)
 
 **Standing instruction, Nik 11 Oct 2026: progression is this skill's job, not his.** Every built
 week is built at the rung `kh.py plan` prints for each slot, and step 7 says per slot whether it
@@ -342,7 +370,8 @@ scripts/kh.py plan <child>
 
 That prints the spec: the rung to build each slot at, the evidence that rung needs, the gaps
 that must be re-tested, whether last week was hinted, the school topic for 2C, and the drill
-rules. **Build to that spec.** Do not design a week and check it afterwards.
+rules. **Build to that spec.** Do not design a set and check it afterwards. From the first daily
+set the spec prints the daily marks per slot; a non drill section's marks are its question count.
 
 For each slot, before writing a single question, say to yourself: *which NSW family does this
 section serve, and would a child who aced it be better at that item type?* If the answer is no,
