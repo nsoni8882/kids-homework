@@ -128,7 +128,7 @@
 
     --text: #EEF2F8;
     --text-2: #B3BECE;
-    --text-3: #8D99AB;
+    --text-3: #A3AEBF;
 
     --ok: #4ADE9E;
     --ok-wash: #10291F;
@@ -167,7 +167,7 @@
   --surface: #151C27; --surface-2: #1B2431; --surface-3: #232D3D;
   --border: #2B3647; --border-strong: #3C4A60;
   --topbar-bg: color-mix(in srgb, var(--surface) 88%, transparent);
-  --text: #EEF2F8; --text-2: #B3BECE; --text-3: #8D99AB;
+  --text: #EEF2F8; --text-2: #B3BECE; --text-3: #A3AEBF;
   --ok: #4ADE9E; --ok-wash: #10291F;
   --warn: #FBBF5E; --warn-wash: #2B2010;
   --bad: #FF8098; --bad-wash: #2E1319;
@@ -518,15 +518,14 @@ details.disclose[open] > summary svg.chev { transform: rotate(90deg); }
 
 .note-body {
   font-size: .86rem; line-height: 1.65; color: var(--text-2);
-  background: var(--surface-2); border-left: 3px solid var(--accent-edge);
-  border-radius: 0 var(--r-md) var(--r-md) 0; padding: var(--s3) var(--s4);
+  background: var(--accent-wash); border: 1px solid var(--accent-edge);
+  border-radius: var(--r-md); padding: var(--s3) var(--s4);
   white-space: pre-wrap;
 }
 
 .passage {
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
-  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+  background: var(--surface-2); border: 2px solid var(--accent-edge);
+  border-radius: var(--r-lg);
   padding: var(--s4) var(--s5); margin-bottom: var(--s5);
 }
 .passage-label {
@@ -718,7 +717,7 @@ details.rm-sec > summary:hover { color: var(--accent-ink); }
   border-radius: var(--r-lg); padding: var(--s4) var(--s5); margin-bottom: var(--s4);
   box-shadow: var(--sh-1);
 }
-.q-card-parent { border-left: 4px solid var(--warn); }
+.q-card-parent { border: 2px solid var(--warn); background: color-mix(in srgb, var(--warn-wash) 55%, var(--surface)); }
 .q-top { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
 .q-num {
   font-family: var(--font-head); font-weight: 800; font-size: .8rem;
@@ -834,9 +833,14 @@ details.rm-sec > summary:hover { color: var(--accent-ink); }
 .wrong-group-label { font-family: var(--font-head); font-weight: 800; font-size: .88rem; color: var(--text-2); }
 .wrong-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-left: 4px solid var(--bad); border-radius: var(--r-md); padding: var(--s4);
+  border: 2px solid color-mix(in srgb, var(--bad) 45%, var(--border));
+  background: color-mix(in srgb, var(--bad-wash) 50%, var(--surface));
+  border-radius: var(--r-md); padding: var(--s4);
 }
-.wrong-card.parent-card { border-left-color: var(--warn); }
+.wrong-card.parent-card {
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
+  background: color-mix(in srgb, var(--warn-wash) 50%, var(--surface));
+}
 .wrong-q-text { font-size: .92rem; line-height: 1.6; margin: var(--s2) 0 var(--s3); }
 .wrong-grid { display: grid; gap: var(--s3); }
 @media (min-width: 560px) { .wrong-grid:not(.single) { grid-template-columns: 1fr 1fr; } }
@@ -907,20 +911,14 @@ details.rm-sec > summary:hover { color: var(--accent-ink); }
    Motion preference
    -------------------------------------------------------------------------- */
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
-  }
-  .btn:active:not(:disabled), .mark-btn:active { transform: none; }
-}
+/* Reduced motion keeps the feedback and drops the movement: state changes
+   still fade or ring instead of vanishing. The rule at the end of the file
+   swaps the moving keyframes for calm ones. */
 
 @media print {
   .topbar, .section-nav, .btn, .tabs { display: none !important; }
-  body { background: #fff; }
-  .card, .q-card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+  body { background: #fff; color: #1a1a1a; }
+  .card, .q-card, .hero, .passage, .wrong-card { background: #fff; color: #1a1a1a; box-shadow: none; border-color: #ccc; break-inside: avoid; }
 }
 
 
@@ -931,16 +929,12 @@ details.rm-sec > summary:hover { color: var(--accent-ink); }
 /* Hero: the one line that answers "how did this week go" before any chart. */
 .hero {
   position: relative; overflow: hidden;
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--accent-wash), var(--surface) 55%);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   padding: var(--s6);
   box-shadow: var(--sh-2);
   display: grid; gap: var(--s4);
-}
-.hero::after {
-  content: ''; position: absolute; inset: 0 0 auto 0; height: 3px;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 25%, transparent));
 }
 .hero-top { display: flex; align-items: flex-start; gap: var(--s4); flex-wrap: wrap; }
 .hero-score {
@@ -1155,7 +1149,7 @@ html[data-app="worksheet"] {
   --clay-sm: 0 5px 14px -6px rgba(74, 56, 32, .20), 0 1px 3px rgba(74, 56, 32, .09),
              inset 0 1px 0 rgba(255, 255, 255, .7);
   --clay-in: inset 0 3px 7px rgba(74, 56, 32, .16), inset 0 -1px 0 rgba(255, 255, 255, .6);
-  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-pop: cubic-bezier(.22, 1, .36, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1226,7 +1220,7 @@ html[data-app="worksheet"] .brand-mark {
   width: 42px; height: 42px; border-radius: 16px;
   background: linear-gradient(160deg, var(--accent) 0%, var(--accent-ink) 100%);
   color: var(--on-accent); border: 0; box-shadow: var(--clay-sm);
-  transition: transform var(--t-base) var(--spring);
+  transition: transform var(--t-base) var(--ease-pop);
 }
 html[data-app="worksheet"] .brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
 html[data-app="worksheet"] .brand-title { font-size: 1.1rem; }
@@ -1241,7 +1235,7 @@ html[data-app="worksheet"] .btn-icon:active { transform: scale(.92); box-shadow:
 html[data-app="worksheet"] .btn {
   border: 0; border-radius: var(--r-md); font-family: var(--font-head);
   font-weight: 700; letter-spacing: .01em;
-  transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease),
+  transition: transform var(--t-fast) var(--ease-pop), box-shadow var(--t-fast) var(--ease),
               background-color var(--t-fast) var(--ease);
 }
 html[data-app="worksheet"] .btn-primary {
@@ -1258,7 +1252,7 @@ html[data-app="worksheet"] .btn-lg {
 }
 /* The one primary action on the welcome screen breathes, so a child knows
    where to press without reading anything. */
-html[data-app="worksheet"] .welcome-actions .btn-primary.btn-lg { animation: breathe 2.8s ease-in-out infinite; }
+html[data-app="worksheet"] .welcome-actions .btn-primary.btn-lg { animation: breathe 2.8s ease-in-out 3; }
 @keyframes breathe {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.025); }
@@ -1273,7 +1267,7 @@ html[data-app="worksheet"] .welcome-mark {
   background: linear-gradient(160deg,
     color-mix(in srgb, var(--accent) 70%, white) 0%, var(--accent) 100%);
   color: var(--on-accent); box-shadow: var(--clay);
-  animation: bob 4.5s ease-in-out infinite;
+  animation: bob 4.5s ease-in-out 2;
 }
 html[data-app="worksheet"] .welcome-mark svg { width: 54px; height: 54px; stroke-width: 2; }
 @keyframes bob {
@@ -1298,9 +1292,9 @@ html[data-app="worksheet"] .section-chip {
   flex-direction: column; align-items: flex-start; gap: var(--s1);
   border: 0; border-radius: var(--r-md); padding: var(--s4);
   box-shadow: var(--clay-sm); font-weight: 600;
-  animation: popIn 320ms var(--spring) both;
+  animation: popIn 320ms var(--ease-pop) both;
   animation-delay: calc(min(var(--i, 0), 10) * 45ms);
-  transition: transform var(--t-base) var(--spring);
+  transition: transform var(--t-base) var(--ease-pop);
 }
 html[data-app="worksheet"] .section-chip:hover { transform: translateY(-3px) rotate(-1deg); }
 html[data-app="worksheet"] .section-chip .chip-marks {
@@ -1336,13 +1330,13 @@ html[data-app="worksheet"] .progress-fill {
 .step-dot {
   width: 13px; height: 13px; border-radius: var(--r-full);
   background: var(--surface-3); box-shadow: var(--clay-in); flex: none;
-  transition: transform var(--t-base) var(--spring), background-color var(--t-base) var(--ease);
+  transition: transform var(--t-base) var(--ease-pop), background-color var(--t-base) var(--ease);
 }
 .step-dot.is-done { background: var(--play-2); box-shadow: var(--clay-sm); }
 .step-dot.is-now {
   width: 30px; border-radius: var(--r-full);
   background: var(--accent); box-shadow: var(--clay-sm);
-  animation: dotPop 380ms var(--spring) both;
+  animation: dotPop 380ms var(--ease-pop) both;
 }
 @keyframes dotPop { from { transform: scale(.5); } to { transform: none; } }
 
@@ -1365,7 +1359,7 @@ html[data-app="worksheet"] .section-meta > span {
 }
 html[data-app="worksheet"] .timer { font-family: var(--font-head); font-size: 1rem; }
 html[data-app="worksheet"] .timer-over {
-  background: var(--warn-wash); color: var(--warn); animation: nudge 2s ease-in-out infinite;
+  background: var(--warn-wash); color: var(--warn); animation: nudge 2s ease-in-out 4;
 }
 @keyframes nudge {
   0%, 92%, 100% { transform: none; }
@@ -1395,7 +1389,7 @@ html[data-app="worksheet"] .mode-bar { border: 0; box-shadow: var(--clay-sm); }
 html[data-app="worksheet"] .q-card {
   border: 0; border-radius: var(--r-lg); box-shadow: var(--clay-sm);
   padding: var(--s5); margin-bottom: var(--s4);
-  animation: popIn 340ms var(--spring) both;
+  animation: popIn 340ms var(--ease-pop) both;
   /* capped, so a 30 item drill does not keep the last tile waiting a second */
   animation-delay: calc(min(var(--i, 0), 10) * 40ms);
 }
@@ -1455,9 +1449,9 @@ html[data-app="worksheet"] .letter-item,
 html[data-app="worksheet"] .number-item {
   border: 0; border-radius: var(--r-md); box-shadow: var(--clay-sm);
   padding: var(--s3); background: var(--surface);
-  animation: popIn 300ms var(--spring) both;
+  animation: popIn 300ms var(--ease-pop) both;
   animation-delay: calc(min(var(--i, 0), 24) * 16ms);
-  transition: transform var(--t-fast) var(--spring);
+  transition: transform var(--t-fast) var(--ease-pop);
 }
 html[data-app="worksheet"] .number-item { background: color-mix(in srgb, var(--play-2) 11%, var(--surface)); }
 html[data-app="worksheet"] .letter-item { background: color-mix(in srgb, var(--play-5) 11%, var(--surface)); }
@@ -1483,7 +1477,7 @@ html[data-app="worksheet"] .number-input:not(:placeholder-shown) {
   background: color-mix(in srgb, var(--accent) 10%, var(--surface));
   color: var(--accent-ink);
   box-shadow: var(--clay-in), 0 0 0 3px color-mix(in srgb, var(--accent) 50%, transparent);
-  animation: tilePop 260ms var(--spring);
+  animation: tilePop 260ms var(--ease-pop);
 }
 @keyframes tilePop {
   0%   { transform: scale(1); }
@@ -1503,13 +1497,13 @@ html[data-app="worksheet"] .mark-btn {
   width: 58px; height: 58px; border: 0; border-radius: 20px;
   background: var(--surface); box-shadow: var(--clay-sm);
   font-family: var(--font-head); font-weight: 800; font-size: 1.25rem;
-  transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease);
+  transition: transform var(--t-fast) var(--ease-pop), box-shadow var(--t-fast) var(--ease);
 }
 html[data-app="worksheet"] .mark-btn:active { transform: translateY(2px) scale(.94); box-shadow: var(--clay-in); }
 html[data-app="worksheet"] .mark-btn[aria-pressed="true"] {
   background: linear-gradient(160deg,
     color-mix(in srgb, var(--accent) 72%, white), var(--accent));
-  animation: tilePop 280ms var(--spring);
+  animation: tilePop 280ms var(--ease-pop);
 }
 html[data-app="worksheet"] .answer-block,
 html[data-app="worksheet"] .scheme-block { border-radius: var(--r-md); }
@@ -1517,7 +1511,7 @@ html[data-app="worksheet"] .scheme-block { border-radius: var(--r-md); }
 /* --------------------------------------------------------------- results */
 
 html[data-app="worksheet"] .trophy {
-  font-size: 4.6rem; animation: trophyIn 620ms var(--spring) both, bob 4s ease-in-out 620ms infinite;
+  font-size: 4.6rem; animation: trophyIn 620ms var(--ease-pop) both, bob 4s ease-in-out 620ms 2;
 }
 @keyframes trophyIn {
   from { opacity: 0; transform: scale(.3) rotate(-25deg); }
@@ -1525,7 +1519,7 @@ html[data-app="worksheet"] .trophy {
 }
 html[data-app="worksheet"] .total-score {
   font-size: clamp(3rem, 15vw, 4.4rem);
-  animation: popIn 420ms var(--spring) 180ms both;
+  animation: popIn 420ms var(--ease-pop) 180ms both;
 }
 html[data-app="worksheet"] .pct-track { height: 20px; box-shadow: var(--clay-in); background: var(--surface-3); }
 html[data-app="worksheet"] .pct-fill {
@@ -1535,7 +1529,7 @@ html[data-app="worksheet"] .pct-fill {
 html[data-app="worksheet"] .subj-row {
   border: 0; border-radius: var(--r-md); box-shadow: var(--clay-sm); padding: var(--s4);
   font-size: 1.02rem;
-  animation: popIn 320ms var(--spring) both;
+  animation: popIn 320ms var(--ease-pop) both;
   animation-delay: calc(320ms + var(--i, 0) * 70ms);
 }
 html[data-app="worksheet"] .subj-row:has(.subj-english) { background: color-mix(in srgb, var(--play-5) 13%, var(--surface)); }
@@ -1548,7 +1542,7 @@ html[data-app="worksheet"] .save-status { border: 0; box-shadow: var(--clay-sm);
 /* A line of encouragement under the score. Words, not just a colour. */
 .cheer {
   font-family: var(--font-head); font-weight: 700; font-size: 1.05rem;
-  color: var(--text-2); animation: popIn 360ms var(--spring) 260ms both;
+  color: var(--text-2); animation: popIn 360ms var(--ease-pop) 260ms both;
 }
 
 /* Confetti. Pure decoration, aria-hidden, and gone the moment a viewer asks
@@ -1671,3 +1665,26 @@ html[data-app="worksheet"] .error-card { border: 0; box-shadow: var(--clay-sm); 
 @media (prefers-reduced-motion: reduce) { .rv-mark-bad { transition: none; } }
 
 .why-tech { margin: 0; font-size: .72rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   Reduced motion. Nothing travels, spins loops or bounces, but a change of
+   state still shows: entrances fade, a chosen tile gets a ring that fades out,
+   transitions keep colour, border, shadow and opacity. Spinners keep turning
+   because they are the only sign that something is loading.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    transition-property: color, background-color, border-color, box-shadow, opacity !important;
+  }
+  @keyframes popIn    { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes dotPop   { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes trophyIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes tilePop  { from { box-shadow: 0 0 0 4px var(--accent); } to { box-shadow: 0 0 0 0 transparent; } }
+  @keyframes bob { from { transform: none; } to { transform: none; } }
+  @keyframes breathe { from { transform: none; } to { transform: none; } }
+  @keyframes nudge { from { transform: none; } to { transform: none; } }
+  @keyframes blobDriftA { from { transform: none; } to { transform: none; } }
+  @keyframes blobDriftB { from { transform: none; } to { transform: none; } }
+  .btn:active:not(:disabled), .mark-btn:active { transform: none; }
+}
