@@ -510,7 +510,10 @@ function updateAnswered() {
   box.hidden = false;
   const done = fields.filter((el) => el.value.trim() !== '').length;
   const full = done === fields.length;
-  box.className = full ? 'answered-chip is-full' : 'answered-chip';
+  // a little hop each time the count goes up, and a bigger one when the section is full
+  const grew = done > (box._done || 0);
+  box._done = done;
+  box.className = (full ? 'answered-chip is-full' : 'answered-chip') + (grew ? (full ? ' hooray' : ' bump') : '');
   box.innerHTML = `${icon(full ? 'checkCircle' : 'pencil', 'i i-sm')} ${
     full ? `All ${fields.length} answered` : `${done} of ${fields.length} answered`}`;
 }
